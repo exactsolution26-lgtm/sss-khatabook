@@ -1,16 +1,23 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'tables/account_table.dart';
+import 'tables/income_table.dart';
+import 'tables/expense_table.dart';
+import 'tables/work_table.dart';
 
 class DBHelper {
+  static final DBHelper instance = DBHelper._init();
   static Database? _db;
 
-  static Future<Database> get database async {
+  DBHelper._init();
+
+  Future<Database> get database async {
     if (_db != null) return _db!;
     _db = await _initDB();
     return _db!;
   }
 
-  static Future<Database> _initDB() async {
+  Future<Database> _initDB() async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, 'offline_khata.db');
 
@@ -18,27 +25,10 @@ class DBHelper {
       path,
       version: 1,
       onCreate: (db, version) async {
-
-        // Accounts table (already added)
-        await db.execute('''
-          CREATE TABLE accounts (
-            id INTEGER PRIMARY KEY,
-            cash_balance REAL,
-            bank_balance REAL
-          )
-        ''');
-
-        // Expenses table (NEW – Step 6)
-        await db.execute('''
-          CREATE TABLE expenses (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            amount REAL,
-            mode TEXT,
-            category TEXT,
-            note TEXT,
-            date TEXT
-          )
-        ''');
+        await db.execute(AccountTable.createTable);
+        await db.execute(IncomeTable.createTable);
+        await db.execute(ExpenseTable.createTable);
+        await db.execute(WorkTable.createTable);
       },
     );
   }

@@ -27,6 +27,8 @@ class AppStrings {
   static const String start = 'Start';
   static const String pause = 'Pause';
   static const String stop = 'Stop';
+  static const String submit = 'Submit';
+  static const String cancel = 'Cancel';
 
   // Messages
   static const String accountSaved = 'Account saved successfully';

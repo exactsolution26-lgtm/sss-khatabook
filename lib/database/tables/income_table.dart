@@ -1,3 +1,7 @@
+import 'package:sqflite/sqflite.dart';
+import '../db_helper.dart';
+import '../../models/income_model.dart';
+
 class IncomeTable {
   static const String tableName = 'income';
 
@@ -19,4 +23,23 @@ class IncomeTable {
       FOREIGN KEY ($accountId) REFERENCES accounts($id)
     )
   ''';
+
+  static Future<int> insert(IncomeModel income) async {
+    final db = await DBHelper.instance.database;
+    return await db.insert(tableName, income.toMap());
+  }
+
+  static Future<List<IncomeModel>> getAll() async {
+    final db = await DBHelper.instance.database;
+    final maps = await db.query(tableName, orderBy: '$date DESC');
+    return maps.map((map) => IncomeModel.fromMap(map)).toList();
+  }
+
+  static Future<double> getTotalIncome() async {
+    final db = await DBHelper.instance.database;
+    final result = await db.rawQuery(
+      'SELECT SUM($amount) as total FROM $tableName',
+    );
+    return (result.first['total'] as num?)?.toDouble() ?? 0.0;
+  }
 }

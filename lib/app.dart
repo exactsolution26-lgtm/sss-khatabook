@@ -11,7 +11,7 @@ class MyApp extends StatelessWidget {
       title: 'Offline Khata App',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      initialRoute: AppRoutes.openingBalance,
+      initialRoute: AppRoutes.home,
       routes: AppRoutes.routes,
     );
   }

@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 
 class SimpleButton extends StatelessWidget {
   final String text;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
+  final bool isLoading;
 
   const SimpleButton({
     super.key,
     required this.text,
-    required this.onPressed,
+    this.onPressed,
+    this.isLoading = false,
   });
 
   @override
@@ -16,8 +18,14 @@ class SimpleButton extends StatelessWidget {
       width: double.infinity,
       height: 48,
       child: ElevatedButton(
-        onPressed: onPressed,
-        child: Text(text),
+        onPressed: isLoading ? null : onPressed,
+        child: isLoading
+            ? const SizedBox(
+                height: 24,
+                width: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Text(text),
       ),
     );
   }

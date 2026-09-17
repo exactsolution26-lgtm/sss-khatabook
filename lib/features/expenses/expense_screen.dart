@@ -3,6 +3,9 @@ import 'expense_controller.dart';
 import '../../models/expense_model.dart';
 import '../../widgets/simple_button.dart';
 import '../../widgets/simple_input.dart';
+import '../../core/constants/app_strings.dart';
+import '../../core/utils/date_utils.dart';
+import '../../core/utils/validation_utils.dart';
 
 class ExpenseScreen extends StatefulWidget {
   const ExpenseScreen({super.key});
@@ -12,13 +15,14 @@ class ExpenseScreen extends StatefulWidget {
 }
 
 class _ExpenseScreenState extends State<ExpenseScreen> {
+  final _formKey = GlobalKey<FormState>();
   final controller = ExpenseController();
-
   final amountController = TextEditingController();
   final categoryController = TextEditingController();
   final noteController = TextEditingController();
 
   String mode = 'cash';
+  bool _isSaving = false;
 
   @override
   void dispose() {
@@ -28,68 +32,102 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
     super.dispose();
   }
 
+  Future<void> _saveExpense() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isSaving = true);
+
+    try {
+      final expense = ExpenseModel(
+        amount: double.tryParse(amountController.text) ?? 0,
+        mode: mode,
+        category: categoryController.text.trim().isEmpty
+            ? null
+            : categoryController.text.trim(),
+        note: noteController.text.trim().isEmpty
+            ? null
+            : noteController.text.trim(),
+        date: DateUtils.formatDate(DateTime.now()),
+      );
+
+      await controller.saveExpense(expense);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text(AppStrings.expenseSaved)),
+        );
+        amountController.clear();
+        categoryController.clear();
+        noteController.clear();
+        setState(() => mode = 'cash');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Add Expense')),
+      appBar: AppBar(title: const Text(AppStrings.addExpense)),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            SimpleInput(
-              hintText: 'Amount',
-              keyboardType: TextInputType.number,
-              controller: amountController,
-            ),
-            const SizedBox(height: 12),
-
-            DropdownButton<String>(
-              value: mode,
-              items: const [
-                DropdownMenuItem(value: 'cash', child: Text('Cash')),
-                DropdownMenuItem(value: 'online', child: Text('Online')),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  mode = value!;
-                });
-              },
-            ),
-
-            const SizedBox(height: 12),
-            SimpleInput(
-              hintText: 'Category',
-              keyboardType: TextInputType.text,
-              controller: categoryController,
-            ),
-
-            const SizedBox(height: 12),
-            SimpleInput(
-              hintText: 'Note (optional)',
-              keyboardType: TextInputType.text,
-              controller: noteController,
-            ),
-
-            const Spacer(),
-            SimpleButton(
-              text: 'Save Expense',
-              onPressed: () async {
-                final expense = ExpenseModel(
-                  amount: double.tryParse(amountController.text) ?? 0,
-                  mode: mode,
-                  category: categoryController.text,
-                  note: noteController.text,
-                  date: DateTime.now().toString(),
-                );
-
-                await controller.saveExpense(expense);
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Expense saved')),
-                );
-              },
-            ),
-          ],
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              SimpleInput(
+                label: AppStrings.amount,
+                keyboardType: TextInputType.number,
+                controller: amountController,
+                validator: ValidationUtils.validateAmount,
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: mode,
+                decoration: const InputDecoration(
+                  labelText: 'Mode',
+                  border: OutlineInputBorder(),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'cash', child: Text('Cash')),
+                  DropdownMenuItem(value: 'online', child: Text('Online')),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    mode = value!;
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
+              SimpleInput(
+                label: AppStrings.description,
+                keyboardType: TextInputType.text,
+                controller: categoryController,
+              ),
+              const SizedBox(height: 16),
+              SimpleInput(
+                label: '${AppStrings.description} ${AppStrings.optional}',
+                keyboardType: TextInputType.text,
+                controller: noteController,
+                maxLines: 2,
+              ),
+              const Spacer(),
+              SimpleButton(
+                text: AppStrings.saveExpense,
+                onPressed: _isSaving ? null : _saveExpense,
+                isLoading: _isSaving,
+              ),
+            ],
+          ),
         ),
       ),
     );
