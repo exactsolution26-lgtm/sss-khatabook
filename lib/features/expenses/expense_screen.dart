@@ -6,6 +6,8 @@ import '../../widgets/simple_input.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/utils/date_utils.dart';
 import '../../core/utils/validation_utils.dart';
+import '../accounts/account_controller.dart';
+import '../../models/account_model.dart';
 
 class ExpenseScreen extends StatefulWidget {
   const ExpenseScreen({super.key});
@@ -17,12 +19,27 @@ class ExpenseScreen extends StatefulWidget {
 class _ExpenseScreenState extends State<ExpenseScreen> {
   final _formKey = GlobalKey<FormState>();
   final controller = ExpenseController();
+  final _accountController = AccountController();
   final amountController = TextEditingController();
   final categoryController = TextEditingController();
   final noteController = TextEditingController();
 
   String mode = 'cash';
   bool _isSaving = false;
+  AccountModel? _account;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAccount();
+  }
+
+  Future<void> _loadAccount() async {
+    final accounts = await _accountController.getAllAccounts();
+    if (accounts.isNotEmpty) {
+      setState(() => _account = accounts.first);
+    }
+  }
 
   @override
   void dispose() {
@@ -39,6 +56,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
 
     try {
       final expense = ExpenseModel(
+        accountId: _account?.id,
         amount: double.tryParse(amountController.text) ?? 0,
         mode: mode,
         category: categoryController.text.trim().isEmpty
@@ -47,7 +65,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
         note: noteController.text.trim().isEmpty
             ? null
             : noteController.text.trim(),
-        date: DateUtils.formatDate(DateTime.now()),
+        date: AppDateUtils.formatDate(DateTime.now()),
       );
 
       await controller.saveExpense(expense);

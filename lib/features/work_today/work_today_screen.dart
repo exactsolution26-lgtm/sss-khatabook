@@ -22,7 +22,7 @@ class WorkTodayScreen extends StatefulWidget {
 class _WorkTodayScreenState extends State<WorkTodayScreen> {
   final _timerService = TimerService();
   final _descriptionController = TextEditingController();
-  final _dbHelper = DbHelper.instance;
+  final _dbHelper = DBHelper.instance;
   bool _isSaving = false;
 
   @override
@@ -34,7 +34,7 @@ class _WorkTodayScreenState extends State<WorkTodayScreen> {
 
   Future<void> _loadTodayWork() async {
     final db = await _dbHelper.database;
-    final today = DateUtils.formatDate(DateTime.now());
+    final today = AppDateUtils.formatDate(DateTime.now());
     final maps = await db.query(
       WorkTable.tableName,
       where: '${WorkTable.date} = ?',
@@ -64,7 +64,7 @@ class _WorkTodayScreenState extends State<WorkTodayScreen> {
 
     try {
       final db = await _dbHelper.database;
-      final today = DateUtils.formatDate(DateTime.now());
+      final today = AppDateUtils.formatDate(DateTime.now());
       
       final work = WorkModel(
         date: DateTime.now(),

@@ -23,8 +23,8 @@ class IncomeModel {
       'account_id': accountId,
       'amount': amount,
       'description': description,
-      'date': DateUtils.formatDate(date),
-      'created_at': DateUtils.formatDateTime(createdAt),
+      'date': AppDateUtils.formatDate(date),
+      'created_at': AppDateUtils.formatDateTime(createdAt),
     };
   }
 
@@ -34,8 +34,8 @@ class IncomeModel {
       accountId: map['account_id'] as int,
       amount: (map['amount'] as num).toDouble(),
       description: map['description'] as String?,
-      date: DateUtils.parseDate(map['date'] as String),
-      createdAt: DateUtils.parseDateTime(map['created_at'] as String),
+      date: AppDateUtils.parseDate(map['date'] as String),
+      createdAt: AppDateUtils.parseDateTime(map['created_at'] as String),
     );
   }
 

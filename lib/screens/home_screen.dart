@@ -13,7 +13,7 @@ class HomeScreen extends StatelessWidget {
         title: const Text(AppStrings.appName),
         elevation: 0,
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSizes.paddingL),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -28,6 +28,7 @@ class HomeScreen extends StatelessWidget {
             GridView.count(
               crossAxisCount: 2,
               shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
               mainAxisSpacing: AppSizes.paddingL,
               crossAxisSpacing: AppSizes.paddingL,
               children: [

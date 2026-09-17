@@ -4,7 +4,7 @@ import '../../database/tables/income_table.dart';
 import '../../models/income_model.dart';
 
 class IncomeController {
-  final DbHelper _dbHelper = DbHelper.instance;
+  final DBHelper _dbHelper = DBHelper.instance;
 
   Future<int> createIncome(IncomeModel income) async {
     final db = await _dbHelper.database;

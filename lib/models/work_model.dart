@@ -22,32 +22,32 @@ class WorkModel {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'date': DateUtils.formatDate(date),
-      'start_time': startTime != null ? DateUtils.formatDateTime(startTime!) : null,
-      'end_time': endTime != null ? DateUtils.formatDateTime(endTime!) : null,
+      'date': AppDateUtils.formatDate(date),
+      'start_time': startTime != null ? AppDateUtils.formatDateTime(startTime!) : null,
+      'end_time': endTime != null ? AppDateUtils.formatDateTime(endTime!) : null,
       'duration': duration,
       'description': description,
-      'created_at': DateUtils.formatDateTime(createdAt),
+      'created_at': AppDateUtils.formatDateTime(createdAt),
     };
   }
 
   factory WorkModel.fromMap(Map<String, dynamic> map) {
     return WorkModel(
       id: map['id'] as int?,
-      date: DateUtils.parseDate(map['date'] as String),
+      date: AppDateUtils.parseDate(map['date'] as String),
       startTime: map['start_time'] != null
-          ? DateUtils.parseDateTime(map['start_time'] as String)
+          ? AppDateUtils.parseDateTime(map['start_time'] as String)
           : null,
       endTime: map['end_time'] != null
-          ? DateUtils.parseDateTime(map['end_time'] as String)
+          ? AppDateUtils.parseDateTime(map['end_time'] as String)
           : null,
       duration: map['duration'] as int,
       description: map['description'] as String?,
-      createdAt: DateUtils.parseDateTime(map['created_at'] as String),
+      createdAt: AppDateUtils.parseDateTime(map['created_at'] as String),
     );
   }
 
-  String get formattedDuration => DateUtils.formatDuration(duration);
+  String get formattedDuration => AppDateUtils.formatDuration(duration);
 
   WorkModel copyWith({
     int? id,

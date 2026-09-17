@@ -39,11 +39,11 @@ class ExpenseTable {
     return maps.map((map) => ExpenseModel.fromMap(map)).toList();
   }
 
-  static Future<double> getTotalExpensesByAccount(int accountId) async {
+  static Future<double> getTotalExpensesByAccount(int accountIdValue) async {
     final db = await DBHelper.instance.database;
     final result = await db.rawQuery(
       'SELECT SUM($amount) as total FROM $tableName WHERE $accountId = ?',
-      [accountId],
+      [accountIdValue],
     );
     return (result.first['total'] as num?)?.toDouble() ?? 0.0;
   }

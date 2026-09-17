@@ -18,7 +18,7 @@ class AccountModel {
       'id': id,
       'name': name,
       'opening_balance': openingBalance,
-      'created_at': DateUtils.formatDateTime(createdAt),
+      'created_at': AppDateUtils.formatDateTime(createdAt),
     };
   }
 
@@ -27,7 +27,7 @@ class AccountModel {
       id: map['id'] as int?,
       name: map['name'] as String,
       openingBalance: (map['opening_balance'] as num).toDouble(),
-      createdAt: DateUtils.parseDateTime(map['created_at'] as String),
+      createdAt: AppDateUtils.parseDateTime(map['created_at'] as String),
     );
   }
 

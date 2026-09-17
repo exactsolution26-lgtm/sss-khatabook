@@ -162,7 +162,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
                     border: OutlineInputBorder(),
                     suffixIcon: Icon(Icons.calendar_today),
                   ),
-                  child: Text(DateUtils.formatDisplayDate(_selectedDate)),
+                  child: Text(AppDateUtils.formatDisplayDate(_selectedDate)),
                 ),
               ),
               const SizedBox(height: 24),

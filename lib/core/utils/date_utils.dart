@@ -1,6 +1,6 @@
 import 'package:intl/intl.dart';
 
-class DateUtils {
+class AppDateUtils {
   static const String dateFormat = 'yyyy-MM-dd';
   static const String timeFormat = 'HH:mm:ss';
   static const String dateTimeFormat = 'yyyy-MM-dd HH:mm:ss';
@@ -36,7 +36,7 @@ class DateUtils {
   }
 
   static bool isToday(DateTime date) {
-    final today = DateUtils.today();
+    final today = AppDateUtils.today();
     return date.year == today.year &&
         date.month == today.month &&
         date.day == today.day;
