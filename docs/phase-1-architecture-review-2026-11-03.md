@@ -56,3 +56,10 @@ Main branch must not be merged or released before proof of passing required test
 - Platform Super Admin is a distinct privileged operator for account suspension, subscriptions and system administration; platform role must not grant unrestricted read access to private financial ledgers.
 - User-level account administration must never grant access to other users' unrelated personal/business workspaces.
 - Implementation prerequisite: audited server-side workspace bootstrap must atomically create workspace and owner membership, since direct client membership inserts remain denied by RLS.
+
+## Final admin hierarchy clarification (2026-11-03)
+- Exactly two ADMIN LEVELS: (1) one designated Platform Super Admin, (2) every registered user is administrator/owner of their own account and personal workspace.
+- A user creating a business workspace is its owner/admin. Delegated staff/accountant/viewer permissions are not additional platform admin levels.
+- Platform Super Admin can manage accounts, plans, suspension and infrastructure but does not automatically have access to private financial ledger contents.
+- No user may administer another unrelated user's account. Shared business access is by explicit invitation with scoped non-owner permissions.
+- The platform super-admin identity must be provisioned securely on the backend, never selected via client signup or editable profile role. Enforce one active designated platform super-admin identity and audit any recovery/transfer.
