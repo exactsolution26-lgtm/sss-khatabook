@@ -125,7 +125,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
               const HeaderText(text: AppStrings.addIncome),
               const SizedBox(height: 24),
               DropdownButtonFormField<AccountModel>(
-                value: _selectedAccount,
+                initialValue: _selectedAccount,
                 decoration: const InputDecoration(
                   labelText: AppStrings.account,
                   border: OutlineInputBorder(),
