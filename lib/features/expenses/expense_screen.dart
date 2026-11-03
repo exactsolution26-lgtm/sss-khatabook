@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'expense_controller.dart';
+import '../../core/utils/money.dart';
 import '../../models/expense_model.dart';
 import '../../widgets/simple_button.dart';
 import '../../widgets/simple_input.dart';
@@ -74,19 +75,48 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
             SimpleButton(
               text: 'Save Expense',
               onPressed: () async {
+                Money parsed;
+                try {
+                  parsed = Money.parseRupees(amountController.text);
+                  if (parsed.paise <= 0) {
+                    throw const FormatException('Amount must be greater than zero.');
+                  }
+                } on FormatException catch (error) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(error.message)),
+                  );
+                  return;
+                }
+
+                final category = categoryController.text.trim();
+                if (category.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please enter an expense category.')),
+                  );
+                  return;
+                }
+
                 final expense = ExpenseModel(
-                  amount: double.tryParse(amountController.text) ?? 0,
+                  // Legacy SQLite stores REAL until the safe migration is ready.
+                  amount: parsed.paise / 100,
                   mode: mode,
-                  category: categoryController.text,
-                  note: noteController.text,
-                  date: DateTime.now().toString(),
+                  category: category,
+                  note: noteController.text.trim(),
+                  date: DateTime.now().toUtc().toIso8601String(),
                 );
 
-                await controller.saveExpense(expense);
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Expense saved')),
-                );
+                try {
+                  await controller.saveExpense(expense);
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Expense saved')),
+                  );
+                } catch (_) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Could not save expense. Please retry.')),
+                  );
+                }
               },
             ),
           ],
