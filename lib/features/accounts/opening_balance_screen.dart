@@ -54,6 +54,11 @@ class _OpeningBalanceScreenState extends State<OpeningBalanceScreen> {
               child: const Text('Choose Dashboard'),
             ),
             const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => Navigator.pushNamed(context, AppRoutes.addExpense),
+              child: const Text('Add Expense'),
+            ),
+            const SizedBox(height: 8),
             SimpleButton(
               text: 'Save & Continue',
               onPressed: () async {
