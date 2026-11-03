@@ -94,3 +94,7 @@ Work only on `development/stability-foundation`; do not push to `main`.
 
 ## Immediate known issue
 An older debug APK installed but displayed a solid red screen on Android. Removing the root app builder overlay is a hypothesis only, not a verified fix. Obtain device logcat and reproduce on a fresh APK; do not declare the red-screen issue resolved without that evidence.
+
+## Current execution evidence — 4 November 2026 IST
+
+See `TASK_STATUS_58.md`, `TEST_REPORT_2026-11-04.md`, `SESSION_CHECKPOINT.md` and `APPROVED_REQUIREMENTS_MAPPING.md`. No full task has been certified complete without its runtime/release evidence. Local checks: 16 passing. Flutter/platform/PostgreSQL CI verification is queued or not executed.

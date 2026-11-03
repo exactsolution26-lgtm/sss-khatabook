@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import 'subscriber_account.dart';
 import 'subscriber_repository.dart';
 
@@ -13,11 +14,14 @@ class SubscriberManagementScreen extends StatefulWidget {
 
 class _SubscriberManagementScreenState
     extends State<SubscriberManagementScreen> {
-  late final SubscriberRepository repository =
-      SubscriberRepository(Supabase.instance.client);
+  late final SubscriberRepository repository = SubscriberRepository(
+    Supabase.instance.client,
+  );
   late Future<List<SubscriberAccount>> accounts = repository.list();
 
-  void refresh() => setState(() => accounts = repository.list());
+  void refresh() {
+    if (mounted) setState(() => accounts = repository.list());
+  }
 
   Future<void> edit([SubscriberAccount? account]) async {
     final name = TextEditingController(text: account?.displayName ?? '');
@@ -32,11 +36,16 @@ class _SubscriberManagementScreenState
             mainAxisSize: MainAxisSize.min,
             children: [
               if (account == null)
-                TextField(controller: owner,
-                    decoration: const InputDecoration(
-                      labelText: 'Existing Auth User UUID')),
-              TextField(controller: name,
-                  decoration: const InputDecoration(labelText: 'Account Name')),
+                TextField(
+                  controller: owner,
+                  decoration: const InputDecoration(
+                    labelText: 'Existing Auth User UUID',
+                  ),
+                ),
+              TextField(
+                controller: name,
+                decoration: const InputDecoration(labelText: 'Account Name'),
+              ),
               if (account != null)
                 SwitchListTile(
                   title: const Text('Active'),
@@ -46,10 +55,14 @@ class _SubscriberManagementScreenState
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel')),
-            FilledButton(onPressed: () => Navigator.pop(context, true),
-                child: const Text('Save')),
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Save'),
+            ),
           ],
         ),
       ),
@@ -62,16 +75,27 @@ class _SubscriberManagementScreenState
     if (submitted == true) {
       try {
         if (account == null) {
-          await repository.create(ownerUserId: owner.text,
-              displayName: name.text);
+          await repository.create(
+            ownerUserId: owner.text,
+            displayName: name.text,
+          );
         } else {
-          await repository.update(accountId: account.id,
-              displayName: name.text, active: active);
+          await repository.update(
+            accountId: account.id,
+            displayName: name.text,
+            active: active,
+          );
         }
         refresh();
       } catch (error) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Unable to save: $error')));
+        if (mounted)
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Unable to save subscriber. Check account details and your access.',
+              ),
+            ),
+          );
       }
     }
     name.dispose();
@@ -93,11 +117,15 @@ class _SubscriberManagementScreenState
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasError) {
-          return Center(child: Column(mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Unable to load subscriber accounts'),
-              TextButton(onPressed: refresh, child: const Text('Retry')),
-            ]));
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Unable to load subscriber accounts'),
+                TextButton(onPressed: refresh, child: const Text('Retry')),
+              ],
+            ),
+          );
         }
         final items = snapshot.data ?? [];
         if (items.isEmpty) {

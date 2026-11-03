@@ -3,10 +3,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
 import 'core/startup_error.dart';
+import 'core/error_reporting.dart';
 import 'database/platform/database_setup.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  configureErrorReporting(() => runApp(const MyApp()));
   configureDatabase();
   await startApplication();
 }

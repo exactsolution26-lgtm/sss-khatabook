@@ -4,6 +4,8 @@ import '../../database/db_helper.dart';
 import '../../database/tables/account_table.dart';
 import '../../models/account_model.dart';
 import '../settings/app_settings.dart';
+import '../whatsapp/verified_share_screen.dart';
+import '../whatsapp/whatsapp_share_service.dart';
 
 class AccountsScreen extends StatefulWidget {
   const AccountsScreen({super.key});
@@ -22,69 +24,10 @@ class _AccountsScreenState extends State<AccountsScreen> {
   void _reload() => _accounts = AccountTable.getAllAccounts();
 
   Future<void> _edit([AccountModel? account]) async {
-    final name = TextEditingController(text: account?.name ?? '');
-    final balance = TextEditingController(
-      text: account?.openingBalance.toStringAsFixed(2) ?? '0.00',
-    );
-    final form = GlobalKey<FormState>();
     final result = await showDialog<(String, double)>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(account == null ? 'New Account' : 'Edit Account'),
-        content: Form(
-          key: form,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: name,
-                  maxLength: 120,
-                  decoration: const InputDecoration(labelText: 'Account name'),
-                  validator: (v) =>
-                      v == null || v.trim().isEmpty ? 'Enter a name' : null,
-                ),
-                TextFormField(
-                  controller: balance,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  decoration: const InputDecoration(
-                    labelText: 'Opening balance (₹)',
-                  ),
-                  validator: (v) {
-                    final n = double.tryParse(v ?? '');
-                    return n == null || !n.isFinite || n < 0
-                        ? 'Enter a non-negative amount'
-                        : null;
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              if (form.currentState!.validate())
-                Navigator.pop(context, (
-                  name.text.trim(),
-                  double.parse(balance.text),
-                ));
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
+      builder: (_) => _AccountEditorDialog(account: account),
     );
-    // Dispose after the dialog route has finished its closing transition.
-    await Future<void>.delayed(const Duration(milliseconds: 300));
-    name.dispose();
-    balance.dispose();
     if (result == null || !mounted) return;
     try {
       await AccountTable.saveAccount(
@@ -201,6 +144,83 @@ class _AccountsScreenState extends State<AccountsScreen> {
   );
 }
 
+class _AccountEditorDialog extends StatefulWidget {
+  const _AccountEditorDialog({this.account});
+  final AccountModel? account;
+  @override
+  State<_AccountEditorDialog> createState() => _AccountEditorDialogState();
+}
+
+class _AccountEditorDialogState extends State<_AccountEditorDialog> {
+  final form = GlobalKey<FormState>();
+  late final name = TextEditingController(text: widget.account?.name ?? '');
+  late final balance = TextEditingController(
+    text: widget.account?.openingBalance.toStringAsFixed(2) ?? '0.00',
+  );
+  @override
+  void dispose() {
+    name.dispose();
+    balance.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Text(widget.account == null ? 'New Account' : 'Edit Account'),
+    content: Form(
+      key: form,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextFormField(
+              controller: name,
+              maxLength: 120,
+              decoration: const InputDecoration(labelText: 'Account name'),
+              validator: (value) =>
+                  value == null || value.trim().isEmpty ? 'Enter a name' : null,
+            ),
+            TextFormField(
+              controller: balance,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: const InputDecoration(
+                labelText: 'Opening balance (₹)',
+                helperText: 'Locked after the first transaction.',
+              ),
+              validator: (value) {
+                final n = double.tryParse(value ?? '');
+                return n == null || !n.isFinite || n < 0
+                    ? 'Enter a non-negative amount'
+                    : null;
+              },
+            ),
+          ],
+        ),
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(
+        onPressed: () {
+          if (form.currentState!.validate())
+            Navigator.pop(context, (
+              name.text.trim(),
+              balance.text == widget.account?.openingBalance.toStringAsFixed(2)
+                  ? widget.account!.openingBalance
+                  : double.parse(balance.text),
+            ));
+        },
+        child: const Text('Save'),
+      ),
+    ],
+  );
+}
+
 class AccountLedgerScreen extends StatefulWidget {
   const AccountLedgerScreen({super.key, required this.account});
   final AccountModel account;
@@ -227,9 +247,55 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
     );
   }
 
+  void _share(WhatsAppMessageType type, {int? incomeId, String month = ''}) {
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => VerifiedShareScreen(
+          draft: WhatsAppDraft(
+            type: type,
+            customer: widget.account.name,
+            amount: 0,
+            timestampUtc: DateTime.now().toUtc(),
+            sourceAccountId: widget.account.id,
+            sourceIncomeId: incomeId,
+            month: month,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(widget.account.name)),
+    appBar: AppBar(
+      title: Text(widget.account.name),
+      actions: [
+        IconButton(
+          tooltip: 'Share ledger',
+          icon: const Icon(Icons.share_outlined),
+          onPressed: () => _share(WhatsAppMessageType.ledger),
+        ),
+        IconButton(
+          tooltip: 'Share monthly statement',
+          icon: const Icon(Icons.calendar_month_outlined),
+          onPressed: () async {
+            final selected = await showDatePicker(
+              context: context,
+              initialDate: DateTime.now(),
+              firstDate: DateTime(2000),
+              lastDate: DateTime.now(),
+            );
+            if (selected != null && mounted)
+              _share(
+                WhatsAppMessageType.monthlyStatement,
+                month:
+                    '${selected.year}-${selected.month.toString().padLeft(2, '0')}',
+              );
+          },
+        ),
+      ],
+    ),
     body: Column(
       children: [
         Padding(
@@ -276,7 +342,21 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
                       '${income ? '+' : '−'} ₹${amount.toStringAsFixed(2)}',
                     ),
                     subtitle: Text('${entry['date']} • ${entry['note'] ?? ''}'),
-                    trailing: Text('₹${running.toStringAsFixed(2)}'),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('₹${running.toStringAsFixed(2)}'),
+                        if (income)
+                          IconButton(
+                            tooltip: 'Share recorded receipt',
+                            icon: const Icon(Icons.receipt_long_outlined),
+                            onPressed: () => _share(
+                              WhatsAppMessageType.receipt,
+                              incomeId: entry['id'] as int,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 );
               }

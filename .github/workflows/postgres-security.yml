@@ -1,0 +1,45 @@
+name: Disposable PostgreSQL security checks
+on:
+  push:
+    branches: [development/stability-foundation]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tenant-isolation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-disposable-only
+          POSTGRES_DB: sss_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: ci-disposable-only
+      PGDATABASE: sss_test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create test-only auth compatibility schema
+        run: psql -v ON_ERROR_STOP=1 -f test_tools/postgres/bootstrap.sql
+      - name: Apply actual migrations
+        run: |
+          for migration in supabase/migrations/*.sql; do
+            psql -v ON_ERROR_STOP=1 -f "$migration"
+          done
+      - name: Execute real authenticated-role isolation tests
+        run: psql -v ON_ERROR_STOP=1 -f test_tools/postgres/tenant_isolation.sql
+      - name: Record tested commit
+        if: always()
+        run: git rev-parse HEAD

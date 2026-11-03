@@ -29,7 +29,16 @@ class _WorkTodayScreenState extends State<WorkTodayScreen> {
   void initState() {
     super.initState();
     // Notifications are optional and cannot prevent the timer opening.
-    NotificationService.instance.initialize().catchError((Object _) {});
+    NotificationService.instance.initialize().catchError((Object _) {
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Timer notifications are unavailable on this device.',
+            ),
+          ),
+        );
+    });
     _loadTodayWork();
   }
 

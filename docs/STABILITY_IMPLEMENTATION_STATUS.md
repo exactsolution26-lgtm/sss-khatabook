@@ -23,3 +23,7 @@ Important remaining:
 - Tenant isolation, cloud authentication, SaaS backend, 30-day signed offline lease, subscriptions, full light/dark themes, sync, CI, web scaffolding and 10k load tests are not implemented.
 - The 14-critical/9-high issue lists require exact reconciliation; do not mark them all fixed.
 - No changes merged to main. No release.
+
+## 4 November 2026 checkpoint
+
+Additional stability code, schema v3 guards, dashboard/settings, web factory, record-backed sharing and CI runtime harnesses are now implemented. See `TEST_REPORT_2026-11-04.md` for current results and unresolved issues; earlier missing-SDK notes describe the prior increment, not a passing build.

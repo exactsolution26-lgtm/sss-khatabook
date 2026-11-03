@@ -15,7 +15,7 @@ class DateUtils {
   }
 
   static String formatDateTime(DateTime date) {
-    return DateFormat(dateTimeFormat).format(date);
+    return date.toUtc().toIso8601String();
   }
 
   static String formatDisplayDate(DateTime date) {
@@ -27,7 +27,12 @@ class DateUtils {
   }
 
   static DateTime parseDateTime(String dateTimeString) {
-    return DateFormat(dateTimeFormat).parse(dateTimeString);
+    // New records contain an explicit UTC offset; legacy SQLite rows use a
+    // space-separated local timestamp. Dart supports both without discarding
+    // the offset or interpreting an ISO 'T' as a formatting failure.
+    final parsed = DateTime.tryParse(dateTimeString);
+    if (parsed == null) throw FormatException('Invalid stored timestamp');
+    return parsed;
   }
 
   static DateTime today() {

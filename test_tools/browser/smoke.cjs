@@ -6,6 +6,9 @@ const assert = require('node:assert/strict');
   const page = await browser.newPage({viewport: {width: 1280, height: 900}});
   const errors = [];
   page.on('pageerror', error => errors.push(String(error)));
+  page.on('console', message => {
+    if (/SSS_(FRAMEWORK_ERROR|ASYNC_ERROR|STARTUP_INITIALIZATION_FAILED)/.test(message.text())) errors.push(message.text());
+  });
   await page.goto('http://127.0.0.1:8080', {waitUntil: 'networkidle'});
   const semantics = page.locator('flt-semantics-placeholder');
   if (await semantics.count()) await semantics.evaluate(el => el.click());

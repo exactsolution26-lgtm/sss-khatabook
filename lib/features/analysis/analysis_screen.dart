@@ -29,7 +29,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     setState(() => _isLoading = true);
     try {
       final data = await _analysisLogic.getAnalysisData();
-      final details = await _analysisLogic.getAccountDetails();
+      final details = data['accountDetails'] as List<Map<String, dynamic>>;
       if (!mounted) return;
       setState(() {
         _analysisData = data;
@@ -94,6 +94,14 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                       ),
                       AppColors.balance,
                     ),
+                    if ((_analysisData['unassignedExpenseCount'] as num? ?? 0) >
+                        0)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 16),
+                        child: Text(
+                          'Legacy expenses without an account are included in overall totals. They are not assigned to any customer.',
+                        ),
+                      ),
                     const SizedBox(height: 32),
                     const HeaderText(text: AppStrings.accountDetails),
                     const SizedBox(height: 16),

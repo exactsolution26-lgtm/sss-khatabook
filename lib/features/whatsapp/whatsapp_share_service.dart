@@ -1,15 +1,29 @@
 import 'dart:convert';
+
+import '../../database/db_helper.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 enum WhatsAppMessageType {
-  ledger, reminder, receipt, monthlyStatement, subscription, custom
+  ledger,
+  reminder,
+  receipt,
+  monthlyStatement,
+  subscription,
+  custom,
 }
 
 class WhatsAppDraft {
   const WhatsAppDraft({
-    required this.type, required this.customer, required this.amount,
-    required this.timestampUtc, this.details = '', this.month = '',
+    required this.type,
+    required this.customer,
+    required this.amount,
+    required this.timestampUtc,
+    this.details = '',
+    this.month = '',
+    this.sourceAccountId,
+    this.sourceIncomeId,
   });
   final WhatsAppMessageType type;
   final String customer;
@@ -17,6 +31,8 @@ class WhatsAppDraft {
   final DateTime timestampUtc;
   final String details;
   final String month;
+  final int? sourceAccountId;
+  final int? sourceIncomeId;
 
   String get message {
     final name = customer.trim();
@@ -28,7 +44,9 @@ class WhatsAppDraft {
       case WhatsAppMessageType.reminder:
         return 'Hello $name, this is a reminder of your pending balance of $money. Please verify your ledger.\n$stamp IST';
       case WhatsAppMessageType.receipt:
-        return 'Hello $name, here is a payment receipt draft for $money. Please confirm the transaction details before treating this as a verified receipt.\n$stamp IST';
+        return sourceIncomeId == null
+            ? 'Unverified receipt draft. Select a recorded income transaction before sharing.\n$stamp IST'
+            : 'Hello $name, recorded payment receipt #$sourceIncomeId: $money.\n$details\n$stamp IST';
       case WhatsAppMessageType.monthlyStatement:
         return 'Hello $name, your SSS Khatabook statement for $month:\n$details\nGenerated: $stamp IST';
       case WhatsAppMessageType.subscription:
@@ -50,9 +68,13 @@ class WhatsAppShareService {
   const WhatsAppShareService();
 
   static String normalizeIndianPhone(String input) {
+    if (!RegExp(r'^[+0-9\s()-]+$').hasMatch(input.trim())) {
+      throw FormatException('Enter a valid Indian mobile number');
+    }
     final digits = input.replaceAll(RegExp(r'[^0-9]'), '');
     final number = digits.startsWith('91') && digits.length == 12
-        ? digits.substring(2) : digits;
+        ? digits.substring(2)
+        : digits;
     if (!RegExp(r'^[6-9][0-9]{9}$').hasMatch(number)) {
       throw FormatException('Enter a valid 10-digit Indian mobile number');
     }
@@ -61,16 +83,92 @@ class WhatsAppShareService {
 
   static Uri buildLink(String phone, String message) {
     final number = normalizeIndianPhone(phone);
-    if (message.trim().isEmpty) throw ArgumentError('Message is empty');
+    if (message.trim().isEmpty || message.length > 4000) {
+      throw ArgumentError('Message must contain 1 to 4000 characters');
+    }
     return Uri.https('wa.me', '/$number', {'text': message});
   }
 
+  /// Resolve financial messages from current local records, never free text.
+  Future<WhatsAppDraft> resolveDraft(WhatsAppDraft draft) async {
+    if (![
+      WhatsAppMessageType.receipt,
+      WhatsAppMessageType.ledger,
+      WhatsAppMessageType.monthlyStatement,
+    ].contains(draft.type))
+      return draft;
+    final db = await DBHelper.database;
+    return db.transaction((txn) async {
+      if (draft.type == WhatsAppMessageType.receipt) {
+        if (draft.sourceIncomeId == null)
+          throw StateError('Choose a recorded payment');
+        final rows = await txn.rawQuery(
+          'SELECT income.id, income.amount, income.date, accounts.name FROM income JOIN accounts ON accounts.id = income.account_id WHERE income.id = ?',
+          [draft.sourceIncomeId],
+        );
+        if (rows.length != 1) throw StateError('Recorded payment not found');
+        final row = rows.single;
+        return WhatsAppDraft(
+          type: draft.type,
+          customer: row['name'] as String,
+          amount: (row['amount'] as num).toDouble(),
+          timestampUtc: draft.timestampUtc,
+          details: 'Recorded date: ${row['date']}',
+          sourceIncomeId: draft.sourceIncomeId,
+        );
+      }
+      if (draft.sourceAccountId == null)
+        throw StateError('Choose an account ledger');
+      final accounts = await txn.query(
+        'accounts',
+        where: 'id = ?',
+        whereArgs: [draft.sourceAccountId],
+      );
+      if (accounts.length != 1) throw StateError('Account not found');
+      final account = accounts.single;
+      String dateClause = '';
+      final args = <Object?>[draft.sourceAccountId];
+      if (draft.type == WhatsAppMessageType.monthlyStatement) {
+        if (!RegExp(r'^\d{4}-(0[1-9]|1[0-2])$').hasMatch(draft.month))
+          throw ArgumentError('Select statement month YYYY-MM');
+        dateClause = ' AND substr(date,1,7) = ?';
+        args.add(draft.month);
+      }
+      final incoming = await txn.rawQuery(
+        'SELECT COALESCE(SUM(amount),0) AS total FROM income WHERE account_id = ?$dateClause',
+        args,
+      );
+      final outgoing = await txn.rawQuery(
+        'SELECT COALESCE(SUM(amount),0) AS total FROM expenses WHERE account_id = ?$dateClause',
+        args,
+      );
+      final income = (incoming.single['total'] as num).toDouble();
+      final expense = (outgoing.single['total'] as num).toDouble();
+      final opening = (account['opening_balance'] as num).toDouble();
+      final monthly = draft.type == WhatsAppMessageType.monthlyStatement;
+      return WhatsAppDraft(
+        type: draft.type,
+        customer: account['name'] as String,
+        amount: monthly ? income - expense : opening + income - expense,
+        timestampUtc: draft.timestampUtc,
+        month: draft.month,
+        sourceAccountId: draft.sourceAccountId,
+        details:
+            '${monthly ? 'Period totals' : 'All-time totals'}: Income ₹${income.toStringAsFixed(2)}, Expenses ₹${expense.toStringAsFixed(2)}.${monthly ? '' : ' Opening ₹${opening.toStringAsFixed(2)}.'}',
+      );
+    });
+  }
+
   /// Opens a user-confirmed WhatsApp draft. Never claims delivery.
-  Future<bool> openDraft(String phone, WhatsAppDraft draft) async {
+  Future<bool> openDraft(String phone, WhatsAppDraft requested) async {
+    final draft = await resolveDraft(requested);
     if (draft.customer.trim().isEmpty) {
       throw ArgumentError('Customer name is required');
     }
-    if (!draft.amount.isFinite || draft.amount < 0) {
+    if (!draft.amount.isFinite ||
+        (draft.amount < 0 &&
+            draft.type != WhatsAppMessageType.ledger &&
+            draft.type != WhatsAppMessageType.monthlyStatement)) {
       throw ArgumentError('Amount must be finite and non-negative');
     }
     final uri = buildLink(phone, draft.message);
@@ -89,13 +187,17 @@ class WhatsAppShareService {
   Future<void> _recordDraft(WhatsAppDraft draft) async {
     final prefs = await SharedPreferences.getInstance();
     final entries = prefs.getStringList('whatsapp_draft_audit_v1') ?? [];
-    entries.add(jsonEncode({
-      'type': draft.type.name,
-      'opened_at_utc': DateTime.now().toUtc().toIso8601String(),
-      'message_timestamp_ist': WhatsAppDraft.formatIst(draft.timestampUtc),
-      'status': 'opened_not_confirmed_sent',
-    }));
-    await prefs.setStringList('whatsapp_draft_audit_v1',
-        entries.length > 500 ? entries.sublist(entries.length - 500) : entries);
+    entries.add(
+      jsonEncode({
+        'type': draft.type.name,
+        'opened_at_utc': DateTime.now().toUtc().toIso8601String(),
+        'message_timestamp_ist': WhatsAppDraft.formatIst(draft.timestampUtc),
+        'status': 'opened_not_confirmed_sent',
+      }),
+    );
+    await prefs.setStringList(
+      'whatsapp_draft_audit_v1',
+      entries.length > 500 ? entries.sublist(entries.length - 500) : entries,
+    );
   }
 }

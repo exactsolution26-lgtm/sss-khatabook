@@ -8,6 +8,7 @@ class AppSettings extends ChangeNotifier {
   AppLanguage language = AppLanguage.english;
   String? persistenceError;
   bool _disposed = false;
+  int _revision = 0;
 
   void _notify() {
     if (!_disposed) notifyListeners();
@@ -20,8 +21,10 @@ class AppSettings extends ChangeNotifier {
   }
 
   Future<void> load() async {
+    final revision = _revision;
     try {
       final prefs = await SharedPreferences.getInstance();
+      if (_disposed || revision != _revision) return;
       theme = switch (prefs.getString('sss_theme_mode')) {
         'dark' => ThemeMode.dark,
         'system' => ThemeMode.system,
@@ -38,6 +41,7 @@ class AppSettings extends ChangeNotifier {
   }
 
   Future<void> update({ThemeMode? themeMode, AppLanguage? appLanguage}) async {
+    _revision++;
     theme = themeMode ?? theme;
     language = appLanguage ?? language;
     persistenceError = null;

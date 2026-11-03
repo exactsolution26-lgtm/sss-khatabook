@@ -15,6 +15,7 @@ concurrency:
 jobs:
   analyze-and-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -60,6 +61,10 @@ jobs:
           s = s.replace('compileOptions {', 'compileOptions {\n        isCoreLibraryDesugaringEnabled = true', 1)
           s += '\n dependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")\n}\n'
           p.write_text(s)
+          manifest = Path('android/app/src/main/AndroidManifest.xml')
+          text = manifest.read_text()
+          text = text.replace('<application', '<uses-permission android:name="android.permission.INTERNET"/>\n    <application android:allowBackup="false" android:usesCleartextTraffic="false"', 1)
+          manifest.write_text(text)
           PY
       - name: Android debug APK build
         run: flutter build apk --debug
@@ -117,4 +122,33 @@ jobs:
         with:
           name: browser-runtime-evidence
           path: web-*.png
+          if-no-files-found: ignore
+
+  android-startup:
+    runs-on: ubuntu-latest
+    needs: platform-builds
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: sss-khatabook-testing-apks
+          path: apk
+      - name: Enable emulator acceleration
+        run: sudo chmod 666 /dev/kvm
+      - name: Install and start Android APK
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          disable-animations: true
+          script: python3 test_tools/android/smoke.py
+      - name: Upload Android runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-runtime-evidence
+          path: android-evidence/
           if-no-files-found: ignore

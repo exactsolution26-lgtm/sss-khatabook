@@ -12,8 +12,8 @@ class ValidationUtils {
     }
     try {
       final amount = double.parse(value);
-      if (amount <= 0) {
-        return 'Amount must be greater than 0';
+      if (!amount.isFinite || amount <= 0 || amount > 90000000000000) {
+        return 'Enter a positive finite amount within the supported limit';
       }
       return null;
     } catch (e) {
@@ -27,8 +27,8 @@ class ValidationUtils {
     }
     try {
       final balance = double.parse(value);
-      if (balance < 0) {
-        return 'Balance cannot be negative';
+      if (!balance.isFinite || balance < 0 || balance > 90000000000000) {
+        return 'Enter a non-negative finite balance within the supported limit';
       }
       return null;
     } catch (e) {
