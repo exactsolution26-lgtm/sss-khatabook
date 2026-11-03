@@ -1,32 +1,19 @@
 import '../db_helper.dart';
+import '../../core/utils/money.dart';
 
 class AccountTable {
-  static Future<void> saveOpeningBalance({
-    required double cash,
-    required double bank,
-  }) async {
+  static Future<void> saveOpeningBalance({required double cash, required double bank}) async {
     if (!cash.isFinite || !bank.isFinite || cash < 0 || bank < 0) {
-      throw ArgumentError('Opening balances must be finite and non-negative.');
+      throw ArgumentError('Invalid opening balance');
     }
-
+    final cashPaise = Money.parseRupees(cash.toStringAsFixed(2)).paise;
+    final bankPaise = Money.parseRupees(bank.toStringAsFixed(2)).paise;
     final db = await DBHelper.database;
     await db.transaction((txn) async {
-      // Preserve the existing single-account schema without deleting rows.
-      final existing = await txn.query('accounts', columns: ['id'], limit: 1);
-      if (existing.isEmpty) {
-        await txn.insert('accounts', {
-          'id': 1,
-          'cash_balance': cash,
-          'bank_balance': bank,
-        });
-      } else {
-        await txn.update(
-          'accounts',
-          {'cash_balance': cash, 'bank_balance': bank},
-          where: 'id = ?',
-          whereArgs: [existing.first['id']],
-        );
-      }
+      await txn.update('accounts', {'balance_paise': cashPaise},
+          where: 'id = ?', whereArgs: ['local-cash']);
+      await txn.update('accounts', {'balance_paise': bankPaise},
+          where: 'id = ?', whereArgs: ['local-bank']);
     });
   }
 }
