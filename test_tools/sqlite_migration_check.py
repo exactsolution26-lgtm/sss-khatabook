@@ -64,5 +64,43 @@ class MigrationTests(unittest.TestCase):
             self.db.execute("INSERT INTO income (account_id,amount,date,created_at) VALUES (99,10,'2026-11-03','2026-11-03')")
 
 
+    def test_multiple_accounts_and_nullable_legacy_balances(self):
+        self.db.execute("INSERT INTO accounts VALUES (8,NULL,99.5)")
+        self.db.execute("INSERT INTO accounts VALUES (9,40,NULL)")
+        self.db.execute("INSERT INTO expenses VALUES (12,55,'bank','travel','old expense','2026-10-02')")
+        migrate_v1_to_v2(self.db)
+        self.assertEqual(
+            self.db.execute("SELECT id, opening_balance FROM accounts ORDER BY id").fetchall(),
+            [(7, 426.0), (8, 99.5), (9, 40.0)],
+        )
+        self.assertEqual(
+            self.db.execute("SELECT id, amount FROM expenses ORDER BY id").fetchall(),
+            [(11, 20.5), (12, 55.0)],
+        )
+        self.assertEqual(self.db.execute("PRAGMA foreign_key_check").fetchall(), [])
+
+    def test_backup_before_migration_can_restore_original_v1(self):
+        backup = sqlite3.connect(":memory:")
+        try:
+            self.db.backup(backup)
+            migrate_v1_to_v2(self.db)
+            self.assertEqual(self.db.execute("PRAGMA integrity_check").fetchone()[0], "ok")
+            self.assertEqual(backup.execute("PRAGMA user_version").fetchone()[0], 0)
+            self.assertEqual(
+                [r[1] for r in backup.execute("PRAGMA table_info(accounts)")],
+                ["id", "cash_balance", "bank_balance"],
+            )
+            self.assertEqual(
+                backup.execute("SELECT id,cash_balance,bank_balance FROM accounts").fetchall(),
+                [(7,125.25,300.75)],
+            )
+            self.assertEqual(
+                backup.execute("SELECT id,amount FROM expenses").fetchall(),
+                [(11,20.5)],
+            )
+        finally:
+            backup.close()
+
+
 if __name__ == "__main__":
     unittest.main()
