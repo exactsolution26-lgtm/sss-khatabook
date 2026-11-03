@@ -24,3 +24,20 @@ jobs:
         run: python3 -m unittest discover -s test_tools -p '*_check.py' -v
       - name: Flutter Dart asset bundle build
         run: flutter build bundle --release
+
+  platform-builds:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Generate temporary Android and Web runners
+        run: flutter create --platforms=android,web --project-name offline_khata_app .
+      - name: Resolve dependencies
+        run: flutter pub get
+      - name: Android debug APK build
+        run: flutter build apk --debug
+      - name: Web release build
+        run: flutter build web --release
