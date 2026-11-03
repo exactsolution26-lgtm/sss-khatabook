@@ -55,6 +55,11 @@ class _OpeningBalanceScreenState extends State<OpeningBalanceScreen> {
             ),
             const SizedBox(height: 8),
             TextButton(
+              onPressed: () => Navigator.pushNamed(context, AppRoutes.addIncome),
+              child: const Text('Add Income'),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
               onPressed: () => Navigator.pushNamed(context, AppRoutes.addExpense),
               child: const Text('Add Expense'),
             ),
