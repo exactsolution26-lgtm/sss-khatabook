@@ -37,18 +37,6 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
-  Future<void> _setTheme(ThemeMode mode) async {
-    setState(() => _themeMode = mode);
-    final preferences = await SharedPreferences.getInstance();
-    await preferences.setString(_themeKey, mode.name);
-  }
-
-  Future<void> _setLanguage(AppLanguage language) async {
-    setState(() => _language = language);
-    final preferences = await SharedPreferences.getInstance();
-    await preferences.setString('sss_language', language.name);
-  }
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
