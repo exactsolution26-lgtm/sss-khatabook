@@ -1,6 +1,6 @@
 # Master plan addendum: Offline installs, authentication, admin suspension and future ads
 
-Status: PLAN ONLY. Do not implement before architecture approval and threat-model review.
+Status: PLAN REVIEW. User-approved decision: maximum 30-day offline authorization lease. Implementation and runtime tests are NOT complete.
 
 ## Platforms
 - Installable Android application and Windows desktop application, with local SQLite storage.
@@ -18,7 +18,11 @@ Status: PLAN ONLY. Do not implement before architecture approval and threat-mode
 ## Super-admin controls
 - Suspend individual user or workspace; optionally revoke all device sessions.
 - Check server suspension status on every online refresh and at a documented bounded offline-authorization lease expiry.
-- Instant remote suspension cannot be guaranteed on a disconnected device; shorter leases reduce offline duration and usability. Choose policy explicitly.
+- APPROVED: offline authorization lease is 30 days maximum from the most recent successful server authorization. No automatic extension merely because the user opens the app offline.
+- Online devices must check suspension on reconnect and before sync; an offline device cannot receive an instant remote kill command. Suspension may take up to the remaining lease (maximum 30 days) to become effective offline.
+- At expiry, block account data entry and protected ledger views until online reauthorization; do not delete or silently discard existing local data or pending sync.
+- Lease must be signed by server and bound to user, workspace scope, device and expiry; never trust a client-controlled flag alone. Mitigate clock rollback using secure persisted last-seen time and server-time checks, but acknowledge that a fully offline compromised device cannot guarantee tamper-proof revocation.
+- Lease expiry and account suspension must be distinct states. Admin must be able to restore access without erasing local data.
 - Preserve encrypted local ledger data and pending entries when suspended; no deletion or data loss.
 - Audit actor, target, reason, timestamp and outcome; role separation and two-step confirmation for high-impact actions.
 - Never allow super admin bypass to expose unrelated tenant ledger contents without separately governed support permissions.
