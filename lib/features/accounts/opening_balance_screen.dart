@@ -7,15 +7,14 @@ class OpeningBalanceScreen extends StatefulWidget {
   const OpeningBalanceScreen({super.key});
 
   @override
-  State<OpeningBalanceScreen> createState() =>
-      _OpeningBalanceScreenState();
+  State<OpeningBalanceScreen> createState() => _OpeningBalanceScreenState();
 }
 
 class _OpeningBalanceScreenState extends State<OpeningBalanceScreen> {
   final controller = AccountController();
-
   final cashController = TextEditingController();
   final bankController = TextEditingController();
+  bool saving = false;
 
   @override
   void dispose() {
@@ -25,45 +24,56 @@ class _OpeningBalanceScreenState extends State<OpeningBalanceScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Opening Balance')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            SimpleInput(
-              hintText: 'Cash opening balance',
-              keyboardType: TextInputType.number,
-              controller: cashController,
-            ),
-            const SizedBox(height: 16),
-            SimpleInput(
-              hintText: 'Bank opening balance',
-              keyboardType: TextInputType.number,
-              controller: bankController,
-            ),
-            const Spacer(),
-            SimpleButton(
-              text: 'Save & Continue',
-              onPressed: () async {
-                controller.cashOpeningBalance =
-                    double.tryParse(cashController.text) ?? 0;
-                controller.bankOpeningBalance =
-                    double.tryParse(bankController.text) ?? 0;
-
-                await controller.saveBalances();
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Opening balance saved successfully'),
-                  ),
-                );
-              },
-            ),
-          ],
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Opening Balance')),
+    body: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(children: [
+        SimpleInput(
+          hintText: 'Cash opening balance',
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          controller: cashController,
         ),
-      ),
-    );
-  }
+        const SizedBox(height: 16),
+        SimpleInput(
+          hintText: 'Bank opening balance',
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          controller: bankController,
+        ),
+        const Spacer(),
+        SimpleButton(
+          text: 'Save & Continue',
+          isLoading: saving,
+          onPressed: () async {
+            final cash = double.tryParse(cashController.text.trim());
+            final bank = double.tryParse(bankController.text.trim());
+            if (cash == null || bank == null ||
+                !cash.isFinite || !bank.isFinite || cash < 0 || bank < 0) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Enter valid non-negative balances')),
+              );
+              return;
+            }
+            setState(() => saving = true);
+            try {
+              controller.cashOpeningBalance = cash;
+              controller.bankOpeningBalance = bank;
+              await controller.saveBalances();
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Opening balance saved')),
+              );
+            } catch (_) {
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Could not save balance')),
+              );
+            } finally {
+              if (mounted) setState(() => saving = false);
+            }
+          },
+        ),
+      ]),
+    ),
+  );
 }
