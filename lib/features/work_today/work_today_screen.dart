@@ -9,7 +9,7 @@ import 'notification_service.dart';
 import '../../database/db_helper.dart';
 import '../../database/tables/work_table.dart';
 import '../../models/work_model.dart';
-import '../../core/utils/date_utils.dart';
+import '../../core/utils/date_utils.dart' as khata_dates;
 import 'package:sqflite/sqflite.dart';
 
 class WorkTodayScreen extends StatefulWidget {
@@ -34,7 +34,7 @@ class _WorkTodayScreenState extends State<WorkTodayScreen> {
 
   Future<void> _loadTodayWork() async {
     final db = await _dbHelper.database;
-    final today = DateUtils.formatDate(DateTime.now());
+    final today = khata_dates.DateUtils.formatDate(DateTime.now());
     final maps = await db.query(
       WorkTable.tableName,
       where: '${WorkTable.date} = ?',
@@ -50,7 +50,7 @@ class _WorkTodayScreenState extends State<WorkTodayScreen> {
       if (work.startTime != null && work.endTime == null) {
         final now = DateTime.now();
         final elapsed = now.difference(work.startTime!).inSeconds;
-        _timerService.setDuration(work.duration + elapsed);
+        _timerService.setDuration(elapsed > work.duration ? elapsed : work.duration);
         _timerService.start();
       }
       _descriptionController.text = work.description ?? '';
@@ -64,7 +64,7 @@ class _WorkTodayScreenState extends State<WorkTodayScreen> {
 
     try {
       final db = await _dbHelper.database;
-      final today = DateUtils.formatDate(DateTime.now());
+      final today = khata_dates.DateUtils.formatDate(DateTime.now());
       
       final work = WorkModel(
         date: DateTime.now(),
