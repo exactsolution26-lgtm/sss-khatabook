@@ -67,9 +67,22 @@ class WhatsAppShareService {
 
   /// Opens a user-confirmed WhatsApp draft. Never claims delivery.
   Future<bool> openDraft(String phone, WhatsAppDraft draft) async {
+    if (draft.customer.trim().isEmpty) {
+      throw ArgumentError('Customer name is required');
+    }
+    if (!draft.amount.isFinite || draft.amount < 0) {
+      throw ArgumentError('Amount must be finite and non-negative');
+    }
     final uri = buildLink(phone, draft.message);
     final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (opened) await _recordDraft(draft);
+    if (opened) {
+      // Audit persistence must never turn an opened draft into a false failure.
+      try {
+        await _recordDraft(draft);
+      } catch (_) {
+        // WhatsApp launch already succeeded; local audit is best-effort.
+      }
+    }
     return opened;
   }
 
