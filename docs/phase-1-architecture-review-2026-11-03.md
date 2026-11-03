@@ -48,3 +48,11 @@ IMPLEMENT: pending.
 TEST: pending.
 FINAL: blocked.
 Main branch must not be merged or released before proof of passing required tests.
+
+## Product clarification — account ownership and admin (2026-11-03)
+- Every registered user is the Owner/Admin of their own personal account by default.
+- Every newly created business workspace grants its creator Owner membership automatically through a trusted, atomic server-side creation operation.
+- Owner/Admin may manage only their own workspaces, parties, entries, reports, and invited staff permissions. An invited staff member is not automatically a workspace owner.
+- Platform Super Admin is a distinct privileged operator for account suspension, subscriptions and system administration; platform role must not grant unrestricted read access to private financial ledgers.
+- User-level account administration must never grant access to other users' unrelated personal/business workspaces.
+- Implementation prerequisite: audited server-side workspace bootstrap must atomically create workspace and owner membership, since direct client membership inserts remain denied by RLS.
