@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'account_controller.dart';
+import '../../core/utils/money.dart';
 import '../../routes/app_routes.dart';
 import '../../widgets/simple_button.dart';
 import '../../widgets/simple_input.dart';
@@ -56,18 +57,41 @@ class _OpeningBalanceScreenState extends State<OpeningBalanceScreen> {
             SimpleButton(
               text: 'Save & Continue',
               onPressed: () async {
-                controller.cashOpeningBalance =
-                    double.tryParse(cashController.text) ?? 0;
-                controller.bankOpeningBalance =
-                    double.tryParse(bankController.text) ?? 0;
+                Money cash;
+                Money bank;
+                try {
+                  cash = Money.parseRupees(cashController.text.trim().isEmpty
+                      ? '0'
+                      : cashController.text);
+                  bank = Money.parseRupees(bankController.text.trim().isEmpty
+                      ? '0'
+                      : bankController.text);
+                } on FormatException catch (error) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(error.message)),
+                  );
+                  return;
+                }
 
-                await controller.saveBalances();
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Opening balance saved successfully'),
-                  ),
-                );
+                // Legacy SQLite schema uses REAL pending migration.
+                controller.cashOpeningBalance = cash.paise / 100;
+                controller.bankOpeningBalance = bank.paise / 100;
+                try {
+                  await controller.saveBalances();
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Opening balance saved successfully'),
+                    ),
+                  );
+                } catch (_) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Could not save opening balance. Please retry.'),
+                    ),
+                  );
+                }
               },
             ),
           ],
