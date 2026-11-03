@@ -63,3 +63,10 @@ Main branch must not be merged or released before proof of passing required test
 - Platform Super Admin can manage accounts, plans, suspension and infrastructure but does not automatically have access to private financial ledger contents.
 - No user may administer another unrelated user's account. Shared business access is by explicit invitation with scoped non-owner permissions.
 - The platform super-admin identity must be provisioned securely on the backend, never selected via client signup or editable profile role. Enforce one active designated platform super-admin identity and audit any recovery/transfer.
+
+## Product-owner confirmation: Super Admin vs subscriber (2026-11-03)
+- The product owner is the single designated Platform Super Admin. Provision that identity through a securely verified backend procedure; never infer platform authority from a display name, email string, payment, or client-side flag.
+- Every subscribing user is an Account Admin (owner) of their own account. Free-plan registered users likewise own/administer their own accounts, subject to plan entitlements.
+- Subscription purchase changes entitlements/billing status, never platform super-admin role.
+- Account admins can manage only their own personal/business workspaces and explicitly invited team permissions. No cross-subscriber access.
+- Platform Super Admin manages subscriber accounts, plans, billing and suspension; no default unrestricted access to private financial entries.
