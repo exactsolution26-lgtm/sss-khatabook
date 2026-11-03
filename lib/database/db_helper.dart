@@ -42,7 +42,6 @@ class DBHelper {
             id TEXT PRIMARY KEY,
             business_id TEXT NOT NULL REFERENCES businesses(id),
             account_id TEXT NOT NULL,
-            FOREIGN KEY(account_id, business_id) REFERENCES accounts(id, business_id),
             type TEXT NOT NULL CHECK(type IN ('income','expense','transfer_in','transfer_out')),
             amount_paise INTEGER NOT NULL CHECK(amount_paise > 0),
             category TEXT NOT NULL,
@@ -52,7 +51,8 @@ class DBHelper {
             occurred_at_utc TEXT NOT NULL,
             created_at_utc TEXT NOT NULL,
             updated_at_utc TEXT NOT NULL,
-            sync_status TEXT NOT NULL DEFAULT 'pending'
+            sync_status TEXT NOT NULL DEFAULT 'pending',
+            FOREIGN KEY(account_id, business_id) REFERENCES accounts(id, business_id)
           )
         ''');
         await db.execute('''
