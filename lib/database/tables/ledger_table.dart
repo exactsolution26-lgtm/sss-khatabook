@@ -65,16 +65,17 @@ class LedgerTable {
     return whole * 100 + fraction;
   }
 
-  static Future<LedgerSummary> summary() async {
+  static Future<LedgerSummary> summary({required String businessId}) async {
+    if (businessId.trim().isEmpty) throw ArgumentError('Business ID required');
     final db = await DBHelper.database;
     final rows = await db.rawQuery('''
       SELECT
         COALESCE(SUM(CASE WHEN type = 'income' THEN amount_paise ELSE 0 END), 0) AS income,
         COALESCE(SUM(CASE WHEN type = 'expense' THEN amount_paise ELSE 0 END), 0) AS expense
       FROM transactions WHERE business_id = ?
-    ''', ['local-demo']);
+    ''', [businessId]);
     final accounts = await db.query('accounts',
-        columns: ['id', 'balance_paise'], where: 'business_id = ?', whereArgs: ['local-demo']);
+        columns: ['id', 'balance_paise'], where: 'business_id = ?', whereArgs: [businessId]);
     int balance(String id) => (accounts.firstWhere((row) => row['id'] == id)['balance_paise'] as int);
     return LedgerSummary(
       incomePaise: rows.first['income'] as int,
