@@ -22,6 +22,8 @@ jobs:
         run: flutter test
       - name: SQLite v1 migration fixture tests
         run: python3 -m unittest discover -s test_tools -p '*_check.py' -v
+      - name: Subscriber account schema checks
+        run: python3 -m unittest discover -s test_tools -p 'test_subscriber_schema.py' -v
       - name: Flutter Dart asset bundle build
         run: flutter build bundle --release
 
