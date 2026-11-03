@@ -6,70 +6,61 @@ class TimerService extends ChangeNotifier {
   int _elapsedSeconds = 0;
   bool _isRunning = false;
   DateTime? _startTime;
+  DateTime? _resumedAt;
+  int _baseSeconds = 0;
 
-  int get elapsedSeconds => _elapsedSeconds;
+  int get elapsedSeconds {
+    if (!_isRunning || _resumedAt == null) return _elapsedSeconds;
+    return _baseSeconds + DateTime.now().difference(_resumedAt!).inSeconds;
+  }
   bool get isRunning => _isRunning;
   DateTime? get startTime => _startTime;
-
   String get formattedTime {
-    final hours = _elapsedSeconds ~/ 3600;
-    final minutes = (_elapsedSeconds % 3600) ~/ 60;
-    final seconds = _elapsedSeconds % 60;
-    return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+    final value = elapsedSeconds;
+    final h = value ~/ 3600;
+    final m = (value % 3600) ~/ 60;
+    final s = value % 60;
+    return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
   void start() {
     if (_isRunning) return;
-    
-    _startTime = DateTime.now();
-    _isRunning = true;
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      _elapsedSeconds++;
-      notifyListeners();
-    });
-    notifyListeners();
+    _startTime ??= DateTime.now();
+    resume();
   }
-
-  void pause() {
-    _timer?.cancel();
-    _isRunning = false;
-    notifyListeners();
-  }
-
   void resume() {
     if (_isRunning) return;
+    _baseSeconds = _elapsedSeconds;
+    _resumedAt = DateTime.now();
     _isRunning = true;
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      _elapsedSeconds++;
-      notifyListeners();
-    });
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) => notifyListeners());
     notifyListeners();
   }
-
-  void stop() {
+  void pause() {
+    if (!_isRunning) return;
+    _elapsedSeconds = elapsedSeconds;
     _timer?.cancel();
+    _resumedAt = null;
     _isRunning = false;
+    notifyListeners();
+  }
+  void stop() => pause(); // Keep duration until persisted/reset explicitly.
+  void reset() {
+    pause();
     _elapsedSeconds = 0;
+    _baseSeconds = 0;
     _startTime = null;
     notifyListeners();
   }
-
-  void reset() {
-    stop();
-    _elapsedSeconds = 0;
-    notifyListeners();
-  }
-
   void setDuration(int seconds) {
-    _elapsedSeconds = seconds;
+    pause();
+    _elapsedSeconds = seconds < 0 ? 0 : seconds;
     notifyListeners();
   }
-
   void setStartTime(DateTime time) {
     _startTime = time;
     notifyListeners();
   }
-
   @override
   void dispose() {
     _timer?.cancel();
