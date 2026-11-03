@@ -25,7 +25,10 @@ class _OpeningBalanceScreenState extends State<OpeningBalanceScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Opening Balance')),
+    appBar: AppBar(title: const Text('Opening Balance'), actions: [
+      IconButton(tooltip: 'WhatsApp Sharing', icon: const Icon(Icons.share_outlined),
+        onPressed: () => Navigator.pushNamed(context, '/whatsapp/share')),
+    ]),
     body: Padding(
       padding: const EdgeInsets.all(16),
       child: Column(children: [
