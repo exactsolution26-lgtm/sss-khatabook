@@ -31,10 +31,11 @@ class ExpenseTable {
         'created_at_utc': now,
         'updated_at_utc': now,
       });
-      await tx.rawUpdate(
-        'UPDATE accounts SET balance_paise = balance_paise - ? WHERE id = ?',
-        [amount, account],
+      final changed = await tx.rawUpdate(
+        'UPDATE accounts SET balance_paise = balance_paise - ? WHERE id = ? AND business_id = ?',
+        [amount, account, 'local-demo'],
       );
+      if (changed != 1) throw StateError('Expense account not found');
     });
   }
 }
