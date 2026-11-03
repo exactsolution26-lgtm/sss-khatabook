@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'account_controller.dart';
+import '../../routes/app_routes.dart';
 import '../../widgets/simple_button.dart';
 import '../../widgets/simple_input.dart';
 
@@ -44,6 +45,14 @@ class _OpeningBalanceScreenState extends State<OpeningBalanceScreen> {
               controller: bankController,
             ),
             const Spacer(),
+            TextButton(
+              onPressed: () => Navigator.pushNamed(
+                context,
+                AppRoutes.dashboardSelection,
+              ),
+              child: const Text('Choose Dashboard'),
+            ),
+            const SizedBox(height: 8),
             SimpleButton(
               text: 'Save & Continue',
               onPressed: () async {
