@@ -28,7 +28,7 @@ class WhatsAppDraft {
       case WhatsAppMessageType.reminder:
         return 'Hello $name, this is a reminder of your pending balance of $money. Please verify your ledger.\n$stamp IST';
       case WhatsAppMessageType.receipt:
-        return 'Hello $name, payment of $money has been recorded. Please verify your receipt in SSS Khatabook.\n$stamp IST';
+        return 'Hello $name, here is a payment receipt draft for $money. Please confirm the transaction details before treating this as a verified receipt.\n$stamp IST';
       case WhatsAppMessageType.monthlyStatement:
         return 'Hello $name, your SSS Khatabook statement for $month:\n$details\nGenerated: $stamp IST';
       case WhatsAppMessageType.subscription:
