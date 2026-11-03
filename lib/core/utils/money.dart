@@ -8,7 +8,7 @@ class Money {
 
   static Money parseRupees(String input) {
     final value = input.trim();
-    if (!RegExp(r'^\\d+(?:\\.\\d{1,2})?$').hasMatch(value)) {
+    if (!RegExp(r'^\d+(?:\\.\d{1,2})?$').hasMatch(value)) {
       throw const FormatException('Enter a valid INR amount (up to 2 decimals).');
     }
     final parts = value.split('.');
