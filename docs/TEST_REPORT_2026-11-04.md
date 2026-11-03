@@ -31,7 +31,7 @@ Full per-task status: `TASK_STATUS_58.md`.
 1. Historic run **41692307209**, jobs **126113730657** and **126113730779**, failed because shared_preferences was undeclared at that historic commit. Current baseline already declares it; current analyzer success remains unproven.
 2. The Python backup fixture held an uncommitted write transaction when calling sqlite3.backup on that connection. This hung indefinitely. Committing the fixture before backup resolves the reproducer; all four fixture tests pass after the fix.
 3. Inspected old run **41694471162**, job **126121260445**, is still in progress at the SQLite migration fixture step after its analyzer/unit tests passed. The retrieved run listing contains 19 older runs marked in progress, with newer runs queued. Not every older job was individually inspected.
-4. Development code commit **a07ead42ae3d1e1bbde90944314697ee172a1de6** generated run **41700967999**, still queued at the last check. Baseline **e88fb18c0d5ff22aa1d7aeee13f5ff843c457c0c** generated queued run **41698303742**. A later code commit/run is recorded in SESSION_CHECKPOINT.md when available.
+4. First implementation commit **a07ead42ae3d1e1bbde90944314697ee172a1de6** generated run **41700967999**, later cancelled by the new concurrency rule. Baseline **e88fb18c0d5ff22aa1d7aeee13f5ff843c457c0c** generated queued run **41698303742**. Latest implementation commit **72880be8d44afa49019f5319d753909882162f21** generated Flutter run **41703447919** (job **126152464443**) and PostgreSQL run **41703447988** (job **126152455185**); both are **QUEUED**, not passed.
 5. The user's 1002291016.jpg screenshot was visually inspected: solid red screen, no readable exception or stack. It does not establish the red-screen cause. Root overlay removal remains an earlier hypothesis. The additional timestamp fix does not prove this specific red screen is fixed.
 
 ## Security and privacy findings
@@ -93,3 +93,12 @@ Never paste passwords, service-role keys or private signing keys into chat. No l
 | 18 | Regression | 16 local checks pass; 40 Dart cases not executed |
 | 19 | Crash/recovery | Runtime harnesses fail on stable error markers; not executed |
 | 20 | Final acceptance | Blocked/not executed; no final APK certification |
+
+## GitHub evidence links
+- [First implementation commit](https://github.com/exactsolution26-lgtm/sss-khatabook/commit/a07ead42ae3d1e1bbde90944314697ee172a1de6)
+- [Latest implementation commit](https://github.com/exactsolution26-lgtm/sss-khatabook/commit/72880be8d44afa49019f5319d753909882162f21)
+- [Flutter/platform verification — 41703447919](https://github.com/exactsolution26-lgtm/sss-khatabook/actions/runs/41703447919)
+- [PostgreSQL security verification — 41703447988](https://github.com/exactsolution26-lgtm/sss-khatabook/actions/runs/41703447988)
+- [Inspected historical backup hang — 41694471162](https://github.com/exactsolution26-lgtm/sss-khatabook/actions/runs/41694471162)
+
+These links identify evidence locations; queued jobs do not supply passing test evidence. The docs-only checkpoint commit after the implementation commit intentionally skips CI; it changes no application source.

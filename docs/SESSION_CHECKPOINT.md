@@ -3,7 +3,10 @@
 Branch: `development/stability-foundation`. Never merge/push to main without explicit owner permission.
 Baseline audited: `e88fb18c0d5ff22aa1d7aeee13f5ff843c457c0c`.
 First remote code commit: `a07ead42ae3d1e1bbde90944314697ee172a1de6`.
-Additional work in this checkpoint's code commit is described in TEST_REPORT_2026-11-04.md.
+Latest implementation commit: `72880be8d44afa49019f5319d753909882162f21`.
+Flutter CI: run `41703447919`, job `126152464443` — QUEUED.
+PostgreSQL CI: run `41703447988`, job `126152455185` — QUEUED.
+Additional work is described in TEST_REPORT_2026-11-04.md. A later docs-only checkpoint commit is intentionally marked [skip ci].
 
 ## State and evidence
 - Read implementation/release plan and repository sources; visually inspected the supplied solid-red screenshot.
@@ -15,7 +18,7 @@ Additional work in this checkpoint's code commit is described in TEST_REPORT_202
 - No fresh APK, no production release, no main changes, no production data operations or outbound WhatsApp messages.
 
 ## Actual blockers
-- 19 earlier Actions runs retrieved as in_progress; inspected run 41694471162/job 126121260445 hangs at the now-fixed backup fixture. New code run 41700967999 is queued. Old runs need cancellation to release capacity.
+- 19 earlier Actions runs retrieved as in_progress; inspected run 41694471162/job 126121260445 hangs at the now-fixed backup fixture. First-increment run 41700967999 was cancelled by the new concurrency rule; latest code runs 41703447919 and 41703447988 are queued. Old runs need cancellation to release capacity.
 - The GitHub connector has no cancel-run tool. Do not initialize Browser for cancellation without obtaining the permission required for plugin fallback.
 - Local Flutter dependency setup was stopped by automatic review for unexpected cloud metadata access. Do not rerun it or bypass that rejection. Use GitHub CI.
 - PostgreSQL package downloads are blocked by network policy. Use the configured disposable CI service.
