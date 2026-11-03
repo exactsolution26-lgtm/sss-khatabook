@@ -5,7 +5,7 @@ import '../../widgets/simple_button.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/utils/calculation_utils.dart';
 import '../../core/utils/validation_utils.dart';
-import '../../core/utils/date_utils.dart';
+import '../../core/utils/date_utils.dart' as khata_dates;
 import 'income_controller.dart';
 import '../../models/income_model.dart';
 import '../../features/accounts/account_controller.dart';
@@ -162,7 +162,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
                     border: OutlineInputBorder(),
                     suffixIcon: Icon(Icons.calendar_today),
                   ),
-                  child: Text(DateUtils.formatDisplayDate(_selectedDate)),
+                  child: Text(khata_dates.DateUtils.formatDisplayDate(_selectedDate)),
                 ),
               ),
               const SizedBox(height: 24),
