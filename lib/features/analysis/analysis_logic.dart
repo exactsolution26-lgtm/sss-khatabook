@@ -1,7 +1,6 @@
 import '../../features/accounts/account_controller.dart';
 import '../../features/expenses/expense_controller.dart';
 import '../../features/income/income_controller.dart';
-import '../../models/account_model.dart';
 
 class AnalysisLogic {
   final AccountController _accountController = AccountController();
