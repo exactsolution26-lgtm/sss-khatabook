@@ -20,3 +20,7 @@ jobs:
         run: flutter analyze
       - name: Unit tests
         run: flutter test
+      - name: SQLite v1 migration fixture tests
+        run: python3 -m unittest discover -s test_tools -p '*_check.py' -v
+      - name: Flutter Dart asset bundle build
+        run: flutter build bundle --release
