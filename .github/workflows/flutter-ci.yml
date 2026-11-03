@@ -6,6 +6,12 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+concurrency:
+  group: flutter-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   analyze-and-test:
     runs-on: ubuntu-latest
@@ -14,6 +20,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: 3.47.9
       - name: Dependencies
         run: flutter pub get
       - name: Static analysis
@@ -21,20 +28,25 @@ jobs:
       - name: Unit tests
         run: flutter test
       - name: SQLite v1 migration fixture tests
-        run: python3 -m unittest discover -s test_tools -p '*_check.py' -v
+        run: timeout 60s python3 -m unittest discover -s test_tools -p '*_check.py' -v
       - name: Subscriber account schema checks
         run: python3 -m unittest discover -s test_tools -p 'test_subscriber_schema.py' -v
+      - name: Record verification commit
+        if: always()
+        run: git rev-parse HEAD
       - name: Flutter Dart asset bundle build
         run: flutter build bundle --release
 
   platform-builds:
     runs-on: ubuntu-latest
+    needs: analyze-and-test
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: 3.47.9
       - name: Generate temporary Android and Web runners
         run: flutter create --platforms=android,web --project-name offline_khata_app .
       - name: Resolve dependencies
@@ -51,28 +63,47 @@ jobs:
           PY
       - name: Android debug APK build
         run: flutter build apk --debug
+      - name: Android release compilation (testing signature only)
+        run: flutter build apk --release
+      - name: Record build identity
+        run: |
+          git rev-parse HEAD > build/app/outputs/flutter-apk/BUILD_COMMIT.txt
+          echo 'Development testing artifacts; default debug signing; device startup NOT certified.' > build/app/outputs/flutter-apk/BUILD_STATUS.txt
+          sha256sum build/app/outputs/flutter-apk/*.apk > build/app/outputs/flutter-apk/SHA256SUMS.txt
       - name: Upload Android APK
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: sss-khatabook-debug-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          name: sss-khatabook-testing-apks
+          path: build/app/outputs/flutter-apk/
           retention-days: 7
 
   web-build:
     runs-on: ubuntu-latest
+    needs: analyze-and-test
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: 3.47.9
       - name: Generate temporary Web runner
         run: flutter create --platforms=web --project-name offline_khata_app .
       - name: Resolve dependencies
         run: flutter pub get
+      - name: Install SQLite browser worker and WASM
+        run: dart run sqflite_common_ffi_web:setup
       - name: Web release build
         run: flutter build web --release
+      - name: Install browser acceptance runner
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Browser runtime and persistence tests
+        run: |
+          python3 -m http.server 8080 --directory build/web > /tmp/sss-web-server.log 2>&1 &
+          node test_tools/browser/smoke.cjs
       - name: Upload Web build
         if: success()
         uses: actions/upload-artifact@v4
@@ -80,3 +111,10 @@ jobs:
           name: sss-khatabook-web
           path: build/web/
           retention-days: 7
+      - name: Upload browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-runtime-evidence
+          path: web-*.png
+          if-no-files-found: ignore

@@ -8,7 +8,8 @@ class IncomeTable {
   static const String date = 'date';
   static const String createdAt = 'created_at';
 
-  static const String createTable = '''
+  static const String createTable =
+      '''
     CREATE TABLE $tableName (
       $id INTEGER PRIMARY KEY AUTOINCREMENT,
       $accountId INTEGER NOT NULL,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../widgets/header_text.dart';
 import '../../widgets/simple_input.dart';
 import '../../widgets/simple_button.dart';
@@ -27,32 +28,45 @@ class _WorkTodayScreenState extends State<WorkTodayScreen> {
   @override
   void initState() {
     super.initState();
-    NotificationService.instance.initialize();
+    // Notifications are optional and cannot prevent the timer opening.
+    NotificationService.instance.initialize().catchError((Object _) {});
     _loadTodayWork();
   }
 
   Future<void> _loadTodayWork() async {
-    final db = await _dbHelper.database;
-    final today = khata_dates.DateUtils.formatDate(DateTime.now());
-    final maps = await db.query(
-      WorkTable.tableName,
-      where: '${WorkTable.date} = ?',
-      whereArgs: [today],
-    );
+    try {
+      final db = await _dbHelper.database;
+      final today = khata_dates.DateUtils.formatDate(DateTime.now());
+      final maps = await db.query(
+        WorkTable.tableName,
+        where: '${WorkTable.date} = ?',
+        whereArgs: [today],
+      );
 
-    if (maps.isNotEmpty) {
-      final work = WorkModel.fromMap(maps.first);
-      _timerService.setDuration(work.duration);
-      if (work.startTime != null) {
-        _timerService.setStartTime(work.startTime!);
+      if (!mounted) return;
+      if (maps.isNotEmpty) {
+        final work = WorkModel.fromMap(maps.first);
+        _timerService.setDuration(work.duration);
+        if (work.startTime != null) {
+          _timerService.setStartTime(work.startTime!);
+        }
+        if (work.startTime != null && work.endTime == null) {
+          final now = DateTime.now();
+          final elapsed = now.difference(work.startTime!).inSeconds;
+          _timerService.setDuration(
+            elapsed > work.duration ? elapsed : work.duration,
+          );
+          _timerService.start();
+        }
+        _descriptionController.text = work.description ?? '';
       }
-      if (work.startTime != null && work.endTime == null) {
-        final now = DateTime.now();
-        final elapsed = now.difference(work.startTime!).inSeconds;
-        _timerService.setDuration(elapsed > work.duration ? elapsed : work.duration);
-        _timerService.start();
-      }
-      _descriptionController.text = work.description ?? '';
+    } catch (_) {
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not restore timer. Please retry.'),
+          ),
+        );
     }
   }
 
@@ -64,7 +78,7 @@ class _WorkTodayScreenState extends State<WorkTodayScreen> {
     try {
       final db = await _dbHelper.database;
       final today = khata_dates.DateUtils.formatDate(DateTime.now());
-      
+
       final work = WorkModel(
         date: DateTime.now(),
         startTime: _timerService.startTime,
@@ -94,14 +108,13 @@ class _WorkTodayScreenState extends State<WorkTodayScreen> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(AppStrings.workSaved)),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text(AppStrings.workSaved)));
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          const SnackBar(content: Text('Could not save timer. Please retry.')),
         );
       }
     } finally {
@@ -121,9 +134,7 @@ class _WorkTodayScreenState extends State<WorkTodayScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(AppStrings.workToday),
-      ),
+      appBar: AppBar(title: const Text(AppStrings.workToday)),
       body: ListenableBuilder(
         listenable: _timerService,
         builder: (context, _) {
@@ -144,36 +155,41 @@ class _WorkTodayScreenState extends State<WorkTodayScreen> {
                     children: [
                       Text(
                         _timerService.formattedTime,
-                        style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                        style: Theme.of(context).textTheme.displayLarge
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: AppSizes.paddingL),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           if (!_timerService.isRunning)
-                            SimpleButton(
-                              text: AppStrings.start,
-                              onPressed: () {
-                                _timerService.start();
-                              },
+                            Expanded(
+                              child: SimpleButton(
+                                text: AppStrings.start,
+                                onPressed: () {
+                                  _timerService.start();
+                                },
+                              ),
                             )
                           else
-                            SimpleButton(
-                              text: AppStrings.pause,
+                            Expanded(
+                              child: SimpleButton(
+                                text: AppStrings.pause,
+                                onPressed: () {
+                                  _timerService.pause();
+                                  _saveWork();
+                                },
+                              ),
+                            ),
+                          const SizedBox(width: AppSizes.paddingM),
+                          Expanded(
+                            child: SimpleButton(
+                              text: AppStrings.stop,
                               onPressed: () {
-                                _timerService.pause();
+                                _timerService.stop();
                                 _saveWork();
                               },
                             ),
-                          const SizedBox(width: AppSizes.paddingM),
-                          SimpleButton(
-                            text: AppStrings.stop,
-                            onPressed: () {
-                              _timerService.stop();
-                              _saveWork();
-                            },
                           ),
                         ],
                       ),

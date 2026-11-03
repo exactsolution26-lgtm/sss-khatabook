@@ -9,7 +9,8 @@ class WorkTable {
   static const String description = 'description';
   static const String createdAt = 'created_at';
 
-  static const String createTable = '''
+  static const String createTable =
+      '''
     CREATE TABLE $tableName (
       $id INTEGER PRIMARY KEY AUTOINCREMENT,
       $date TEXT NOT NULL,

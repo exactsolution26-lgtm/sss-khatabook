@@ -82,6 +82,9 @@ class MigrationTests(unittest.TestCase):
     def test_backup_before_migration_can_restore_original_v1(self):
         backup = sqlite3.connect(":memory:")
         try:
+            # sqlite3.backup waits indefinitely on this connection's write
+            # transaction. Commit the fixture before taking the snapshot.
+            self.db.commit()
             self.db.backup(backup)
             migrate_v1_to_v2(self.db)
             self.assertEqual(self.db.execute("PRAGMA integrity_check").fetchone()[0], "ok")

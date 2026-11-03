@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../widgets/header_text.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/constants/app_colors.dart';
@@ -29,6 +30,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     try {
       final data = await _analysisLogic.getAnalysisData();
       final details = await _analysisLogic.getAccountDetails();
+      if (!mounted) return;
       setState(() {
         _analysisData = data;
         _accountDetails = details;
@@ -36,7 +38,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          const SnackBar(content: Text('Could not load report. Please retry.')),
         );
       }
     } finally {
@@ -52,10 +54,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       appBar: AppBar(
         title: const Text(AppStrings.analysis),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadAnalysis,
-          ),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadAnalysis),
         ],
       ),
       body: _isLoading
@@ -72,7 +71,8 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                     _buildSummaryCard(
                       AppStrings.totalIncome,
                       CalculationUtils.formatCurrency(
-                        (_analysisData['totalIncome'] as num?)?.toDouble() ?? 0.0,
+                        (_analysisData['totalIncome'] as num?)?.toDouble() ??
+                            0.0,
                       ),
                       AppColors.income,
                     ),
@@ -80,7 +80,8 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                     _buildSummaryCard(
                       AppStrings.totalExpense,
                       CalculationUtils.formatCurrency(
-                        (_analysisData['totalExpense'] as num?)?.toDouble() ?? 0.0,
+                        (_analysisData['totalExpense'] as num?)?.toDouble() ??
+                            0.0,
                       ),
                       AppColors.expense,
                     ),
@@ -88,14 +89,17 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                     _buildSummaryCard(
                       AppStrings.totalBalance,
                       CalculationUtils.formatCurrency(
-                        (_analysisData['totalBalance'] as num?)?.toDouble() ?? 0.0,
+                        (_analysisData['totalBalance'] as num?)?.toDouble() ??
+                            0.0,
                       ),
                       AppColors.balance,
                     ),
                     const SizedBox(height: 32),
                     const HeaderText(text: AppStrings.accountDetails),
                     const SizedBox(height: 16),
-                    ..._accountDetails.map((detail) => _buildAccountCard(detail)),
+                    ..._accountDetails.map(
+                      (detail) => _buildAccountCard(detail),
+                    ),
                   ],
                 ),
               ),
@@ -110,16 +114,11 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
+            Text(title, style: Theme.of(context).textTheme.titleLarge),
             Text(
               amount,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: color,
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(context).textTheme.titleLarge
+                  ?.copyWith(color: color, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -138,12 +137,14 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
           children: [
             Text(
               account.name,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(context).textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            _buildDetailRow(AppStrings.openingBalanceLabel2, detail['openingBalance']),
+            _buildDetailRow(
+              AppStrings.openingBalanceLabel2,
+              detail['openingBalance'],
+            ),
             _buildDetailRow(AppStrings.income, detail['income']),
             _buildDetailRow(AppStrings.expense, detail['expense']),
             const Divider(),
@@ -168,9 +169,8 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
           Text(
             CalculationUtils.formatCurrency(value),
             style: isBold
-                ? Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    )
+                ? Theme.of(context).textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold)
                 : null,
           ),
         ],

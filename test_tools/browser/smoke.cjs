@@ -1,0 +1,30 @@
+// Run against the built web application served on port 8080, never production.
+const { chromium } = require('playwright');
+const assert = require('node:assert/strict');
+(async () => {
+  const browser = await chromium.launch({headless: true});
+  const page = await browser.newPage({viewport: {width: 1280, height: 900}});
+  const errors = [];
+  page.on('pageerror', error => errors.push(String(error)));
+  await page.goto('http://127.0.0.1:8080', {waitUntil: 'networkidle'});
+  const semantics = page.locator('flt-semantics-placeholder');
+  if (await semantics.count()) await semantics.evaluate(el => el.click());
+  await page.getByText('Your business, clearly accounted for.').waitFor({timeout: 60000});
+  await page.getByText('Accounts', {exact: true}).click();
+  await page.getByText('New Account', {exact: true}).click();
+  await page.getByRole('textbox', {name: 'Account name'}).fill('Browser acceptance account');
+  await page.getByRole('textbox', {name: 'Opening balance (₹)'}).fill('100.00');
+  await page.getByRole('button', {name: 'Save', exact: true}).click();
+  await page.getByText('Browser acceptance account', {exact: true}).waitFor();
+  await page.reload({waitUntil: 'networkidle'});
+  const again = page.locator('flt-semantics-placeholder');
+  if (await again.count()) await again.evaluate(el => el.click());
+  await page.getByText('Accounts', {exact: true}).click();
+  await page.getByText('Browser acceptance account', {exact: true}).waitFor();
+  await page.screenshot({path: 'web-desktop.png'});
+  await page.setViewportSize({width: 390, height: 844});
+  await page.screenshot({path: 'web-mobile.png'});
+  assert.deepEqual(errors, [], 'Browser runtime must have no unhandled page errors');
+  await browser.close();
+  console.log('PASS: startup, real IndexedDB account create/persistence, desktop/mobile rendering');
+})().catch(error => { console.error(error); process.exit(1); });

@@ -2,6 +2,56 @@ import '../db_helper.dart';
 import '../../models/account_model.dart';
 
 class AccountTable {
+  static Future<void> saveAccount({
+    required String name,
+    required double openingBalance,
+    int? id,
+  }) async {
+    if (name.trim().isEmpty ||
+        name.trim().length > 120 ||
+        !openingBalance.isFinite ||
+        openingBalance < 0) {
+      throw ArgumentError('Invalid account');
+    }
+    final db = await DBHelper.database;
+    final values = <String, Object?>{
+      'name': name.trim(),
+      'opening_balance': openingBalance,
+    };
+    if (id == null) {
+      values['created_at'] = DateTime.now().toUtc().toIso8601String();
+      await db.insert('accounts', values);
+    } else {
+      final count = await db.update(
+        'accounts',
+        values,
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      if (count != 1) throw StateError('Account not found');
+    }
+  }
+
+  static Future<void> deleteEmptyAccount(int id) async {
+    final db = await DBHelper.database;
+    await db.transaction((txn) async {
+      final rows = await txn.rawQuery(
+        'SELECT (SELECT COUNT(*) FROM income WHERE account_id = ?) + (SELECT COUNT(*) FROM expenses WHERE account_id = ?) AS count',
+        [id, id],
+      );
+      if ((rows.first['count'] as num) != 0)
+        throw StateError('Account has transactions');
+      final account = await txn.query(
+        'accounts',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      if (account.isEmpty || (account.first['opening_balance'] as num) != 0)
+        throw StateError('Only zero-balance empty accounts can be deleted');
+      await txn.delete('accounts', where: 'id = ?', whereArgs: [id]);
+    });
+  }
+
   static Future<void> saveOpeningBalance({
     required double cash,
     required double bank,
@@ -21,11 +71,16 @@ class AccountTable {
           'created_at': DateTime.now().toUtc().toIso8601String(),
         });
       } else {
-        await txn.update('accounts', {
-          'opening_balance': cash + bank,
-          'cash_balance': cash,
-          'bank_balance': bank,
-        }, where: 'id = ?', whereArgs: [existing.first['id']]);
+        await txn.update(
+          'accounts',
+          {
+            'opening_balance': cash + bank,
+            'cash_balance': cash,
+            'bank_balance': bank,
+          },
+          where: 'id = ?',
+          whereArgs: [existing.first['id']],
+        );
       }
     });
   }

@@ -3,6 +3,9 @@ import '../../models/expense_model.dart';
 
 class ExpenseTable {
   static Future<void> insertExpense(ExpenseModel expense) async {
+    if (expense.accountId == null || expense.accountId! <= 0) {
+      throw ArgumentError('Select an account for this expense');
+    }
     if (!expense.amount.isFinite || expense.amount <= 0) {
       throw ArgumentError('Expense amount must be positive and finite');
     }

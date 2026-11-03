@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../widgets/header_text.dart';
 import '../../widgets/simple_input.dart';
 import '../../widgets/simple_button.dart';
@@ -24,7 +25,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
   final _descriptionController = TextEditingController();
   final _incomeController = IncomeController();
   final _accountController = AccountController();
-  
+
   List<AccountModel> _accounts = [];
   AccountModel? _selectedAccount;
   DateTime _selectedDate = DateTime.now();
@@ -37,13 +38,24 @@ class _IncomeScreenState extends State<IncomeScreen> {
   }
 
   Future<void> _loadAccounts() async {
-    final accounts = await _accountController.getAllAccounts();
-    setState(() {
-      _accounts = accounts;
-      if (accounts.isNotEmpty && _selectedAccount == null) {
-        _selectedAccount = accounts.first;
-      }
-    });
+    try {
+      final accounts = await _accountController.getAllAccounts();
+      if (!mounted) return;
+      setState(() {
+        _accounts = accounts;
+        if (accounts.isNotEmpty && _selectedAccount == null) {
+          _selectedAccount = accounts.first;
+        }
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Could not load accounts'),
+          action: SnackBarAction(label: 'Retry', onPressed: _loadAccounts),
+        ),
+      );
+    }
   }
 
   Future<void> _selectDate() async {
@@ -53,17 +65,17 @@ class _IncomeScreenState extends State<IncomeScreen> {
       firstDate: DateTime(2000),
       lastDate: DateTime.now(),
     );
-    if (picked != null) {
+    if (picked != null && mounted) {
       setState(() => _selectedDate = picked);
     }
   }
 
   Future<void> _saveIncome() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_isLoading || !_formKey.currentState!.validate()) return;
     if (_selectedAccount == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(AppStrings.selectAccount)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text(AppStrings.selectAccount)));
       return;
     }
 
@@ -83,16 +95,16 @@ class _IncomeScreenState extends State<IncomeScreen> {
       await _incomeController.createIncome(income);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(AppStrings.incomeSaved)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text(AppStrings.incomeSaved)));
         _amountController.clear();
         _descriptionController.clear();
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          const SnackBar(content: Text('Could not save income. Please retry.')),
         );
       }
     } finally {
@@ -112,15 +124,12 @@ class _IncomeScreenState extends State<IncomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(AppStrings.addIncome),
-      ),
+      appBar: AppBar(title: const Text(AppStrings.addIncome)),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          child: ListView(
             children: [
               const HeaderText(text: AppStrings.addIncome),
               const SizedBox(height: 24),
@@ -144,7 +153,9 @@ class _IncomeScreenState extends State<IncomeScreen> {
               SimpleInput(
                 controller: _amountController,
                 label: AppStrings.amount,
-                keyboardType: TextInputType.number,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 validator: ValidationUtils.validateAmount,
               ),
               const SizedBox(height: 16),
@@ -162,7 +173,9 @@ class _IncomeScreenState extends State<IncomeScreen> {
                     border: OutlineInputBorder(),
                     suffixIcon: Icon(Icons.calendar_today),
                   ),
-                  child: Text(khata_dates.DateUtils.formatDisplayDate(_selectedDate)),
+                  child: Text(
+                    khata_dates.DateUtils.formatDisplayDate(_selectedDate),
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
