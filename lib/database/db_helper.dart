@@ -33,14 +33,16 @@ class DBHelper {
             business_id TEXT NOT NULL REFERENCES businesses(id),
             name TEXT NOT NULL,
             balance_paise INTEGER NOT NULL DEFAULT 0,
-            UNIQUE(business_id, name)
+            UNIQUE(business_id, name),
+            UNIQUE(id, business_id)
           )
         ''');
         await db.execute('''
           CREATE TABLE transactions (
             id TEXT PRIMARY KEY,
             business_id TEXT NOT NULL REFERENCES businesses(id),
-            account_id TEXT NOT NULL REFERENCES accounts(id),
+            account_id TEXT NOT NULL,
+            FOREIGN KEY(account_id, business_id) REFERENCES accounts(id, business_id),
             type TEXT NOT NULL CHECK(type IN ('income','expense','transfer_in','transfer_out')),
             amount_paise INTEGER NOT NULL CHECK(amount_paise > 0),
             category TEXT NOT NULL,
