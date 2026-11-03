@@ -59,47 +59,7 @@ class _MyAppState extends State<MyApp> {
       themeMode: _themeMode,
       initialRoute: AppRoutes.openingBalance,
       routes: AppRoutes.routes,
-      builder: (context, child) => Stack(
-        children: [
-          if (child != null) child,
-          Positioned(
-            top: MediaQuery.paddingOf(context).top + 8,
-            right: 64,
-            child: Material(
-              color: Theme.of(context).colorScheme.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(24),
-              child: PopupMenuButton<AppLanguage>(
-                tooltip: LocalizedStrings.get('language', _language),
-                icon: const Icon(Icons.language),
-                onSelected: _setLanguage,
-                itemBuilder: (context) => const [
-                  PopupMenuItem(value: AppLanguage.english, child: Text('English')),
-                  PopupMenuItem(value: AppLanguage.hindi, child: Text('हिंदी')),
-                ],
-              ),
-            ),
-          ),
-          Positioned(
-            top: MediaQuery.paddingOf(context).top + 8,
-            right: 12,
-            child: Material(
-              color: Theme.of(context).colorScheme.surfaceContainerHigh,
-              elevation: 2,
-              borderRadius: BorderRadius.circular(24),
-              child: PopupMenuButton<ThemeMode>(
-                tooltip: 'Choose app theme',
-                icon: const Icon(Icons.palette_outlined),
-                onSelected: _setTheme,
-                itemBuilder: (context) => const [
-                  PopupMenuItem(value: ThemeMode.system, child: Text('System theme')),
-                  PopupMenuItem(value: ThemeMode.light, child: Text('Light theme')),
-                  PopupMenuItem(value: ThemeMode.dark, child: Text('Dark theme')),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
+      builder: (context, child) => child ?? const SizedBox.shrink(),
     );
   }
 }
