@@ -11,7 +11,7 @@ Checks 2 and 3 are verified on application source `783dc704ca7e184e97d9fa36d839e
 | 1 | Android red-screen diagnosis | BLOCKED — MANUAL ACTION REQUIRED | Physical-device logcat/reproduction required; screenshot alone has no error text. |
 | 2 | Flutter static analysis | COMPLETE | Zero analyzer issues on783dc704, job126469925971. |
 | 3 | Unit/widget tests | COMPLETE | 100 Flutter tests +12 SQLite +4 static schema checks PASS, run41798900560. |
-| 4 | Android build/install/startup | PENDING | Earlier f96a703 debug/release builds and debug emulator startup pass; current increment not Android-built while APK hold applies. |
+| 4 | Android build/install/startup | PENDING |1.0.1 preview debug/release compilation and exact release-APK Android35 emulator install, opening100/income200/expense50, persisted250 after process restart PASS. Published testing prerelease v1.0.1-preview.20261104. Physical-device UAT/red-screen verification remain open. |
 | 5 | Web persistence/runtime | COMPLETE |783dc704 run41798900560/job126470866572 PASS: saved account INR100 survives reload, offline reload and offline browser cold start; desktop/mobile rendering and no unhandled runtime errors. Other module Web workflows remain in their own tasks. |
 | 6 | Supabase project | BLOCKED — MANUAL ACTION REQUIRED | Owner project setup/access. |
 | 7 | Migration deployment | BLOCKED — MANUAL ACTION REQUIRED | Depends on Supabase project and authorized deployment. |

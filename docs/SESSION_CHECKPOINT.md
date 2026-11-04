@@ -1,3 +1,18 @@
+# Latest checkpoint — published testing APK, 4 November 2026 IST
+
+Owner superseded the APK hold: "jitna kaam ho gya hai, uska new apk bna ke relese karo". Task fulfilled: testing prerelease v1.0.1-preview.20261104 published at https://github.com/exactsolution26-lgtm/sss-khatabook/releases/tag/v1.0.1-preview.20261104.
+
+APK source aa919f71aa092f575e65a946d0b8a80e491b8dae,1.0.1+101, separate com.sss.khatabook.preview, testing signature; old app/data preserved, no automatic transfer. APK70,208,157bytes SHA25679073c984cca9e1885238c39d4fdefd852b0e12e98ae27b638facf2e994dabb6. No main changes.
+
+Build run41804242608:100 Flutter+16 Python, zero analyzer issues, actual PostgreSQL16 security, Web offline runtime, debug/release Android compilation and signature/version checks PASS. Initial native harness failed locating an omitted native hint; fixed test code only in c8450b6. Retest run41806313621 verifies the original APK digest/source, installs exact release APK on Android35 emulator, records100+200-50=250, force-stops/relaunches and confirms250; no matched fatal/SSS errors. Publish job126495829484 SUCCESS. Source run41806313360 also passes unit/Web checks. See PREVIEW_RELEASE_VERIFICATION_2026-11-04.md.
+
+Workspace is available again. Git HEAD/index c8450b6 before this documentation-only checkpoint. Do not execute local Flutter (earlier auto-review restriction still applies); use CI. Scope of latest turn was APK release, not renewed authorization to redesign/activate the six layouts. Remaining58-task implementation is still partial; external/manual blockers and visual approval persist. Production signing/physical-device red-screen verification are NOT solved by this testing release.
+
+The new verify-preview workflow is pinned to this built APK/run and is NOT a generic future release pipeline. Do not reuse it for a newer binary without updating all provenance checks/tag/version/source and obtaining a new owner release request. Future updates also need stable owner-controlled signing; do not advise uninstalling an app containing financial data.
+
+---
+Historical implementation checkpoint below; its "no new APK" and unavailable-workspace statements are superseded above.
+
 # Resume checkpoint — 4 November 2026, current source 783dc704
 
 Owner's active instruction: "Pura complete kar ke btao". Continue all feasible approved work; no main changes, no repeated routine approvals. Do not claim full completion. No subagents authorized.
