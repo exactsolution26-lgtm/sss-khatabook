@@ -142,8 +142,13 @@ void main() {
       await tester.scrollUntilVisible(find.text('Edit entry'),180,scrollable:find.byType(Scrollable).first);
       await tester.tap(find.text('Edit entry'));await tester.pumpAndSettle();
       await tester.enterText(find.widgetWithText(TextField,'Amount'),'150.15');
-      await tester.scrollUntilVisible(find.text('Save changes'),180,scrollable:find.byType(Scrollable).first);
-      await tester.tap(find.text('Save changes'));await tester.pumpAndSettle();
+      FocusManager.instance.primaryFocus?.unfocus();await tester.pumpAndSettle();
+      final saveChanges=find.widgetWithText(FilledButton,'Save changes');
+      await tester.scrollUntilVisible(saveChanges,180,scrollable:find.byType(Scrollable).first);
+      await tester.ensureVisible(saveChanges);await tester.pumpAndSettle();
+      await tester.tap(saveChanges.hitTestable());await tester.pumpAndSettle();
+      expect(find.text('Entry details'),findsOneWidget);
+      await tester.scrollUntilVisible(find.text('+₹150.15'),-180,scrollable:find.byType(Scrollable).first);
       expect(find.text('+₹150.15'),findsOneWidget);
       await tester.pageBack();await tester.pumpAndSettle();
       await tester.ensureVisible(find.byKey(const ValueKey('history-total')));
