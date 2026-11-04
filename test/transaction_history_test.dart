@@ -154,7 +154,11 @@ void main() {
       await tester.ensureVisible(find.byKey(const ValueKey('history-total')));
       expect(find.text('₹150.15'),findsOneWidget);
       await tester.ensureVisible(find.byType(TextField));await tester.enterText(find.byType(TextField),'');await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Expenses'));await tester.tap(find.text('Expenses'));await tester.pumpAndSettle();
+      FocusManager.instance.primaryFocus?.unfocus();await tester.pumpAndSettle();
+      final historyTabs=find.byType(SegmentedButton<bool>);
+      await tester.scrollUntilVisible(historyTabs,-180,scrollable:find.byType(Scrollable).first);
+      await tester.ensureVisible(historyTabs);await tester.pumpAndSettle();
+      await tester.tap(find.text('Expenses').hitTestable());await tester.pumpAndSettle();
       expect(find.text('₹50.05'),findsOneWidget);expect(find.byKey(const ValueKey('history-INC-1')),findsNothing);
       await tester.pageBack();await tester.pumpAndSettle();
       expect(find.text('₹1300.30'),findsOneWidget);
