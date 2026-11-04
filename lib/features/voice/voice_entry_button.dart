@@ -25,7 +25,7 @@ class _VoiceDialogState extends State<_VoiceDialog> with WidgetsBindingObserver 
     super.didChangeDependencies();
     // AppLockGate disables the financial subtree while locked. A permission
     // result must never start recording behind the PIN screen.
-    if(!TickerMode.of(context)) unawaited(capture.background(notify:false));
+    if(!TickerMode.valuesOf(context).enabled) unawaited(capture.background(notify:false));
   }
   void changed(){
     if(!mounted) return;
