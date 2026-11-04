@@ -1,40 +1,57 @@
-# Resume checkpoint — 4 November 2026
+# Resume checkpoint — 4 November 2026, current source 783dc704
 
-## Active Work Mode continuation — latest steering
-Owner repeated "Pura complete kar ke btao": continue all unblocked implementation; do not end with a promise/status-only answer. Keep regular concise progress updates. No main changes. No subagents authorized. Existing dashboard designs remain reconstruction previews pending visual approval; do not activate them as recovered originals.
+Owner's active instruction: "Pura complete kar ke btao". Continue all feasible approved work; no main changes, no repeated routine approvals. Do not claim full completion. No subagents authorized.
 
-Full working checkout: `/workspace/scratch/46b88f8863c2/sss-khatabook-full`. Use GitHub connector tree/commit/update_ref with exact expected head for remote writes. Git CLI read/fetch/reset --mixed only aligns the local index, never discard work. Local Flutter remains prohibited after earlier metadata auto-review rejection; all Flutter verification is in GitHub CI.
+## Saved source and evidence
+Repository exactsolution26-lgtm/sss-khatabook, branch development/stability-foundation only.
+Latest application commit: 783dc704ca7e184e97d9fa36d839ed898c08bf68.
+Earlier increments: 798cfdb (dues/followups/schema8); 9189135 (recycle/edit/schema9); 783dc704 (voice review, dated statements, refresh fixes).
+Latest verified analysis/unit result: run41798900560/job126469925971 SUCCESS: analyzer0 issues,100 Flutter tests,12 SQLite and4 static schema checks, release asset bundle PASS.
+Actual disposable PostgreSQL16 run41798900550/job126469550354 SUCCESS: tenant role RLS, escalation, audit, duplicates, version conflicts and suspension. This does NOT certify deployed Supabase or SaaS client isolation.
+Latest Web job126470866572 PASSES: startup, real IndexedDB account create/reload persistence (INR100), desktop/mobile rendering, offline reload and offline browser cold start, no unhandled errors. Explicit flutter_bootstrap.js without legacy serviceWorkerSettings and --pwa-strategy=none leave one SSS worker caching only fixed public assets. Web artifact13307520553 SHA256b571bc1fffcd149dd936cbc60a894e1a016deccd0aca793b81bfd21be419e4f5; browser evidence13307715838 SHA25642be3b0a8767d220442bdec99b2161669830bc9585d25bd9a6a306fb764a216e. Run41798900560 overall SUCCESS (Android jobs intentionally skipped).
+Android build/startup jobs skipped; no new APK. Final owner-authorized APK follows implementation/tests, not before.
 
-Latest pushed head before this draft: b9a881dbdffb9b2a8b45f771192e6f9f34c0fa39. Its analyzer/unit suite passes86 Flutter tests and16 Python checks (run41793128491/analyze126450883721), but Web offline test failed from competing service workers. Current uncommitted fix adds explicit flutter_bootstrap.js without legacy worker settings and --pwa-strategy=none; retain the SSS public-static-assets worker only. Not yet retested.
+## Interruption
+The development environment became UNAVAILABLE (exec-server transport disconnected, recovery timed out45s). User environment state confirms unavailable. Do not pretend filesystem writes/tests can continue there.
+All source changes through783dc704 were committed before this failure.
+A final exec intended to create lib/features/auth/cloud_auth.dart, cloud_app.dart and change main.dart failed at process creation. These files are NOT in the committed application and must not be claimed implemented. Check local status if the environment returns; do not assume those writes ran.
+GitHub connector remains usable for reads and expected-head commits. It can fetch GET Actions collection URLs directly via github_fetch; no need public urllib fallback.
+Store reviewed final docs/checkpoint on the development branch. Documentation-only commit may use [skip ci]; cite exact application source for test evidence.
 
-Last FULL green baseline:4a4668a6beea8b92ff3b08119e4cd18cf001ab0b, run41791096001, analyzer126444403250 (85 tests +16 Python checks), Web126445349928; PostgreSQL41791096003. Verified encrypted backups/vault/restore/audit, atomic attachments, PDF/CSV, PIN gate/rate limit, real Ed25519 verifier. OS APIs are mocked in unit tests; native/device integration remains unverified. Ledger PDF artifact actually rendered/inspected in `verified-evidence/` outside repo.
+## Implemented / tested local functionality
+- Exactly6 reconstruction dashboard previews (Classic, Balance Focus, Compact, Overview, Accounts, Timeline), Light/Dark, optional Hindi, one persisted selection, real shared financial snapshot. Original approved layouts unrecovered; explicitly labeled reconstruction, major visual approval pending. Main Dashboard unchanged. Super Admin preview SIMULATED platform data.
+- English-default entry forms: real category dropdown/custom options; chosen native contact/manual fallback; search saved transaction/obligation contact snapshots; amount numeric/mobile phone/date picker; auto UTC save time displayed IST weekday/fullmonth/time; durable Saved feedback; attachments.
+- Schema9 local ledger, additive migrations. Backup supports schema6/7/8/9.
+- AES256GCM/PBKDF2-600k portable encrypted backup, staged validation/atomic restore, seven encrypted checkpoints in separate SQLite vault, pre-restore recovery, append-only local before/after audit. Keystore native / session-only Web passphrase, no plaintext persisted passphrase.
+- PDF/CSV/XLSX record-backed export, local fonts, CSV formula neutralization, XLSX inline strings (no formulas). Monthly/yearly/custom range statements include opening balance carried from earlier transactions; period test passes.
+- Attachments bounded PDF/JPG/PNG magic/size/dimension checks, atomic with entries, offline view/download/share; archived/restored bytes preserved by recovery payload.
+- PIN6digits, saltedderived hash in secure storage, rate limit/persisted failures, native biometric opt-in requiresPIN, app gate relocks. Test doubles explicitly distinguished from hardware.
+- Actual Ed25519 signed lease verifier rejects tamper/untrusted key/tenant/device/time claims; production trusted issuer/secure time/access wiring remains open.
+- Dues: exact integer paise, receivable/payable, creating due changes no cash, settlement creates actual cash entry + allocation + audit atomically; request key idempotent; overpayment/concurrent-budget guards; allocation links immutable and account-specific; reversal creates opposite cash entry, retains original, restores remaining, blocks reversed receipt.
+- Followups: linked customer/due or general, due time, done/reopen, opt-in generic notification title/body hides financial/contact details; permission denial does not undo saved followup; restored scheduling flags reset and old scheduled IDs cancelled best-effort. Physical OS scheduling/boot/receipt unverified.
+- Ledger edit via account/id guarded service, original created_at preserved, updated_at+audit set; category selectable in editor. Allocated cash cannot be edited through editor; use payment history reversal.
+- Recoverable deletion archives original row+attachment payload in recycled_entries, then removes active row in same transaction; balances naturally exclude archived entries, account FK preserves ownership; recover original identity/snapshot/time; duplicate restore rejected; backups validate payloads; restore advances SQLite sequences beyond archived IDs. Local API deleteIncome routes through recovery, not silent permanent deletion.
+- Voice English/Hindi optional speech_to_text7.5.0 integration. Default on-device recognition; explicit disclosure if online provider allowed. Recognized phrase editable; conservative single numeric amount (including Devanagari digits), ambiguity/manual fallback; preview confirmation fills form only; still explicit Save. Parser tests pass. Microphone/available language/device behavior NOT physically tested.
 
-Current uncommitted schema8 increment: dues/partial payments in integer paise; payment budget/ownership/idempotency/immutable allocations, reversal counter-entries, follow-up records and opt-in native notifications, reminder metadata reset/cancellation on restore. SQL strings compile in local real SQLite. New dues/followup service + mobile widget tests exist but have NOT run on Flutter yet. Backup supports old schema6/7 plus8. Commit and verify this increment; fix failures before declaring it passed.
+## Remaining work
+Continue approved58-task plan, especially:
+- Authentication/signup/login/reset/logout and secure production mode gate; configured Supabase currently still falls through to shared local DEV ledger. Do not use a configured SaaS build before tenant storage/auth gating is fixed.
+- Tenant-separated local database/vault/preferences and synchronization, trusted lease issuer+device/time secure state, conflict resolution, subscription authorization, payment verification, pricing/admin backend UI/reporting.
+- Complete English/Hindi localization (many screen strings still English), business profile/onboarding/support, branding, saved WhatsApp template/history UI, advanced reports/charts, import/dedup, fuller account contact directory/phone editing and history filters/pagination.
+- Portable corrupt-file/device-loss disaster recovery, full privacy review, native APIs/Android release startup and red-screen reproduction with logcat, signing, UAT.
+- Six reconstruction visual approval before main activation; never call them recovered originals.
 
-Remaining unblocked work still includes complete Income/Expense edit/soft-delete/recovery, saved customer phones/contact selection, voice review entry, full English/Hindi, profile/setup/support, history/date filters/reports/import/draft-template UX. Do not claim all58 tasks complete. Hosted auth/Supabase deployment, merchant credentials, production signed license issuer/trusted time/sync, production signing, physical UAT and representative10k-user tests are external blockers; continue independent modules. Final APK only after the implementation/testing phase; default Android workflow jobs remain gated.
+External blockers: Supabase project/deployment/owner bootstrap, merchant onboarding/credentials, production signing, physical-device UAT/logcat and representative10k-user backend infrastructure. Continue independent work once workspace returns.
 
-Preview files: `/workspace/sss-dashboard-review.html` (reload full visualize skill before modifying it),20 screenshots in `dashboard-previews-v2/` already saved with Library identities/xattrs. Six layouts use real AppTheme, demo fixture data, and explicit reconstruction labels; Super Admin is explicitly simulated. Existing image IDs remain unchanged on updates. Library helper scripts are in `library-transfer-final/`; refresh from current skill if a new request requires it. Do not duplicate repository-backed code in Library.
+## Files and previews
+Full checkout path before interruption: /workspace/scratch/46b88f8863c2/sss-khatabook-full.
+Do not use older partial mirror sss-khatabook. Git fetch + reset --mixed only to align index; never discard edits.
+Local Flutter execution was previously auto-review rejected; do not rerun/reinstall/bypass. Flutter tests in GitHub CI.
+Six overview screenshot durable Library ID libfile_8b8e0bd4c56c8191b1c68d5066c9b0e4;20 preview images saved/version1.
+Inline /workspace/sss-dashboard-review.html and dashboard-previews-v2 files may be unavailable with workspace. Reload full visualization instructions before modifying inline visualization.
+Newest CI screenshot/export artifact13306258667, sha256fa4e0b13bf79589a975d2f93d169a7b0abc68b39fcf753daa20c282aab6c2c5f.
+Resolved lock artifact13306577025. Openpyxl QA of XLSX interrupted by environment loss; do not claim it happened.
+Earlier PDF CI sample rendered/visually inspected with Poppler (English fixture, closingINR1150). Hindi shaping/native share UAT remains open.
+Old APKf96a703 Librarylibfile_86eb217123d481919e2b8c6af90b66eb is outdated; never present it as latest or production-ready.
 
-Branch development/stability-foundation ONLY. Never modify/merge main. Current code50cf7ea27fd799af41a06f48d8073d4a6e1c248b; application code unchanged since ab0855af7a00f3810de81309b6a275ab2872291d, later commits refine tests/captures. Docs-only checkpoint may follow. Latest owner contract WORK_MODE_REQUIREMENTS_2026-11-04.md supersedes old unrecovered-design blocker by permitting labeled reconstructions.
-
-## Current results
-Actions41771280545 analyze126381296309 SUCCESS: analyzer0 issues,68 Flutter tests,12 SQLite+4 schema checks pass, asset bundle succeeds. Actual PostgreSQL16 security run41771280544/job126381295923 SUCCESS. Preview artifact13294538484 contains18 actual Flutter PNGs, SHA256605ddd0a015bcdf4f5085188ef6ed10fb22ac3d34faf86fe7bc55ff219fd15ba.
-
-Web compiles and renders, but runtime harness still under repair: prior locale/network-idle failures fixed; exact merged semantics and initial numeric-input replacement caused later failures. Latest50cf7ea uses End/Backspace and strict saved ₹100 assertion, then reload/persistence. Do not claim browser persistence passes until final evidence below. Android jobs skipped per APK hold; no fresh APK in this increment. Old f96a703 build/emulator results do not certify current contact plugin. Physical red screen remains unverified.
-
-## Implemented increment
-Schema5 additive migration: saved opening timestamp, entry contact snapshots/create/edit times, custom categories. Old ids/balances preserved; unknown old times remain NULL. Persistent Saved feedback on Opening/Income/Expense; database-backed receipt. Native single-phone picker Android/iOS plus manual fallback; no broad contacts enumeration. Entry accounting date separate from actual UTC save instant; explicit IST weekday/date/time. Six fixed distinct reconstruction previews, one selected/persisted, Light/Dark/optional Hindi, same analysis snapshot, working entry navigation. Main dashboard unchanged awaiting visual approval. Super Admin preview only, simulated data and locked design rows.
-
-## Next dependencies
-1. Finish/fix Web runtime acceptance, inspect logs/screenshots, preserve failing statuses until retested.
-2. Obtain visual feedback on six reconstructions; do not claim recovered original designs. Activate main layouts only after review.
-3. Continue auth, tenant-separated local stores and backend operations before subscription enforcement/sync. Supabase setup, migrations deployment and trusted owner bootstrap blocked until authorized project access exists.
-4. Complete signed30-day lease, secure clock/device binding, encrypted backup/restore, offline conflicts, minor-unit money/partial payments, attachments/exports, authorized audit/edit/delete, PIN/biometric, voice confirmation, reminders and full Hindi in dependency order. See all58 tasks; only2 checks currently complete,48 pending,8 blocked.
-5. Native picker/iOS/physical-device/WhatsApp integration still require real-device verification. Never claim message delivery merely because a draft opens. No messages have been sent.
-6. Final owner-requested APK follows implementation/design review and tests. Keep intermediate APK workflows explicitly gated; never describe a testing-signature artifact as production-ready.
-
-## Environment
-Local Flutter initialization was previously rejected by automatic review for unexpected metadata access: do not rerun/reinstall/bypass; use GitHub CI. Local workspace is a partial source mirror; preserve remote files using tree base and expected-head leases. Public GitHub API supports read-only Actions discovery; connector handles mutations. No secrets in chat. Production/backend10k/signing/physical UAT remain external blockers.
-
-## Latest verified result and active work
-50cf7ea27fd799af41a06f48d8073d4a6e1c248b Web runtime PASSES in run41772008968/job126384199189 with strict ₹100 amount/persistence. Use full checkout sss-khatabook-full for further development; partial mirror has older draft docs. New schema6 backup/recovery/audit increment is unverified until its CI result.3 checks complete,47 pending,8 blocked at the last verified baseline.
+Conservative58-point release counts at this interruption:3 verified checks,47 pending/partial,8 external blockers. This does not mean only3 features exist; completion demands every task-specific release gate. Further implementation also currently blocked by unavailable development environment.
