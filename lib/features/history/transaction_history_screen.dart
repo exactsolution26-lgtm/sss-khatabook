@@ -117,7 +117,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                   child: Text(HistoryEntry.accountingDate(entry.date),
                     style: Theme.of(context).textTheme.titleSmall)),
                 Card(child: InkWell(key: ValueKey('history-${entry.reference}'),
-                  onTap: () => open(TransactionDetailScreen(income: income, id: entry.id, accountId: entry.accountId)),
+                  onTap: () => open(TransactionDetailScreen(income: entry.income, id: entry.id, accountId: entry.accountId)),
                   borderRadius: BorderRadius.circular(12),
                   child: Padding(padding: const EdgeInsets.all(16), child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start, children: [
