@@ -28,11 +28,15 @@ const fs = require('node:fs');
   await nameField.pressSequentially('Browser acceptance account');
   const opening = page.getByRole('textbox', {name: 'Opening balance (₹)'});
   await opening.click();
-  await opening.press('ControlOrMeta+A');
-  await opening.pressSequentially('100.00');
+  // Flutter's semantics proxy does not reliably forward select-all shortcuts.
+  // Use normal editing keys and assert the final persisted amount below.
+  await opening.press('End');
+  for (let i = 0; i < 12; i++) await opening.press('Backspace');
+  await opening.pressSequentially('100.00', {delay: 25});
   await opening.press('Tab');
+  diagnostic.push('Entered opening balance: ' + await opening.inputValue());
   await page.getByRole('button', {name: 'Save', exact: true}).click();
-  const record = page.getByRole('button', {name: /^Browser acceptance account\nOpening:/});
+  const record = page.getByRole('button', {name: /^Browser acceptance account\s+Opening:/});
   await record.waitFor();
   assert.match(await record.getAttribute('aria-label'), /Opening: ₹100\.00/);
   await page.reload({waitUntil: 'domcontentloaded', timeout: 60000});
