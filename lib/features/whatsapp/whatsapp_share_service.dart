@@ -114,7 +114,7 @@ class WhatsAppShareService {
         final table = income ? 'income' : 'expenses';
         final column = income ? 'income_id' : 'expense_id';
         final rows = await txn.rawQuery(
-          'SELECT e.id,e.account_id,e.amount,e.date,e.created_at,e.contact_name,e.contact_phone,a.name '
+          'SELECT e.id,e.account_id,e.amount,e.date,e.created_at,e.contact_name,e.contact_phone,e.category,e.mode,a.name '
           'FROM $table e JOIN accounts a ON a.id=e.account_id WHERE e.id=? '
           '${draft.sourceAccountId == null ? '' : 'AND e.account_id=? '}'
           'AND NOT EXISTS(SELECT 1 FROM payment_allocations p WHERE p.$column=e.id AND p.reversed_at IS NOT NULL)',
@@ -122,13 +122,17 @@ class WhatsAppShareService {
         );
         if (rows.length != 1) throw StateError('Recorded payment not found');
         final row = rows.single;
+        final storedTime = row['created_at']?.toString() ?? '';
+        if (!RegExp(r'(Z|[+-]\d{2}:?\d{2})$', caseSensitive: false).hasMatch(storedTime) || DateTime.tryParse(storedTime) == null) {
+          throw StateError('The historic save timezone cannot be verified');
+        }
         return WhatsAppDraft(
           type: draft.type,
           customer: (row['contact_name'] as String?)?.trim().isNotEmpty == true
               ? row['contact_name'] as String : row['name'] as String,
           amount: (row['amount'] as num).toDouble(),
           timestampUtc: DateTime.parse(row['created_at'] as String).toUtc(),
-          details: 'Recorded date: ${row['date']}',
+          details: 'Recorded date: ${row['date']}\nCategory: ${row['category'] ?? 'Other'} · Payment mode: ${row['mode'] ?? 'Unknown'}',
           sourceIncomeId: draft.sourceIncomeId,
           sourceExpenseId: draft.sourceExpenseId,
           sourceAccountId: row['account_id'] as int,

@@ -105,10 +105,17 @@ void main() {
     final resolved=await service.resolveDraft(draft(expenseId:1,accountId:account));
     expect(resolved.amount,50.05);expect(resolved.customer,'Main Account');
     expect(resolved.message,contains('recorded expense #1'));expect(resolved.sourceIncomeId,isNull);
+    await (await DBHelper.database).update('expenses', {'mode':'online'}, where:'id=?',whereArgs:[1]);
+    await expectLater(service.openDraft('9876543210',draft(expenseId:1,accountId:account),expectedMessage:resolved.message),throwsStateError);
     await expectLater(service.resolveDraft(draft(expenseId:1,accountId:other)),throwsStateError);
     await expectLater(service.resolveDraft(draft(expenseId:1,incomeId:1)),throwsStateError);
     await RecordRecovery.remove(income:false,id:1,accountId:account,reason:'Duplicate');
     await expectLater(service.resolveDraft(draft(expenseId:1)),throwsStateError);
+  });
+  test('WhatsApp receipt never labels an unknown historic timezone as verified IST', () async {
+    await (await DBHelper.database).update('expenses', {'created_at':'2026-11-04 11:05:12'},where:'id=?',whereArgs:[1]);
+    await expectLater(const WhatsAppShareService().resolveDraft(WhatsAppDraft(
+      type:WhatsAppMessageType.receipt,customer:'',amount:0,timestampUtc:DateTime.utc(2026),sourceExpenseId:1)),throwsStateError);
   });
   test('receipt PDF uses real entry details and generates a readable PDF container', () async {
     final row=(await TransactionHistory.load(true,id:1,accountId:account)).single;
