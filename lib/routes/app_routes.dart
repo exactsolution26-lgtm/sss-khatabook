@@ -1,6 +1,7 @@
 import '../features/dashboard/dashboard_screen.dart';
 import '../features/backup/backup_screen.dart';
 import '../features/history/audit_screen.dart';
+import '../features/history/transaction_history_screen.dart';
 import '../features/security/security_screen.dart';
 import '../features/dues/dues_screen.dart';
 import '../features/followups/followup_screen.dart';
@@ -34,6 +35,8 @@ class AppRoutes {
     '/dues': (_) => const DuesScreen(),
     '/followups': (_) => const FollowupScreen(),
     '/accounts': (_) => const AccountsScreen(),
+    '/income-history': (_) => const TransactionHistoryScreen(income: true),
+    '/expense-history': (_) => const TransactionHistoryScreen(income: false),
     '/income': (_) => const IncomeScreen(),
     '/expenses': (_) => const ExpenseScreen(),
     '/reports': (_) => const AnalysisScreen(),

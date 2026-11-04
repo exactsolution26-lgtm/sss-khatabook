@@ -25,6 +25,7 @@ class WhatsAppDraft {
     this.month = '',
     this.sourceAccountId,
     this.sourceIncomeId,
+    this.sourceExpenseId,
     this.recipientPhone,
   });
   final WhatsAppMessageType type;
@@ -35,6 +36,7 @@ class WhatsAppDraft {
   final String month;
   final int? sourceAccountId;
   final int? sourceIncomeId;
+  final int? sourceExpenseId;
   final String? recipientPhone;
 
   String get message {
@@ -47,9 +49,9 @@ class WhatsAppDraft {
       case WhatsAppMessageType.reminder:
         return 'Hello $name, this is a reminder of your pending balance of $money. Please verify your ledger.\n$stamp IST';
       case WhatsAppMessageType.receipt:
-        return sourceIncomeId == null
+        return sourceIncomeId == null && sourceExpenseId == null
             ? 'Unverified receipt draft. Select a recorded income transaction before sharing.\n$stamp IST'
-            : 'Hello $name, recorded payment receipt #$sourceIncomeId: $money.\n$details\n$stamp IST';
+            : 'Hello $name, recorded ${sourceExpenseId == null ? 'payment receipt #$sourceIncomeId' : 'expense #$sourceExpenseId'}: $money.\n$details\n$stamp IST';
       case WhatsAppMessageType.monthlyStatement:
         return 'Hello $name, your SSS Khatabook statement for $month:\n$details\nGenerated: $stamp IST';
       case WhatsAppMessageType.subscription:
@@ -105,11 +107,18 @@ class WhatsAppShareService {
     final db = await DBHelper.database;
     return db.transaction((txn) async {
       if (draft.type == WhatsAppMessageType.receipt) {
-        if (draft.sourceIncomeId == null)
-          throw StateError('Choose a recorded payment');
+        if ((draft.sourceIncomeId == null) == (draft.sourceExpenseId == null)) {
+          throw StateError('Choose exactly one recorded transaction');
+        }
+        final income = draft.sourceIncomeId != null;
+        final table = income ? 'income' : 'expenses';
+        final column = income ? 'income_id' : 'expense_id';
         final rows = await txn.rawQuery(
-          'SELECT income.id, income.amount, income.date, income.created_at, income.contact_name, income.contact_phone, accounts.name FROM income JOIN accounts ON accounts.id = income.account_id WHERE income.id = ? AND NOT EXISTS(SELECT 1 FROM payment_allocations p WHERE p.income_id=income.id AND p.reversed_at IS NOT NULL)',
-          [draft.sourceIncomeId],
+          'SELECT e.id,e.account_id,e.amount,e.date,e.created_at,e.contact_name,e.contact_phone,a.name '
+          'FROM $table e JOIN accounts a ON a.id=e.account_id WHERE e.id=? '
+          '${draft.sourceAccountId == null ? '' : 'AND e.account_id=? '}'
+          'AND NOT EXISTS(SELECT 1 FROM payment_allocations p WHERE p.$column=e.id AND p.reversed_at IS NOT NULL)',
+          [draft.sourceIncomeId ?? draft.sourceExpenseId, if (draft.sourceAccountId != null) draft.sourceAccountId],
         );
         if (rows.length != 1) throw StateError('Recorded payment not found');
         final row = rows.single;
@@ -121,6 +130,8 @@ class WhatsAppShareService {
           timestampUtc: DateTime.parse(row['created_at'] as String).toUtc(),
           details: 'Recorded date: ${row['date']}',
           sourceIncomeId: draft.sourceIncomeId,
+          sourceExpenseId: draft.sourceExpenseId,
+          sourceAccountId: row['account_id'] as int,
           recipientPhone: row['contact_phone'] as String?,
         );
       }

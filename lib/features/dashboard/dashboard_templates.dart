@@ -52,7 +52,9 @@ class DashboardTemplateView extends StatelessWidget {
     final item = metrics[index];
     return Card(
       color: emphasis ? Theme.of(context).colorScheme.primaryContainer : null,
-      child: Padding(
+      child: InkWell(
+        onTap: index == 0 ? null : () => onNavigate(index == 1 ? '/income-history' : '/expense-history'),
+        child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(item.$1),
@@ -62,6 +64,7 @@ class DashboardTemplateView extends StatelessWidget {
               style: emphasis ? Theme.of(context).textTheme.headlineMedium
                   : Theme.of(context).textTheme.titleLarge)),
         ]),
+      ),
       ),
     );
   }
@@ -140,7 +143,7 @@ class DashboardTemplateView extends StatelessWidget {
       ],
       DashboardLayout.dashboard3 => [
         Card(child: Column(children: [for (var i = 0; i < 3; i++)
-          ListTile(title: Text(metrics[i].$1), subtitle: Text(money(metrics[i].$2),
+          ListTile(onTap: i == 0 ? null : () => onNavigate(i == 1 ? '/income-history' : '/expense-history'), title: Text(metrics[i].$1), subtitle: Text(money(metrics[i].$2),
             key: ValueKey('metric-$i'))),
         ])), gap, actionChips(),
       ],

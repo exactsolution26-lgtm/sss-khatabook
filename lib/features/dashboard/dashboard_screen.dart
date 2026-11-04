@@ -30,8 +30,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final hindi = settings.language.name == 'hindi';
     final actions = <(String, IconData, String)>[
       (settings.text('accounts'), Icons.people_outline, '/accounts'),
-      (settings.text('income'), Icons.south_west_rounded, '/income'),
-      (settings.text('expenses'), Icons.north_east_rounded, '/expenses'),
+      (settings.text('income'), Icons.south_west_rounded, '/income-history'),
+      (settings.text('expenses'), Icons.north_east_rounded, '/expense-history'),
       (settings.text('reports'), Icons.bar_chart_rounded, '/reports'),
       (
         hindi ? 'शुरुआती बैलेंस' : 'Opening Balance',
@@ -121,12 +121,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           data['totalIncome'],
                           width,
                           false,
+                          route: '/income-history',
                         ),
                         _metric(
                           settings.text('expenses'),
                           data['totalExpense'],
                           width,
                           false,
+                          route: '/expense-history',
                         ),
                       ],
                     );
@@ -191,13 +193,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _metric(String title, dynamic value, double width, bool primary) {
+  Widget _metric(String title, dynamic value, double width, bool primary, {String? route}) {
     final scheme = Theme.of(context).colorScheme;
     return SizedBox(
       width: width,
       child: Card(
         color: primary ? scheme.primaryContainer : null,
-        child: Padding(
+        child: InkWell(
+          onTap: route == null ? null : () => _open(route),
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,6 +216,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ],
           ),
+        ),
         ),
       ),
     );
