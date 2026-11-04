@@ -1,0 +1,102 @@
+name: Verify and publish built Android preview
+on:
+  push:
+    branches: [development/stability-foundation]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: verify-built-preview
+  cancel-in-progress: false
+jobs:
+  verify-release-apk:
+    if: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[verify-preview]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify existing build provenance and passed source checks
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/$GITHUB_REPOSITORY/actions/runs/41804242608 > /tmp/preview-run.json
+          gh api repos/$GITHUB_REPOSITORY/actions/runs/41804242608/jobs > /tmp/preview-jobs.json
+          python3 - <<'PY'
+          import json
+          run = json.load(open('/tmp/preview-run.json'))
+          assert run['head_sha'] == 'aa919f71aa092f575e65a946d0b8a80e491b8dae'
+          assert run['head_branch'] == 'development/stability-foundation'
+          jobs = {job['name']: job['conclusion'] for job in json.load(open('/tmp/preview-jobs.json'))['jobs']}
+          for name in ['analyze-and-test', 'web-build', 'platform-builds']:
+              assert jobs[name] == 'success', (name, jobs[name])
+          print('PASS: exact built source has passing analysis/unit/database, Web and Android build checks')
+          PY
+      - uses: actions/download-artifact@v4
+        with:
+          name: sss-khatabook-testing-apks
+          run-id: 41804242608
+          github-token: ${{ github.token }}
+          path: apk
+      - name: Verify exact release APK bytes
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          assert Path('apk/BUILD_COMMIT.txt').read_text().strip() == 'aa919f71aa092f575e65a946d0b8a80e491b8dae'
+          recorded = next(line.split()[0] for line in Path('apk/SHA256SUMS.txt').read_text().splitlines() if line.endswith('/app-release.apk'))
+          assert hashlib.sha256(Path('apk/app-release.apk').read_bytes()).hexdigest() == recorded
+          assert "name='com.sss.khatabook.preview'" in Path('apk/APK_METADATA.txt').read_text()
+          print('PASS: APK digest and source identity match the original verified build')
+          PY
+      - name: Check native harness syntax
+        run: python3 -m py_compile test_tools/android/smoke.py
+      - name: Enable emulator acceleration
+        run: sudo chmod 666 /dev/kvm
+      - name: Retest the exact release APK
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          disable-animations: true
+          script: python3 test_tools/android/smoke.py
+      - name: Upload release runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verified-preview-android-evidence
+          path: android-evidence/
+          if-no-files-found: ignore
+  publish-preview:
+    needs: verify-release-apk
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: sss-khatabook-testing-apks
+          run-id: 41804242608
+          github-token: ${{ github.token }}
+          path: apk
+      - name: Prepare tested release assets
+        run: |
+          mkdir release-assets
+          cp apk/app-release.apk release-assets/SSS-Khatabook-Preview-1.0.1.apk
+          cp apk/BUILD_COMMIT.txt apk/APK_SIGNATURE.txt apk/APK_METADATA.txt release-assets/
+          cp docs/PREVIEW_RELEASE_1_0_1.md release-assets/RELEASE_NOTES.md
+          printf '%s\n' "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" > release-assets/ANDROID_VERIFICATION.txt
+          cd release-assets
+          sha256sum SSS-Khatabook-Preview-1.0.1.apk > SHA256SUMS.txt
+      - name: Publish owner-requested prerelease after Android verification
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create v1.0.1-preview.20261104 release-assets/* \
+            --target aa919f71aa092f575e65a946d0b8a80e491b8dae --prerelease \
+            --title "SSS Khatabook 1.0.1 — Testing Preview" \
+            --notes-file docs/PREVIEW_RELEASE_1_0_1.md

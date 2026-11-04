@@ -56,8 +56,16 @@ def tap(text, scroll=False):
     raise AssertionError('Emulator control not found: ' + text)
 
 
-def enter(label, value):
-    tap(label)
+def enter(label, value, field_index=0):
+    # UIAutomator's XML omits Flutter's native hintText. Use the observed
+    # EditText order only on the already-verified form, never a guessed point.
+    root = hierarchy()
+    fields = [node for node in root.iter() if node.get('class') == 'android.widget.EditText']
+    if len(fields) <= field_index:
+        raise AssertionError('Expected editable field missing: ' + label)
+    node = fields[field_index]
+    left, top, right, bottom = map(int, re.fullmatch(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]', node.get('bounds', '')).groups())
+    adb('shell', 'input', 'tap', str((left + right) // 2), str((top + bottom) // 2))
     adb('shell', 'input', 'keyevent', '123')
     adb('shell', 'input', 'keyevent', *(['67'] * 20))
     adb('shell', 'input', 'text', value.replace(' ', '%s'))
@@ -83,19 +91,22 @@ try:
     launch()
     tap('Accounts', scroll=True)
     tap('New Account')
+    wait_text('New Account', 'account-form')
     enter('Account name', 'Android acceptance account')
-    enter('Opening balance', '100.00')
+    enter('Opening balance', '100.00', field_index=1)
     adb('shell', 'input', 'keyevent', '4')
     tap('Save')
     wait_text('Android acceptance account', 'account-saved')
     adb('shell', 'input', 'keyevent', '4')
     tap('Income', scroll=True)
+    wait_text('Add Income', 'income-form')
     enter('Amount', '200')
     adb('shell', 'input', 'keyevent', '4')
     tap('Save Income', scroll=True)
     wait_text('Income saved', 'income-saved')
     adb('shell', 'input', 'keyevent', '4')
     tap('Expenses', scroll=True)
+    wait_text('Add Expense', 'expense-form')
     enter('Amount', '50')
     adb('shell', 'input', 'keyevent', '4')
     tap('Save Expense', scroll=True)
