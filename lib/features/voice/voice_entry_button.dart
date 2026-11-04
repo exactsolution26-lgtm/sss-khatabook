@@ -21,6 +21,12 @@ class _VoiceDialogState extends State<_VoiceDialog> with WidgetsBindingObserver 
   final transcript=TextEditingController();String lastWords='';String? reviewError;
   VoiceCapture get capture=>widget.capture;
   @override void initState(){super.initState();WidgetsBinding.instance.addObserver(this);capture.open();capture.addListener(changed);}
+  @override void didChangeDependencies(){
+    super.didChangeDependencies();
+    // AppLockGate disables the financial subtree while locked. A permission
+    // result must never start recording behind the PIN screen.
+    if(!TickerMode.of(context)) unawaited(capture.background(notify:false));
+  }
   void changed(){
     if(!mounted) return;
     if(capture.words!=lastWords){lastWords=capture.words;if(lastWords.isNotEmpty) transcript.value=TextEditingValue(text:lastWords,selection:TextSelection.collapsed(offset:lastWords.length));}

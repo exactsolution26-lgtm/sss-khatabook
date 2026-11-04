@@ -22,7 +22,7 @@ class _AppLockGateState extends State<AppLockGate> {
     if (lock.loaded && !lock.locked && lock.storageError == null) opened = true;
     final hidden = !lock.loaded || lock.locked || lock.storageError != null;
     return Stack(fit: StackFit.expand, children: [
-      if (opened) ExcludeSemantics(excluding: hidden, child: Offstage(offstage: hidden, child: widget.child)),
+      if (opened) ExcludeSemantics(excluding: hidden, child: Offstage(offstage: hidden, child: TickerMode(enabled: !hidden, child: widget.child))),
       if (hidden) Scaffold(body: Center(child: SingleChildScrollView(padding: const EdgeInsets.all(24), child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 400), child: Column(mainAxisSize: MainAxisSize.min, children: [
           const Icon(Icons.lock_outline, size: 40), const SizedBox(height: 16), const Text('Unlock SSS Khatabook'),

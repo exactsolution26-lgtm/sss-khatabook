@@ -95,6 +95,17 @@ void main() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);await tester.pumpAndSettle();
     expect(device.listens,1);await tester.pumpWidget(const SizedBox.shrink());await tester.pump();
   });
+  testWidgets('hidden financial UI cancels active capture and never auto restarts',(tester) async {
+    final visible=ValueNotifier<bool>(true);addTearDown(visible.dispose);
+    final app=MaterialApp(home:Scaffold(body:VoiceEntryButton(income:true,capture:capture,onConfirmed:(_){})));
+    await tester.pumpWidget(ValueListenableBuilder<bool>(valueListenable:visible,builder:(context,value,_)=>TickerMode(enabled:value,child:app)));
+    await tester.tap(find.text('Voice entry — review first'));await tester.pumpAndSettle();
+    await tester.tap(find.text('Start speaking'));await tester.pumpAndSettle();expect(capture.listening,true);
+    visible.value=false;await tester.pump();expect(capture.listening,false);
+    await tester.pump();expect(device.cancels,greaterThan(1));
+    visible.value=true;await tester.pumpAndSettle();expect(device.listens,1);
+    await tester.pumpWidget(const SizedBox.shrink());await tester.pump();
+  });
   testWidgets('online fallback requires explicit consent; recognized words still require review and Use in form',(tester) async {
     VoiceDraft? confirmed;
     tester.view.physicalSize=const Size(360,900);tester.view.devicePixelRatio=1;

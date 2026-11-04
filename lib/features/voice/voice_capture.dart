@@ -144,8 +144,8 @@ class VoiceCapture extends ChangeNotifier {
   }
   /// Inactive can be the Android permission prompt. Only a real hidden/background or
   /// detach transition cancels capture; no automatic microphone restart on resume.
-  Future<void> background() async {
-    _generation++;_acceptEvents=false;preparing=false;starting=false;listening=false;_startTimeout?.cancel();_notify();
+  Future<void> background({bool notify=true}) async {
+    _generation++;_acceptEvents=false;preparing=false;starting=false;listening=false;_startTimeout?.cancel();if(notify) _notify();
     await _cancelDevice();
   }
   Future<void> close() async {
