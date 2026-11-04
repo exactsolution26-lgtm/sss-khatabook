@@ -141,6 +141,7 @@ jobs:
           path: |
             web-*.png
             web-runtime.log
+            web-dom.html
           if-no-files-found: ignore
 
   android-startup:

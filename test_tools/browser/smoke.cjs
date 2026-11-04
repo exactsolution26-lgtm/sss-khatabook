@@ -15,7 +15,7 @@ const fs = require('node:fs');
     if (/SSS_(FRAMEWORK_ERROR|ASYNC_ERROR|STARTUP_INITIALIZATION_FAILED)/.test(message.text())) errors.push(message.text());
   });
   try {
-  await page.goto('http://127.0.0.1:8080', {waitUntil: 'networkidle'});
+  await page.goto('http://127.0.0.1:8080', {waitUntil: 'domcontentloaded', timeout: 60000});
   // Flutter engine DOM wrappers vary by version; await the accessibility entry point.
   await page.locator('flt-semantics-placeholder').waitFor({state: 'attached', timeout: 60000});
   const semantics = page.locator('flt-semantics-placeholder');
@@ -27,7 +27,7 @@ const fs = require('node:fs');
   await page.getByRole('textbox', {name: 'Opening balance (₹)'}).fill('100.00');
   await page.getByRole('button', {name: 'Save', exact: true}).click();
   await text('Browser acceptance account').waitFor();
-  await page.reload({waitUntil: 'networkidle'});
+  await page.reload({waitUntil: 'domcontentloaded', timeout: 60000});
   await page.locator('flt-semantics-placeholder').waitFor({state: 'attached', timeout: 60000});
   const again = page.locator('flt-semantics-placeholder');
   if (await again.count()) await again.evaluate(el => el.click());
