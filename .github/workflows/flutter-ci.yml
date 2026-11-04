@@ -62,7 +62,7 @@ jobs:
         run: flutter build bundle --release
 
   platform-builds:
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_android == true }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.build_android == true) || (github.event_name == 'push' && github.ref == 'refs/heads/development/stability-foundation' && contains(github.event.head_commit.message, '[release-preview]')) }}
     runs-on: ubuntu-latest
     needs: analyze-and-test
     timeout-minutes: 35
@@ -83,11 +83,14 @@ jobs:
           from pathlib import Path
           p = Path('android/app/build.gradle.kts')
           s = p.read_text()
+          s = s.replace('applicationId = "com.example.offline_khata_app"', 'applicationId = "com.sss.khatabook.preview"')
+          if 'applicationId = "com.sss.khatabook.preview"' not in s:
+              raise SystemExit('Preview applicationId was not configured')
           s = s.replace('compileOptions {', 'compileOptions {\n        isCoreLibraryDesugaringEnabled = true', 1)
           s += '\n dependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")\n}\n'
           p.write_text(s)
           manifest = Path('android/app/src/main/AndroidManifest.xml')
-          text = manifest.read_text()
+          text = manifest.read_text().replace('android:label="offline_khata_app"', 'android:label="SSS Khatabook Preview"')
           text = text.replace('<application', '<uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.USE_BIOMETRIC"/>\n    <uses-permission android:name="android.permission.RECORD_AUDIO"/>\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>\n    <application android:allowBackup="false" android:usesCleartextTraffic="false"', 1)
           text = text.replace('</manifest>', '<queries><intent><action android:name="android.speech.RecognitionService"/></intent></queries></manifest>')
           receivers = '<receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"/><receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"><intent-filter><action android:name="android.intent.action.BOOT_COMPLETED"/><action android:name="android.intent.action.MY_PACKAGE_REPLACED"/></intent-filter></receiver>'
@@ -102,10 +105,23 @@ jobs:
         run: flutter build apk --debug
       - name: Android release compilation (testing signature only)
         run: flutter build apk --release
+      - name: Verify APK identity and signature
+        run: |
+          build_tools_dir=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)
+          "$build_tools_dir/apksigner" verify --verbose --print-certs build/app/outputs/flutter-apk/app-release.apk > build/app/outputs/flutter-apk/APK_SIGNATURE.txt
+          "$build_tools_dir/aapt" dump badging build/app/outputs/flutter-apk/app-release.apk > build/app/outputs/flutter-apk/APK_METADATA.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          text = Path('build/app/outputs/flutter-apk/APK_METADATA.txt').read_text()
+          assert "name='com.sss.khatabook.preview'" in text
+          assert "versionCode='101'" in text
+          assert "versionName='1.0.1'" in text
+          print('PASS: signed preview package and version metadata')
+          PY
       - name: Record build identity
         run: |
           git rev-parse HEAD > build/app/outputs/flutter-apk/BUILD_COMMIT.txt
-          echo 'Development testing artifacts; default debug signing; device startup NOT certified.' > build/app/outputs/flutter-apk/BUILD_STATUS.txt
+          echo 'Preview testing signature; separate package com.sss.khatabook.preview; physical-device UAT pending. See Android startup job for emulator results.' > build/app/outputs/flutter-apk/BUILD_STATUS.txt
           sha256sum build/app/outputs/flutter-apk/*.apk > build/app/outputs/flutter-apk/SHA256SUMS.txt
       - name: Upload Android APK
         if: success()
@@ -167,7 +183,7 @@ jobs:
           if-no-files-found: ignore
 
   android-startup:
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_android == true }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.build_android == true) || (github.event_name == 'push' && github.ref == 'refs/heads/development/stability-foundation' && contains(github.event.head_commit.message, '[release-preview]')) }}
     runs-on: ubuntu-latest
     needs: platform-builds
     timeout-minutes: 25
@@ -195,3 +211,34 @@ jobs:
           name: android-runtime-evidence
           path: android-evidence/
           if-no-files-found: ignore
+
+  publish-preview:
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/development/stability-foundation' && contains(github.event.head_commit.message, '[release-preview]') }}
+    needs: [analyze-and-test, web-build, android-startup]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: sss-khatabook-testing-apks
+          path: apk
+      - name: Prepare verified preview assets
+        run: |
+          mkdir release-assets
+          cp apk/app-release.apk release-assets/SSS-Khatabook-Preview-1.0.1.apk
+          cp apk/BUILD_COMMIT.txt release-assets/BUILD_COMMIT.txt
+          cp apk/APK_SIGNATURE.txt release-assets/APK_SIGNATURE.txt
+          cp apk/APK_METADATA.txt release-assets/APK_METADATA.txt
+          cp docs/PREVIEW_RELEASE_1_0_1.md release-assets/RELEASE_NOTES.md
+          cd release-assets
+          sha256sum SSS-Khatabook-Preview-1.0.1.apk > SHA256SUMS.txt
+      - name: Publish owner-requested testing release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create v1.0.1-preview.20261104 release-assets/* \
+            --target "$GITHUB_SHA" --prerelease \
+            --title "SSS Khatabook 1.0.1 — Testing Preview" \
+            --notes-file docs/PREVIEW_RELEASE_1_0_1.md
