@@ -57,18 +57,21 @@ class DashboardTemplateView extends StatelessWidget {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(item.$1),
           const SizedBox(height: 8),
-          Text(money(item.$2), key: ValueKey('metric-$index'),
-            style: Theme.of(context).textTheme.titleLarge),
+          FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft,
+            child: Text(money(item.$2), key: ValueKey('metric-$index'),
+              style: emphasis ? Theme.of(context).textTheme.headlineMedium
+                  : Theme.of(context).textTheme.titleLarge)),
         ]),
       ),
     );
   }
 
   Widget metricGrid(BuildContext context) => LayoutBuilder(builder: (context, box) {
-    final columns = box.maxWidth >= 650 ? 3 : 1;
+    final wide = box.maxWidth >= 650;
     return Wrap(spacing: 8, runSpacing: 8, children: [
       for (var i = 0; i < metrics.length; i++)
-        SizedBox(width: (box.maxWidth - (columns - 1) * 8) / columns,
+        SizedBox(width: wide ? (box.maxWidth - 16) / 3
+            : i == 0 ? box.maxWidth : (box.maxWidth - 8) / 2,
           child: metric(context, i, emphasis: i == 0)),
     ]);
   });

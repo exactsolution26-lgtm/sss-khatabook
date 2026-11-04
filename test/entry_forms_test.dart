@@ -18,11 +18,15 @@ void main() {
   setUpAll(() async {
     if (Platform.environment['CAPTURE_DASHBOARD_PREVIEWS'] != 'true') return;
     final sdk = Platform.environment['FLUTTER_ROOT'];
-    final path = [if (sdk != null) '$sdk/bin/cache/artifacts/material_fonts/Roboto-Regular.ttf',
-      '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'].firstWhere((p) => File(p).existsSync());
+    final path = ['/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+      if (sdk != null) '$sdk/bin/cache/artifacts/material_fonts/Roboto-Regular.ttf'].firstWhere((p) => File(p).existsSync());
     final loader = FontLoader('PreviewFont');
     loader.addFont(Future.value(ByteData.sublistView(await File(path).readAsBytes())));
     await loader.load();
+    final iconFile = File('$sdk/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf');
+    final icons = FontLoader('MaterialIcons');
+    icons.addFont(Future.value(ByteData.sublistView(await iconFile.readAsBytes())));
+    await icons.load();
   });
   setUp(() async {
     directory = await Directory.systemTemp.createTemp('sss-entry-');
@@ -44,6 +48,7 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       final key = GlobalKey();
       await tester.pumpWidget(RepaintBoundary(key: key, child: MaterialApp(
+          debugShowCheckedModeBanner: false,
         theme: ThemeData(fontFamily: 'PreviewFont', colorSchemeSeed: const Color(0xff086b78)),
         home: income ? const IncomeScreen() : const ExpenseScreen(),
       )));

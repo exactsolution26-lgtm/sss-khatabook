@@ -15,13 +15,17 @@ void main() {
     if (Platform.environment['CAPTURE_DASHBOARD_PREVIEWS'] != 'true') return;
     final sdk = Platform.environment['FLUTTER_ROOT'];
     final candidates = [
-      if (sdk != null) '$sdk/bin/cache/artifacts/material_fonts/Roboto-Regular.ttf',
       '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+      if (sdk != null) '$sdk/bin/cache/artifacts/material_fonts/Roboto-Regular.ttf',
     ];
     final path = candidates.firstWhere((p) => File(p).existsSync());
     final loader = FontLoader('PreviewFont');
     loader.addFont(Future.value(ByteData.sublistView(await File(path).readAsBytes())));
     await loader.load();
+    final iconFile = File('$sdk/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf');
+    final icons = FontLoader('MaterialIcons');
+    icons.addFont(Future.value(ByteData.sublistView(await iconFile.readAsBytes())));
+    await icons.load();
   });
   final data = <String, dynamic>{
     'totalBalance': 31500.0, 'totalIncome': 15000.0, 'totalExpense': 3500.0,
@@ -45,6 +49,7 @@ void main() {
         String? destination;
         final boundaryKey = GlobalKey();
         await tester.pumpWidget(RepaintBoundary(key: boundaryKey, child: MaterialApp(
+          debugShowCheckedModeBanner: false,
           theme: ThemeData(fontFamily: 'PreviewFont',
             colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xff086b78),
               brightness: dark ? Brightness.dark : Brightness.light)),
@@ -97,6 +102,7 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       final key = GlobalKey();
       await tester.pumpWidget(RepaintBoundary(key: key, child: MaterialApp(
+          debugShowCheckedModeBanner: false,
         theme: ThemeData(fontFamily: 'PreviewFont', colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xff086b78), brightness: dark ? Brightness.dark : Brightness.light)),
         home: const SuperAdminPreview(),

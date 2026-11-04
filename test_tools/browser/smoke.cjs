@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 (async () => {
   const browser = await chromium.launch({headless: true});
-  const page = await browser.newPage({viewport: {width: 1280, height: 900}});
+  const page = await browser.newPage({viewport: {width: 1280, height: 900}, locale: 'en-IN', timezoneId: 'Asia/Kolkata'});
   const errors = [];
   const diagnostic = [];
   const text = name => page.getByText(name, {exact: true})
@@ -16,7 +16,7 @@ const fs = require('node:fs');
   });
   try {
   await page.goto('http://127.0.0.1:8080', {waitUntil: 'networkidle'});
-  await page.locator('flt-glass-pane').waitFor({state: 'attached', timeout: 60000});
+  // Flutter engine DOM wrappers vary by version; await the accessibility entry point.
   await page.locator('flt-semantics-placeholder').waitFor({state: 'attached', timeout: 60000});
   const semantics = page.locator('flt-semantics-placeholder');
   if (await semantics.count()) await semantics.evaluate(el => el.click());
@@ -41,6 +41,7 @@ const fs = require('node:fs');
   } finally {
     await page.screenshot({path: 'web-final-state.png'});
     fs.writeFileSync('web-runtime.log', diagnostic.concat(errors).join('\n'));
+    fs.writeFileSync('web-dom.html', await page.content());
     await browser.close();
   }
 })().catch(error => { console.error(error); process.exit(1); });
