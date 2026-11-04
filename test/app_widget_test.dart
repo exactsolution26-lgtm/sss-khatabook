@@ -62,7 +62,8 @@ void main() {
     await tester.pumpWidget(const MyApp());
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Opening Balance'));
-    await tester.tap(find.text('Opening Balance'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Opening Balance').hitTestable());
     await tester.pumpAndSettle();
     tester.view.viewInsets = const FakeViewPadding(bottom: 300);
     addTearDown(tester.view.resetViewInsets);
