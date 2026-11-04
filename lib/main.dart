@@ -21,7 +21,7 @@ Future<void> startApplication() async {
       throw StateError('Backend configuration incomplete');
     }
     if (url.isNotEmpty) {
-      await Supabase.initialize(url: url, anonKey: key);
+      await Supabase.initialize(url: url, publishableKey: key);
     }
     runApp(const MyApp());
   } catch (_) {

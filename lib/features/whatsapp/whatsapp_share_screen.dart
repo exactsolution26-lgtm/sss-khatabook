@@ -77,7 +77,7 @@ class _WhatsAppShareScreenState extends State<WhatsAppShareScreen> {
       padding: const EdgeInsets.all(16),
       children: [
         DropdownButtonFormField<WhatsAppMessageType>(
-          value: type,
+          initialValue: type,
           decoration: const InputDecoration(labelText: 'Message Type'),
           items: WhatsAppMessageType.values
               .map(
