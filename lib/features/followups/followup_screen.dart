@@ -14,7 +14,7 @@ class _FollowupScreenState extends State<FollowupScreen> {
   bool completed = false;
   @override
   void initState() {super.initState(); rows = service.list(accountId: widget.accountId);}
-  void refresh() {if (mounted) setState(() => rows = service.list(accountId: widget.accountId));}
+  void refresh() {if (mounted) setState(() {rows = service.list(accountId: widget.accountId);});}
   Future<void> create() async {
     try {
       final accounts = await AccountTable.getAllAccounts();

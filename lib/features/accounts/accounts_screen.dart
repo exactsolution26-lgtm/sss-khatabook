@@ -8,6 +8,8 @@ import '../whatsapp/verified_share_screen.dart';
 import '../whatsapp/whatsapp_share_service.dart';
 import '../reports/ledger_export_screen.dart';
 import '../entries/attachment_widgets.dart';
+import '../entries/record_editor.dart';
+import '../entries/record_recovery.dart';
 import '../../core/utils/date_utils.dart' as dates;
 
 class AccountsScreen extends StatefulWidget {
@@ -250,6 +252,20 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
     );
   }
 
+  Future<void> _change(Map<String,Object?> entry, bool remove) async {
+    final income = entry['kind'] == 'income';
+    if (!remove) {
+      await Navigator.push(context, MaterialPageRoute<bool>(builder: (_) => RecordEditor(income: income,id: entry['id'] as int,accountId: widget.account.id!)));
+      if(mounted) setState(() {_entries=_load();});
+      return;
+    }
+    final reason = await showDialog<String>(context: context,builder: (_) => const _DeleteReasonDialog());
+    if(reason==null) return;
+    try {await RecordRecovery.remove(income: income,id: entry['id'] as int,accountId: widget.account.id!,reason: reason);
+      if(mounted) {setState(() {_entries=_load();});ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Deleted. You can restore it from Deleted Entries.')));}}
+    catch(_) {if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not delete. Allocated payments must be reversed in Payment History.')));}
+  }
+
   void _share(WhatsAppMessageType type, {int? incomeId, String month = ''}) {
     Navigator.push(
       context,
@@ -274,6 +290,10 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
     appBar: AppBar(
       title: Text(widget.account.name),
       actions: [
+        IconButton(tooltip: 'Deleted Entries',icon: const Icon(Icons.restore_from_trash_outlined),onPressed: () async {
+          await Navigator.push(context,MaterialPageRoute<void>(builder: (_) => RecycleBinScreen(accountId: widget.account.id)));
+          if(mounted) setState(() {_entries=_load();});
+        }),
         IconButton(tooltip: 'Ledger PDF & CSV', icon: const Icon(Icons.picture_as_pdf_outlined),
           onPressed: () => Navigator.push(context, MaterialPageRoute<void>(
             builder: (_) => LedgerExportScreen(accountId: widget.account.id!)))),
@@ -321,7 +341,7 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
               if (snapshot.hasError)
                 return Center(
                   child: TextButton(
-                    onPressed: () => setState(() => _entries = _load()),
+                    onPressed: () => setState(() {_entries = _load();}),
                     child: const Text('Could not load ledger — Retry'),
                   ),
                 );
@@ -356,7 +376,8 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
                         Text('₹${running.toStringAsFixed(2)}'),
                         PopupMenuButton<String>(tooltip: 'Entry actions',
                           onSelected: (value) {
-                            if (value == 'receipt') {
+                            if(value == 'edit' || value == 'delete') {_change(entry,value == 'delete');}
+                            else if (value == 'receipt') {
                               _share(WhatsAppMessageType.receipt, incomeId: entry['id'] as int);
                             } else {
                               Navigator.push(context, MaterialPageRoute<void>(builder: (_) => AttachmentScreen(
@@ -364,6 +385,8 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
                             }
                           },
                           itemBuilder: (_) => [
+                            const PopupMenuItem(value: 'edit',child: Text('Edit entry')),
+                            const PopupMenuItem(value: 'delete',child: Text('Delete entry')),
                             const PopupMenuItem(value: 'attachments', child: Text('View Attachments')),
                             if (income) const PopupMenuItem(value: 'receipt', child: Text('Share recorded receipt')),
                           ]),
@@ -379,4 +402,19 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
       ],
     ),
   );
+}
+
+class _DeleteReasonDialog extends StatefulWidget {
+  const _DeleteReasonDialog();
+  @override State<_DeleteReasonDialog> createState() => _DeleteReasonDialogState();
+}
+class _DeleteReasonDialogState extends State<_DeleteReasonDialog> {
+  final reason=TextEditingController();
+  @override void dispose() {reason.dispose();super.dispose();}
+  @override Widget build(BuildContext context) => AlertDialog(title: const Text('Delete this entry?'),
+    content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min,children: [
+      const Text('The balance will be recalculated. This entry and its attachments remain recoverable in Deleted Entries.'),
+      TextField(controller: reason,maxLength: 500,decoration: const InputDecoration(labelText: 'Reason (required)')),
+    ])),actions: [TextButton(onPressed: () => Navigator.pop(context),child: const Text('Cancel')),
+      FilledButton(onPressed: () {if(reason.text.trim().isNotEmpty) Navigator.pop(context,reason.text.trim());},child: const Text('Delete'))]);
 }

@@ -1,6 +1,7 @@
 import '../../database/db_helper.dart';
 import '../entries/party_snapshot.dart';
 import '../entries/attachments.dart';
+import '../entries/record_recovery.dart';
 import '../../database/tables/income_table.dart';
 import '../../models/income_model.dart';
 
@@ -90,10 +91,9 @@ class IncomeController {
 
   Future<int> deleteIncome(int id) async {
     final db = await _dbHelper.database;
-    return await db.delete(
-      IncomeTable.tableName,
-      where: '${IncomeTable.id} = ?',
-      whereArgs: [id],
-    );
+    final rows = await db.query(IncomeTable.tableName, where: 'id=?', whereArgs: [id]);
+    if (rows.length != 1) throw StateError('Income entry not found');
+    await RecordRecovery.remove(income: true,id: id,accountId: rows.single['account_id'] as int,reason: 'Deleted by local account owner');
+    return 1;
   }
 }

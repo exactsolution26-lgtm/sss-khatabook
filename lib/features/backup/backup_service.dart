@@ -6,6 +6,7 @@ import 'package:sqflite/sqflite.dart';
 import '../../database/db_helper.dart';
 import 'backup_vault.dart';
 import '../entries/attachments.dart';
+import '../entries/record_recovery.dart';
 import '../followups/reminder_notifications.dart';
 
 class BackupCipher {
@@ -52,25 +53,26 @@ class BackupCipher {
 class BackupService {
   BackupService({Future<void> Function(int)? cancelReminder}) : cancelReminder = cancelReminder ?? ReminderNotifications.cancel;
   final Future<void> Function(int) cancelReminder;
-  static const tableNames = ['accounts', 'income', 'expenses', 'work', 'entry_categories', 'app_audit', 'attachments', 'obligations', 'payment_allocations', 'follow_ups'];
+  static const tableNames = ['accounts', 'income', 'expenses', 'work', 'entry_categories', 'app_audit', 'attachments', 'obligations', 'payment_allocations', 'follow_ups', 'recycled_entries'];
 
   Future<Map<String, dynamic>> snapshot() async {
     final db = await DBHelper.database;
     return db.transaction((txn) async => {
-      'format': 'sss-khatabook-records', 'version': 1, 'schema': 8,
+      'format': 'sss-khatabook-records', 'version': 1, 'schema': 9,
       'created_at': DateTime.now().toUtc().toIso8601String(),
       'tables': {for (final table in tableNames) table: await txn.query(table, orderBy: 'rowid')},
     });
   }
 
   Map<String, List<Map<String, Object?>>> validateShape(Map<String, dynamic> data) {
-    if (data['format'] != 'sss-khatabook-records' || data['version'] != 1 || ![6, 7, 8].contains(data['schema'])) {
+    if (data['format'] != 'sss-khatabook-records' || data['version'] != 1 || ![6, 7, 8, 9].contains(data['schema'])) {
       throw const FormatException('Unsupported record format');
     }
     DateTime.parse(data['created_at'] as String);
     final source = Map<String, dynamic>.from(data['tables'] as Map);
     if (data['schema'] == 6 && !source.containsKey('attachments')) source['attachments'] = [];
     if ((data['schema'] as int) < 8) {source['obligations'] = []; source['payment_allocations'] = []; source['follow_ups'] = [];}
+    if ((data['schema'] as int) < 9) source['recycled_entries'] = [];
     if (source.length != tableNames.length || !tableNames.every(source.containsKey)) {
       throw const FormatException('Incomplete backup');
     }
@@ -82,7 +84,7 @@ class BackupService {
       if (count > 100000) throw const FormatException('Backup row limit exceeded');
       result[table] = rows.map((value) {
         final row = Map<String, Object?>.from(value as Map);
-        if (['accounts', 'income', 'expenses', 'work', 'attachments', 'obligations', 'payment_allocations', 'follow_ups'].contains(table) &&
+        if (['accounts', 'income', 'expenses', 'work', 'attachments', 'obligations', 'payment_allocations', 'follow_ups', 'recycled_entries'].contains(table) &&
             (row['id'] is! int || (row['id'] as int) <= 0)) {
           throw const FormatException('Invalid original record identity');
         }
@@ -92,7 +94,7 @@ class BackupService {
             throw const FormatException('Invalid backup value');
           }
           if (item is num && !item.isFinite) throw const FormatException('Non-finite backup amount');
-          final maximum = table == 'attachments' && entry.key == 'content_base64' ? 6990520 : 1000000;
+          final maximum = table == 'attachments' && entry.key == 'content_base64' ? 6990520 : table == 'recycled_entries' && entry.key == 'payload' ? 16000000 : 1000000;
           if (item is String && item.length > maximum) throw const FormatException('Backup value too large');
           if (item != null && entry.key.endsWith('_at') &&
               (item is! String || DateTime.tryParse(item) == null)) throw const FormatException('Invalid stored timestamp');
@@ -145,6 +147,7 @@ class BackupService {
           throw const FormatException('Unknown backup fields');
         }
       }
+      for(final row in tables['recycled_entries']!) {await RecordRecovery.validatePayload(temporary,row);}
       await DBHelper.replaceSnapshot(temporary, tables);
       if ((await temporary.rawQuery('PRAGMA integrity_check')).single.values.single != 'ok') {
         throw const FormatException('Backup integrity failed');

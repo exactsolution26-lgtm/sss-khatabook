@@ -13,27 +13,6 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          ListTile(leading: const Icon(Icons.event_note), title: const Text('Follow-ups & Reminders'),
-            trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.pushNamed(context, '/followups')),
-          ListTile(leading: const Icon(Icons.payments_outlined), title: const Text('Dues & Partial Payments'),
-            trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.pushNamed(context, '/dues')),
-          ListTile(leading: const Icon(Icons.lock_outline), title: const Text('PIN & Biometrics'),
-            trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.pushNamed(context, '/security')),
-          ListTile(leading: const Icon(Icons.backup_outlined), title: const Text('Backup & Restore'),
-            trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.pushNamed(context, '/backup')),
-          ListTile(leading: const Icon(Icons.history), title: const Text('Audit History'),
-            trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.pushNamed(context, '/audit')),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.dashboard_customize_outlined),
-            title: Text(settings.language == AppLanguage.hindi
-                ? 'छह डैशबोर्ड प्रीव्यू' : 'Six Dashboard Previews'),
-            subtitle: Text(settings.language == AppLanguage.hindi
-                ? 'पुनर्निर्मित डिज़ाइन · स्वीकृति बाकी है'
-                : 'Reconstructed designs · awaiting approval'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.pushNamed(context, '/dashboard-previews'),
-          ),
           const SizedBox(height: 24),
           Text(
             settings.language == AppLanguage.hindi ? 'थीम' : 'Appearance',
@@ -75,6 +54,28 @@ class SettingsScreen extends StatelessWidget {
             selected: {settings.language},
             onSelectionChanged: (selection) =>
                 settings.update(appLanguage: selection.first),
+          ),
+          const SizedBox(height: 24),
+          ListTile(leading: const Icon(Icons.event_note), title: const Text('Follow-ups & Reminders'),
+            trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.pushNamed(context, '/followups')),
+          ListTile(leading: const Icon(Icons.payments_outlined), title: const Text('Dues & Partial Payments'),
+            trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.pushNamed(context, '/dues')),
+          ListTile(leading: const Icon(Icons.lock_outline), title: const Text('PIN & Biometrics'),
+            trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.pushNamed(context, '/security')),
+          ListTile(leading: const Icon(Icons.backup_outlined), title: const Text('Backup & Restore'),
+            trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.pushNamed(context, '/backup')),
+          ListTile(leading: const Icon(Icons.history), title: const Text('Audit History'),
+            trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.pushNamed(context, '/audit')),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.dashboard_customize_outlined),
+            title: Text(settings.language == AppLanguage.hindi
+                ? 'छह डैशबोर्ड प्रीव्यू' : 'Six Dashboard Previews'),
+            subtitle: Text(settings.language == AppLanguage.hindi
+                ? 'पुनर्निर्मित डिज़ाइन · स्वीकृति बाकी है'
+                : 'Reconstructed designs · awaiting approval'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.pushNamed(context, '/dashboard-previews'),
           ),
           if (settings.persistenceError != null)
             Padding(

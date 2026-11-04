@@ -2,6 +2,7 @@ import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
 import 'tables/income_table.dart';
+import '../features/entries/record_recovery.dart';
 import 'tables/work_table.dart';
 import 'recovery_schema.dart';
 import '../features/entries/attachments.dart';
@@ -38,7 +39,7 @@ class DBHelper {
   }
 
   static OpenDatabaseOptions get options => OpenDatabaseOptions(
-    version: 8,
+    version: 9,
     onConfigure: (db) async => db.execute('PRAGMA foreign_keys = ON'),
     onCreate: (db, version) async {
       await db.execute('''CREATE TABLE accounts (
@@ -66,6 +67,7 @@ class DBHelper {
       await AttachmentStore.install(db);
       await DuesSchema.install(db);
       await FollowupSchema.install(db);
+      await RecordRecovery.install(db);
     },
     onUpgrade: (db, oldVersion, newVersion) async {
       if (oldVersion < 2) {
@@ -120,6 +122,7 @@ class DBHelper {
       if (oldVersion < 6) await RecoverySchema.install(db);
       if (oldVersion < 7) await AttachmentStore.install(db);
       if (oldVersion < 8) {await DuesSchema.install(db); await FollowupSchema.install(db);}
+      if (oldVersion < 9) await RecordRecovery.install(db);
     },
   );
 
@@ -136,13 +139,21 @@ class DBHelper {
     }
     await txn.execute('DROP TRIGGER IF EXISTS account_opening_lock');
     await txn.execute('DROP TRIGGER IF EXISTS payment_no_delete');
-    for (final table in ['attachments', 'follow_ups', 'payment_allocations', 'obligations', 'income', 'expenses', 'work', 'entry_categories']) {
+    for (final table in ['recycled_entries', 'attachments', 'follow_ups', 'payment_allocations', 'obligations', 'income', 'expenses', 'work', 'entry_categories']) {
       await txn.delete(table);
     }
     await txn.delete('accounts');
-    for (final table in ['accounts', 'income', 'expenses', 'work', 'entry_categories', 'obligations', 'payment_allocations', 'attachments', 'follow_ups']) {
+    for (final table in ['accounts', 'income', 'expenses', 'work', 'entry_categories', 'obligations', 'payment_allocations', 'attachments', 'follow_ups', 'recycled_entries']) {
       for (final row in tables[table]!) {
         await txn.insert(table, table == 'follow_ups' ? {...row, 'notification_scheduled': 0} : row);
+      }
+    }
+    // A restore must not reuse the identity of an entry retained in the recycle bin.
+    for(final kind in ['income','expenses']) {
+      final maximum=(await txn.rawQuery('SELECT COALESCE(MAX(record_id),0) AS value FROM recycled_entries WHERE kind=?',[kind])).single['value'] as int;
+      await txn.rawUpdate('UPDATE sqlite_sequence SET seq=MAX(seq,?) WHERE name=?',[maximum,kind]);
+      if((await txn.rawQuery('SELECT name FROM sqlite_sequence WHERE name=?',[kind])).isEmpty && maximum>0) {
+        await txn.rawInsert('INSERT INTO sqlite_sequence(name,seq) VALUES(?,?)',[kind,maximum]);
       }
     }
     for (final row in tables['app_audit']!) {

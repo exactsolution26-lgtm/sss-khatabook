@@ -47,6 +47,7 @@ void main() {
       Theme.of(tester.element(find.text('Dark'))).brightness,
       Brightness.dark,
     );
+    await tester.scrollUntilVisible(find.text('हिंदी'),150,scrollable: find.byType(Scrollable).first);
     await tester.tap(find.text('हिंदी'));
     await tester.pumpAndSettle();
     expect(find.text('सेटिंग्स'), findsOneWidget);

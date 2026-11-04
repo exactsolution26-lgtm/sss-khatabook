@@ -23,7 +23,7 @@ class _DuesScreenState extends State<DuesScreen> {
   void initState() {super.initState(); data = load();}
   Future<(List<AccountModel>, List<Map<String, Object?>>)> load() async =>
     (await AccountTable.getAllAccounts(), await service.list(accountId: widget.accountId));
-  void refresh() {if (mounted) setState(() => data = load());}
+  void refresh() {if (mounted) setState(() {data = load();});}
   @override
   Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: const Text('Dues & Partial Payments'), actions: [
     IconButton(tooltip: 'Refresh', onPressed: refresh, icon: const Icon(Icons.refresh)),
@@ -172,7 +172,7 @@ class _PaymentHistoryState extends State<_PaymentHistory> {
       ]), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
         FilledButton(onPressed: () {if (reason.trim().isNotEmpty) Navigator.pop(context, true);}, child: const Text('Reverse payment'))]));
     if (confirmed != true) return;
-    try {await DuesService().reversePayment(id, reason); if (mounted) setState(() => data = DuesService().payments(widget.obligationId));}
+    try {await DuesService().reversePayment(id, reason); if (mounted) setState(() {data = DuesService().payments(widget.obligationId);});}
     catch (_) {if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment could not be reversed. Please reload.')));}
   }
   @override
