@@ -44,7 +44,7 @@ class VoiceCapture extends ChangeNotifier {
   bool _ready=false,_active=false,_acceptEvents=false,_disposed=false;
   int _generation=0;
   Timer? _startTimeout;
-  Future<void> _cancelling=Future<void>.value();
+  Future<void>? _cancelling;
   bool get busy=>preparing || starting || listening;
   bool get canTryProvider=>offlineOnly && ['error_language_not_supported','error_language_unavailable',
     'error_not_available','service_unavailable','start_timeout'].contains(issue);
@@ -88,8 +88,11 @@ class VoiceCapture extends ChangeNotifier {
     return indian.isNotEmpty ? indian.first : matches.isNotEmpty ? matches.first : '$language-IN';
   }
   Future<void> _cancelDevice() {
-    _cancelling=_cancelling.then((_) async {try {await device.cancel().timeout(const Duration(seconds: 3));}catch(_){}});
-    return _cancelling;
+    Future<void> perform() async {try {await device.cancel().timeout(const Duration(seconds: 3));}catch(_){}}
+    final previous=_cancelling;
+    final next=previous==null ? perform():previous.then((_)=>perform());
+    _cancelling=next;
+    return next;
   }
   bool _current(int generation)=>!_disposed && _active && generation==_generation;
   Future<void> start() async {
@@ -97,7 +100,7 @@ class VoiceCapture extends ChangeNotifier {
     final generation=++_generation;
     preparing=true;starting=false;listening=false;_acceptEvents=false;issue=null;soundLevel=0;_notify();
     try {
-      await _cancelling;
+      if(_cancelling!=null) await _cancelling;
       if(!_current(generation)) return;
       if(!_ready) _ready=await device.initialize(status:_status,error:_error).timeout(const Duration(seconds: 20));
       if(!_current(generation)) return;

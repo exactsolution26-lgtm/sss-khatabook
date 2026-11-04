@@ -81,7 +81,7 @@ void main() {
     await tester.tap(find.text('Voice entry — review first'));await tester.pumpAndSettle();
     await tester.tap(find.text('Start speaking'));await tester.pump();
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);await tester.pump();
-    expect(device.cancels,0);
+    expect(device.initializations,1);expect(device.cancels,0);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     device.permissionPrompt!.complete(true);await tester.pumpAndSettle();
     expect(find.text('Listening… Speak now'),findsOneWidget);expect(device.listens,1);
@@ -96,7 +96,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(MaterialApp(home:Scaffold(body:VoiceEntryButton(income:true,capture:capture,onConfirmed:(v)=>confirmed=v))));
     await tester.tap(find.text('Voice entry — review first'));await tester.pumpAndSettle();
-    await tester.tap(find.text('Start speaking'));await tester.pumpAndSettle();device.error!('error_language_not_supported');await tester.pumpAndSettle();
+    await tester.tap(find.text('Start speaking'));await tester.pumpAndSettle();expect(device.listens,1);device.error!('error_language_not_supported');await tester.pumpAndSettle();
     final fallback=find.text('Try device speech service');await tester.ensureVisible(fallback);await tester.tap(fallback);await tester.pumpAndSettle();
     expect(find.text('Use device speech service?'),findsOneWidget);expect(device.listens,1);expect(device.offline,true);
     await tester.tap(find.text('Cancel').last);await tester.pumpAndSettle();expect(device.listens,1);
@@ -115,7 +115,9 @@ void main() {
     await tester.tap(find.byType(DropdownButtonFormField<VoiceLanguage>));await tester.pumpAndSettle();
     expect(find.text('English'),findsWidgets);expect(find.text('Hindi / हिंदी'),findsOneWidget);
     await tester.tap(find.text('Hinglish / Hindi + English').last);await tester.pumpAndSettle();expect(capture.language,VoiceLanguage.hinglish);
-    await tester.tap(find.text('Start speaking'));await tester.pump();await tester.pump(const Duration(seconds:11));await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Start speaking'));await tester.pumpAndSettle();
+    await tester.tap(find.text('Start speaking'));await tester.pumpAndSettle();expect(device.listens,1);
+    await tester.pump(const Duration(seconds:11));await tester.pumpAndSettle();
     expect(capture.issue,'start_timeout');expect(capture.busy,false);expect(device.listens,1);
     expect(tester.takeException(),isNull);await tester.pumpWidget(const SizedBox.shrink());await tester.pump();
   });
