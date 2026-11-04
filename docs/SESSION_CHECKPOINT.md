@@ -8,6 +8,10 @@ Flutter CI: run `41703447919`, job `126152464443` — QUEUED.
 PostgreSQL CI: run `41703447988`, job `126152455185` — QUEUED.
 Additional work is described in TEST_REPORT_2026-11-04.md. A later docs-only checkpoint commit is intentionally marked [skip ci].
 
+## Superseding local Android result — 4 November 2026 IST
+
+User now prioritizes phone testing without Supabase. Tested SHA `f96a7030dd8b863f4161ae5b18299015660ba26d`: analyzer, all 40 Flutter tests, 16 Python checks, Android debug/release compilation, and debug emulator install/start/dashboard/crash checks PASS. Release APK delivered for physical-device testing; release startup on emulator and physical red-screen fix remain unverified. Web compile passed but browser installation failed due Playwright/Ubuntu 26.04 compatibility. See `LOCAL_ANDROID_TESTING_2026-11-04.md` for evidence and artifact identity. Older queued/not-executed statements below are historical, superseded for these checks only.
+
 ## State and evidence
 - Read implementation/release plan and repository sources; visually inspected the supplied solid-red screenshot.
 - Recovered exact prior 25-item list (13 critical/9 high/3 medium); mapping committed.
