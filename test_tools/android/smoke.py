@@ -29,6 +29,18 @@ def labels(root):
 def wait_text(text, stage, attempts=20):
     for _ in range(attempts):
         root = hierarchy(stage)
+        # A known first-boot emulator-only Launcher ANR can obscure a healthy
+        # foreground app. Never dismiss an ANR belonging to SSS Khatabook.
+        if stage == 'startup' and any(n.get('resource-id') == 'android:id/alertTitle' and
+                n.get('text') == "Pixel Launcher isn't responding" for n in root.iter()):
+            close = next((n for n in root.iter() if n.get('resource-id') == 'android:id/aerr_close'), None)
+            if close is not None:
+                (OUT / 'emulator-launcher-anr.xml').write_text(ET.tostring(root, encoding='unicode'))
+                left, top, right, bottom = map(int, re.fullmatch(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]', close.get('bounds', '')).groups())
+                adb('shell','input','tap',str((left+right)//2),str((top+bottom)//2))
+                print('ENVIRONMENT: dismissed observed Pixel Launcher ANR dialog; application still requires all core checks')
+                time.sleep(1)
+                continue
         if text in labels(root):
             (OUT / (stage + '.png')).write_bytes(adb('exec-out', 'screencap', '-p', binary=True))
             return root
@@ -123,5 +135,5 @@ finally:
     logs = adb('logcat', '-d')
     (OUT / 'logcat.txt').write_text(logs)
     (OUT / 'final.png').write_bytes(adb('exec-out', 'screencap', '-p', binary=True))
-    if re.search(r'FATAL EXCEPTION|SSS_STARTUP_INITIALIZATION_FAILED|SSS_FRAMEWORK_ERROR|SSS_ASYNC_ERROR|Unhandled Exception', logs):
+    if re.search(r'ANR in com\.sss\.khatabook\.preview|FATAL EXCEPTION|SSS_STARTUP_INITIALIZATION_FAILED|SSS_FRAMEWORK_ERROR|SSS_ASYNC_ERROR|Unhandled Exception', logs):
         raise AssertionError('Android crash/startup error detected; inspect emulator logcat')
