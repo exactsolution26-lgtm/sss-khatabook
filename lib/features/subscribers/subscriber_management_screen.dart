@@ -20,7 +20,7 @@ class _SubscriberManagementScreenState
   late Future<List<SubscriberAccount>> accounts = repository.list();
 
   void refresh() {
-    if (mounted) setState(() => accounts = repository.list());
+    if (mounted) setState(() {accounts = repository.list();});
   }
 
   Future<void> edit([SubscriberAccount? account]) async {

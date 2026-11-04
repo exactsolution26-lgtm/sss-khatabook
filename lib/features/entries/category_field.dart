@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import '../../database/db_helper.dart';
 
 class CategoryField extends StatefulWidget {
-  const CategoryField({super.key, required this.income, required this.onChanged});
+  const CategoryField({super.key, required this.income, required this.onChanged,this.initialValue});
   final bool income;
+  final String? initialValue;
   final ValueChanged<String> onChanged;
   @override
   State<CategoryField> createState() => _CategoryFieldState();
@@ -20,6 +21,8 @@ class _CategoryFieldState extends State<CategoryField> {
       : ['Food', 'Groceries', 'Travel', 'Fuel', 'Rent', 'Utilities', 'Phone & Internet',
           'Office Expenses', 'Salaries', 'Advertising', 'Repairs', 'Medical',
           'Education', 'Bank Charges', 'Taxes', 'Other'];
+    selected=(widget.initialValue?.trim().isNotEmpty ?? false) ? widget.initialValue!.trim() : 'Other';
+    if(!choices.contains(selected)) choices.add(selected);
     load();
   }
 

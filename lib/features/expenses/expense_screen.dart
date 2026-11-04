@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import 'expense_controller.dart';
+import '../../core/utils/money.dart';
 import '../entries/attachments.dart';
 import '../entries/attachment_widgets.dart';
 import '../entries/contact_fields.dart';
+import '../voice/voice_entry_button.dart';
 import '../entries/category_field.dart';
 import '../../core/utils/date_utils.dart' as dates;
 import '../accounts/account_controller.dart';
@@ -81,6 +83,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
       padding: const EdgeInsets.all(16),
       child: ListView(
         children: [
+          VoiceEntryButton(income: false,onConfirmed: (draft) {setState(() {if(draft.amount!=null) amountController.text=draft.amount!;noteController.text=draft.transcript;lastSaved=null;});}),
           if (loadError != null)
             TextButton(
               onPressed: _loadAccounts,
@@ -139,7 +142,8 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                 );
                 return;
               }
-              final amount = double.tryParse(amountController.text.trim());
+              double? amount;
+              try {amount=Money.parse(amountController.text)/100;} catch (_) {amount=null;}
               if (amount == null || !amount.isFinite || amount <= 0) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(

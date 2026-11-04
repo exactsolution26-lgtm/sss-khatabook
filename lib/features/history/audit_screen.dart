@@ -17,7 +17,7 @@ class _AuditScreenState extends State<AuditScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: const Text('Audit History')),
     body: FutureBuilder(future: rows, builder: (context, snapshot) {
-      if (snapshot.hasError) return Center(child: TextButton(onPressed: () => setState(() => rows = load()), child: const Text('Could not load history — Retry')));
+      if (snapshot.hasError) return Center(child: TextButton(onPressed: () => setState(() {rows = load();}), child: const Text('Could not load history — Retry')));
       if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
       return ListView(padding: const EdgeInsets.all(20), children: [
         const Text('Local device history. Times use the device clock; imported history is not server verified.'),

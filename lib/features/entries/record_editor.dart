@@ -3,6 +3,7 @@ import '../../database/db_helper.dart';
 import '../../core/utils/date_utils.dart' as dates;
 import 'record_recovery.dart';
 import 'contact_fields.dart';
+import 'category_field.dart';
 
 class RecordEditor extends StatefulWidget {
   const RecordEditor({super.key,required this.income,required this.id,required this.accountId});
@@ -41,7 +42,7 @@ class _RecordEditorState extends State<RecordEditor> {
       if(savedAt != null) Text('Originally saved: ${dates.DateUtils.formatIstDateTime(DateTime.parse(savedAt!))}'),
       const SizedBox(height: 16),
       TextField(controller: amount,keyboardType: const TextInputType.numberWithOptions(decimal: true),decoration: const InputDecoration(labelText: 'Amount')),
-      const SizedBox(height: 16), TextField(controller: category,decoration: const InputDecoration(labelText: 'Category')),
+      const SizedBox(height: 16), CategoryField(income: widget.income,initialValue: category.text,onChanged: (v) => category.text=v),
       const SizedBox(height: 16), DropdownButtonFormField<String>(initialValue: mode,decoration: const InputDecoration(labelText: 'Payment mode'),
         items: {mode,'cash','online','bank','upi','card'}.map((m) => DropdownMenuItem(value: m,child: Text(m))).toList(),onChanged: (m) {if(m!=null) setState(() => mode=m);}),
       const SizedBox(height: 16),ContactFields(name: name,phone: phone),

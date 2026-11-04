@@ -11,6 +11,7 @@ import 'income_controller.dart';
 import '../entries/attachments.dart';
 import '../entries/attachment_widgets.dart';
 import '../entries/contact_fields.dart';
+import '../voice/voice_entry_button.dart';
 import '../entries/category_field.dart';
 import '../../models/income_model.dart';
 import '../../features/accounts/account_controller.dart';
@@ -156,6 +157,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
           key: _formKey,
           child: ListView(
             children: [
+              VoiceEntryButton(income: true,onConfirmed: (draft) {setState(() {if(draft.amount!=null) _amountController.text=draft.amount!;_descriptionController.text=draft.transcript;_lastSaved=null;});}),
               const HeaderText(text: AppStrings.addIncome),
               const SizedBox(height: 24),
               DropdownButtonFormField<AccountModel>(

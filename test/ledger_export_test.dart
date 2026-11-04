@@ -48,6 +48,17 @@ void main() {
       await File('design-evidence/ledger-example.xlsx').writeAsBytes(report.xlsx());
     }
   });
+  test('period statements carry earlier balance forward and exclude outside-period entries',() async {
+    await AccountTable.saveAccount(name: 'Statement customer',openingBalance: 1000);
+    final id=(await AccountTable.getAllAccounts()).single.id!;
+    for(final value in [(DateTime(2026,10,31),100.0),(DateTime(2026,11,1),200.0),(DateTime(2026,12,1),300.0)]) {
+      await IncomeController().createIncome(IncomeModel(accountId: id,amount: value.$2,date: value.$1,createdAt: DateTime.now().toUtc()));
+    }
+    final report=await LedgerExport.load(id,fromDate: '2026-11-01',toDate: '2026-11-30');
+    expect(report.openingPaise,110000);expect(report.incomePaise,20000);expect(report.closingPaise,130000);expect(report.entries.length,1);
+    expect(utf8.decode(report.csv()),contains('2026-11-01 to 2026-11-30'));
+    await expectLater(LedgerExport.load(id,fromDate: '2026-02-30'),throwsArgumentError);
+  });
   test('CSV escapes quotes, multiline notes and spreadsheet formulas', () {
     expect(LedgerExport.csvCell('a,"b"\nc'), '"a,""b""\nc"');
     expect(LedgerExport.csvCell(' =SUM(1,2)'), '"\' =SUM(1,2)"');

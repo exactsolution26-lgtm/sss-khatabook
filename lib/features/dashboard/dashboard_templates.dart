@@ -190,7 +190,7 @@ class _DashboardPreviewsScreenState extends State<DashboardPreviewsScreen> {
 
   Future<void> open(String route) async {
     await Navigator.pushNamed(context, route);
-    if (mounted) setState(() => data = AnalysisLogic().getAnalysisData());
+    if (mounted) setState(() {data = AnalysisLogic().getAnalysisData();});
   }
 
   @override
@@ -237,7 +237,7 @@ class _DashboardPreviewsScreenState extends State<DashboardPreviewsScreen> {
         FutureBuilder<Map<String, dynamic>>(future: data, builder: (context, snapshot) {
           if (snapshot.hasError) return Column(children: [
             Text(hindi ? 'रिकॉर्ड नहीं खुले।' : 'Could not open local records.'),
-            TextButton(onPressed: () => setState(() => data = AnalysisLogic().getAnalysisData()),
+            TextButton(onPressed: () => setState(() {data = AnalysisLogic().getAnalysisData();}),
               child: Text(hindi ? 'फिर कोशिश करें' : 'Retry')),
           ]);
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());

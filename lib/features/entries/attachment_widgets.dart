@@ -70,7 +70,7 @@ class _AttachmentScreenState extends State<AttachmentScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: const Text('Attachments')),
     body: FutureBuilder(future: files, builder: (context, snapshot) {
-      if (snapshot.hasError) return Center(child: TextButton(onPressed: () => setState(() => files = load()), child: const Text('Retry')));
+      if (snapshot.hasError) return Center(child: TextButton(onPressed: () => setState(() {files = load();}), child: const Text('Retry')));
       if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
       if (snapshot.data!.isEmpty) return const Center(child: Text('No attachments for this entry.'));
       return ListView(children: [for (final row in snapshot.data!) ListTile(leading: const Icon(Icons.attach_file),

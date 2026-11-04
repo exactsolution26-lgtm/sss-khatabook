@@ -12,7 +12,11 @@ class LedgerExport {
   final Map<String, Object?> account;
   final List<Map<String, Object?>> entries;
 
-  static Future<LedgerExport> load(int accountId) async {
+  static Future<LedgerExport> load(int accountId,{String? fromDate,String? toDate}) async {
+    for(final value in [fromDate,toDate]) {
+      if(value!=null && (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(value) || DateTime.tryParse(value)==null || dates.DateUtils.formatDate(DateTime.parse(value))!=value)) throw ArgumentError('Invalid report date');
+    }
+    if(fromDate!=null && toDate!=null && fromDate.compareTo(toDate)>0) throw ArgumentError('Report dates are reversed');
     final db = await DBHelper.database;
     return db.transaction((txn) async {
       final accounts = await txn.query('accounts', where: 'id = ?', whereArgs: [accountId]);
@@ -21,7 +25,15 @@ class LedgerExport {
         contact_name,contact_phone,category,mode,'income' AS kind FROM income WHERE account_id = ?
         UNION ALL SELECT id,amount,date,note,created_at,contact_name,contact_phone,category,mode,
         'expense' AS kind FROM expenses WHERE account_id = ? ORDER BY date,created_at,kind,id''', [accountId, accountId]);
-      return LedgerExport(accounts.single, rows);
+      var opening=((accounts.single['opening_balance'] as num)*100).round();
+      final filtered=<Map<String,Object?>>[];
+      for(final row in rows) {
+        final date=row['date'] as String;
+        if(fromDate!=null && date.compareTo(fromDate)<0) {
+          opening+=(row['kind']=='income' ? 1 : -1)*((row['amount'] as num)*100).round();
+        } else if(toDate==null || date.compareTo(toDate)<=0) {filtered.add(row);}
+      }
+      return LedgerExport({...accounts.single,'opening_balance': opening/100,'from_date': fromDate,'to_date': toDate}, filtered);
     });
   }
 
@@ -42,6 +54,7 @@ class LedgerExport {
     var running = openingPaise;
     return <List<Object?>>[
       ['Account', account['name']],
+      if(account['from_date']!=null || account['to_date']!=null) ['Period', '${account['from_date'] ?? 'Beginning'} to ${account['to_date'] ?? 'Latest'}'],
       ['Date', 'Type', 'Amount INR', 'Running Balance INR', 'Category', 'Payment Mode',
         'Contact Name', 'Contact Phone', 'Description', 'Saved at IST'],
       ['', 'Opening balance', openingPaise / 100, openingPaise / 100, '', '', '', '', '', ''],
@@ -80,7 +93,9 @@ class LedgerExport {
       margin: const pw.EdgeInsets.all(28),
       header: (_) => pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
         pw.Text('SSS Khatabook — Customer Ledger', style: pw.TextStyle(fontSize: 18)),
-        pw.Text(account['name'] as String), pw.SizedBox(height: 12),
+        pw.Text(account['name'] as String),
+        if(account['from_date']!=null || account['to_date']!=null) pw.Text('Period: ${account['from_date'] ?? 'Beginning'} to ${account['to_date'] ?? 'Latest'}'),
+        pw.SizedBox(height: 12),
       ]),
       footer: (context) => pw.Text('Page ${context.pageNumber} / ${context.pagesCount} · Generated ${dates.DateUtils.formatIstDateTime(DateTime.now().toUtc())}',
         style: const pw.TextStyle(fontSize: 8)),
