@@ -20,7 +20,7 @@ class LedgerExport {
       final rows = await txn.rawQuery('''SELECT id,amount,date,description AS note,created_at,
         contact_name,contact_phone,category,mode,'income' AS kind FROM income WHERE account_id = ?
         UNION ALL SELECT id,amount,date,note,created_at,contact_name,contact_phone,category,mode,
-        'expense' AS kind FROM expenses WHERE account_id = ? ORDER BY date,kind,id''', [accountId, accountId]);
+        'expense' AS kind FROM expenses WHERE account_id = ? ORDER BY date,created_at,kind,id''', [accountId, accountId]);
       return LedgerExport(accounts.single, rows);
     });
   }

@@ -245,7 +245,7 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
     return db.rawQuery(
       '''SELECT id, amount, date, description AS note, created_at, contact_name, contact_phone, 'income' AS kind FROM income WHERE account_id = ?
       UNION ALL SELECT id, amount, date, note, created_at, contact_name, contact_phone, 'expense' AS kind FROM expenses WHERE account_id = ?
-      ORDER BY date ASC, kind ASC, id ASC''',
+      ORDER BY date ASC, created_at ASC, kind ASC, id ASC''',
       [widget.account.id, widget.account.id],
     );
   }

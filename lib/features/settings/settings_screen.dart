@@ -13,6 +13,10 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
+          ListTile(leading: const Icon(Icons.event_note), title: const Text('Follow-ups & Reminders'),
+            trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.pushNamed(context, '/followups')),
+          ListTile(leading: const Icon(Icons.payments_outlined), title: const Text('Dues & Partial Payments'),
+            trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.pushNamed(context, '/dues')),
           ListTile(leading: const Icon(Icons.lock_outline), title: const Text('PIN & Biometrics'),
             trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.pushNamed(context, '/security')),
           ListTile(leading: const Icon(Icons.backup_outlined), title: const Text('Backup & Restore'),

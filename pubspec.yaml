@@ -26,6 +26,7 @@ dependencies:
   # image 4.11.0 has a broken archive lower bound; this version is compatible.
   image: 4.10.2
   archive: '>=4.0.9 <4.1.0'
+  timezone: ^0.10.1
   url_launcher: ^6.3.1
   intl: ^0.20.2
   flutter_local_notifications: ^19.0.0

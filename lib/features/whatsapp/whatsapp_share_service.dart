@@ -108,7 +108,7 @@ class WhatsAppShareService {
         if (draft.sourceIncomeId == null)
           throw StateError('Choose a recorded payment');
         final rows = await txn.rawQuery(
-          'SELECT income.id, income.amount, income.date, income.created_at, income.contact_name, income.contact_phone, accounts.name FROM income JOIN accounts ON accounts.id = income.account_id WHERE income.id = ?',
+          'SELECT income.id, income.amount, income.date, income.created_at, income.contact_name, income.contact_phone, accounts.name FROM income JOIN accounts ON accounts.id = income.account_id WHERE income.id = ? AND NOT EXISTS(SELECT 1 FROM payment_allocations p WHERE p.income_id=income.id AND p.reversed_at IS NOT NULL)',
           [draft.sourceIncomeId],
         );
         if (rows.length != 1) throw StateError('Recorded payment not found');

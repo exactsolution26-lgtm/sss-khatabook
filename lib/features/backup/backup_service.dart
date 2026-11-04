@@ -6,6 +6,7 @@ import 'package:sqflite/sqflite.dart';
 import '../../database/db_helper.dart';
 import 'backup_vault.dart';
 import '../entries/attachments.dart';
+import '../followups/reminder_notifications.dart';
 
 class BackupCipher {
   static const iterations = 600000;
@@ -49,24 +50,27 @@ class BackupCipher {
 }
 
 class BackupService {
-  static const tableNames = ['accounts', 'income', 'expenses', 'work', 'entry_categories', 'app_audit', 'attachments'];
+  BackupService({Future<void> Function(int)? cancelReminder}) : cancelReminder = cancelReminder ?? ReminderNotifications.cancel;
+  final Future<void> Function(int) cancelReminder;
+  static const tableNames = ['accounts', 'income', 'expenses', 'work', 'entry_categories', 'app_audit', 'attachments', 'obligations', 'payment_allocations', 'follow_ups'];
 
   Future<Map<String, dynamic>> snapshot() async {
     final db = await DBHelper.database;
     return db.transaction((txn) async => {
-      'format': 'sss-khatabook-records', 'version': 1, 'schema': 7,
+      'format': 'sss-khatabook-records', 'version': 1, 'schema': 8,
       'created_at': DateTime.now().toUtc().toIso8601String(),
       'tables': {for (final table in tableNames) table: await txn.query(table, orderBy: 'rowid')},
     });
   }
 
   Map<String, List<Map<String, Object?>>> validateShape(Map<String, dynamic> data) {
-    if (data['format'] != 'sss-khatabook-records' || data['version'] != 1 || ![6, 7].contains(data['schema'])) {
+    if (data['format'] != 'sss-khatabook-records' || data['version'] != 1 || ![6, 7, 8].contains(data['schema'])) {
       throw const FormatException('Unsupported record format');
     }
     DateTime.parse(data['created_at'] as String);
     final source = Map<String, dynamic>.from(data['tables'] as Map);
     if (data['schema'] == 6 && !source.containsKey('attachments')) source['attachments'] = [];
+    if ((data['schema'] as int) < 8) {source['obligations'] = []; source['payment_allocations'] = []; source['follow_ups'] = [];}
     if (source.length != tableNames.length || !tableNames.every(source.containsKey)) {
       throw const FormatException('Incomplete backup');
     }
@@ -78,7 +82,7 @@ class BackupService {
       if (count > 100000) throw const FormatException('Backup row limit exceeded');
       result[table] = rows.map((value) {
         final row = Map<String, Object?>.from(value as Map);
-        if (['accounts', 'income', 'expenses', 'work', 'attachments'].contains(table) &&
+        if (['accounts', 'income', 'expenses', 'work', 'attachments', 'obligations', 'payment_allocations', 'follow_ups'].contains(table) &&
             (row['id'] is! int || (row['id'] as int) <= 0)) {
           throw const FormatException('Invalid original record identity');
         }
@@ -154,8 +158,14 @@ class BackupService {
   Future<void> restore(Map<String, dynamic> data, {required String recoveryPassword}) async {
     await validate(data);
     // A recoverable encrypted copy must persist before any existing row changes.
-    final recovery = await BackupCipher.encrypt(await snapshot(), recoveryPassword);
+    final current = await snapshot();
+    final recovery = await BackupCipher.encrypt(current, recoveryPassword);
     await BackupVault.put(recovery, purpose: 'recovery');
     await DBHelper.replaceSnapshot(await DBHelper.database, validateShape(data));
+    for (final row in ((current['tables'] as Map)['follow_ups'] as List)) {
+      if (row['notification_scheduled'] == 1) {
+        try {await cancelReminder(row['id'] as int);} catch (_) { /* Restored in-app reminders remain available. */ }
+      }
+    }
   }
 }

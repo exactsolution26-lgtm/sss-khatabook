@@ -88,7 +88,9 @@ jobs:
           p.write_text(s)
           manifest = Path('android/app/src/main/AndroidManifest.xml')
           text = manifest.read_text()
-          text = text.replace('<application', '<uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.USE_BIOMETRIC"/>\n    <application android:allowBackup="false" android:usesCleartextTraffic="false"', 1)
+          text = text.replace('<application', '<uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.USE_BIOMETRIC"/>\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>\n    <application android:allowBackup="false" android:usesCleartextTraffic="false"', 1)
+          receivers = '<receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"/><receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"><intent-filter><action android:name="android.intent.action.BOOT_COMPLETED"/><action android:name="android.intent.action.MY_PACKAGE_REPLACED"/></intent-filter></receiver>'
+          text = text.replace('</application>', receivers + '</application>')
           manifest.write_text(text)
           for activity in Path("android/app/src/main/kotlin").rglob("MainActivity.kt"):
               activity.write_text(activity.read_text().replace("FlutterActivity", "FlutterFragmentActivity"))
@@ -125,12 +127,14 @@ jobs:
           cache: true
       - name: Generate temporary Web runner
         run: flutter create --platforms=web --project-name offline_khata_app .
+      - name: Use one offline worker owner
+        run: cp test_tools/browser/flutter_bootstrap.js web/flutter_bootstrap.js
       - name: Resolve dependencies
         run: flutter pub get
       - name: Install SQLite browser worker and WASM
         run: dart run sqflite_common_ffi_web:setup
       - name: Web release build
-        run: flutter build web --release --no-web-resources-cdn
+        run: flutter build web --release --no-web-resources-cdn --pwa-strategy=none
       - name: Generate offline public asset shell
         run: |
           python3 test_tools/browser/offline_shell.py build/web "$GITHUB_SHA"

@@ -1,5 +1,20 @@
 # Resume checkpoint — 4 November 2026
 
+## Active Work Mode continuation — latest steering
+Owner repeated "Pura complete kar ke btao": continue all unblocked implementation; do not end with a promise/status-only answer. Keep regular concise progress updates. No main changes. No subagents authorized. Existing dashboard designs remain reconstruction previews pending visual approval; do not activate them as recovered originals.
+
+Full working checkout: `/workspace/scratch/46b88f8863c2/sss-khatabook-full`. Use GitHub connector tree/commit/update_ref with exact expected head for remote writes. Git CLI read/fetch/reset --mixed only aligns the local index, never discard work. Local Flutter remains prohibited after earlier metadata auto-review rejection; all Flutter verification is in GitHub CI.
+
+Latest pushed head before this draft: b9a881dbdffb9b2a8b45f771192e6f9f34c0fa39. Its analyzer/unit suite passes86 Flutter tests and16 Python checks (run41793128491/analyze126450883721), but Web offline test failed from competing service workers. Current uncommitted fix adds explicit flutter_bootstrap.js without legacy worker settings and --pwa-strategy=none; retain the SSS public-static-assets worker only. Not yet retested.
+
+Last FULL green baseline:4a4668a6beea8b92ff3b08119e4cd18cf001ab0b, run41791096001, analyzer126444403250 (85 tests +16 Python checks), Web126445349928; PostgreSQL41791096003. Verified encrypted backups/vault/restore/audit, atomic attachments, PDF/CSV, PIN gate/rate limit, real Ed25519 verifier. OS APIs are mocked in unit tests; native/device integration remains unverified. Ledger PDF artifact actually rendered/inspected in `verified-evidence/` outside repo.
+
+Current uncommitted schema8 increment: dues/partial payments in integer paise; payment budget/ownership/idempotency/immutable allocations, reversal counter-entries, follow-up records and opt-in native notifications, reminder metadata reset/cancellation on restore. SQL strings compile in local real SQLite. New dues/followup service + mobile widget tests exist but have NOT run on Flutter yet. Backup supports old schema6/7 plus8. Commit and verify this increment; fix failures before declaring it passed.
+
+Remaining unblocked work still includes complete Income/Expense edit/soft-delete/recovery, saved customer phones/contact selection, voice review entry, full English/Hindi, profile/setup/support, history/date filters/reports/import/draft-template UX. Do not claim all58 tasks complete. Hosted auth/Supabase deployment, merchant credentials, production signed license issuer/trusted time/sync, production signing, physical UAT and representative10k-user tests are external blockers; continue independent modules. Final APK only after the implementation/testing phase; default Android workflow jobs remain gated.
+
+Preview files: `/workspace/sss-dashboard-review.html` (reload full visualize skill before modifying it),20 screenshots in `dashboard-previews-v2/` already saved with Library identities/xattrs. Six layouts use real AppTheme, demo fixture data, and explicit reconstruction labels; Super Admin is explicitly simulated. Existing image IDs remain unchanged on updates. Library helper scripts are in `library-transfer-final/`; refresh from current skill if a new request requires it. Do not duplicate repository-backed code in Library.
+
 Branch development/stability-foundation ONLY. Never modify/merge main. Current code50cf7ea27fd799af41a06f48d8073d4a6e1c248b; application code unchanged since ab0855af7a00f3810de81309b6a275ab2872291d, later commits refine tests/captures. Docs-only checkpoint may follow. Latest owner contract WORK_MODE_REQUIREMENTS_2026-11-04.md supersedes old unrecovered-design blocker by permitting labeled reconstructions.
 
 ## Current results
