@@ -27,7 +27,7 @@ jobs:
       - name: Static analysis
         run: flutter analyze
       - name: Unit tests
-        run: flutter test
+        run: timeout 240s flutter test --reporter expanded --timeout 90s
       - name: SQLite v1 migration fixture tests
         run: timeout 60s python3 -m unittest discover -s test_tools -p '*_check.py' -v
       - name: Subscriber account schema checks
