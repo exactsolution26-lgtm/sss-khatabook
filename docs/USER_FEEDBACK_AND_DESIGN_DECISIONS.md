@@ -27,6 +27,7 @@ This covers Android and Web screens, navigation, form labels, categories, valida
 | UX-08 | Platform should be more attractive | Refine visual hierarchy, spacing, typography, contact card, category picker and save feedback; retain optional Light/Dark themes | Design review in progress |
 | UX-09 | Inline clickable preview did not load on the user's device | Provide directly viewable mobile-sized images for review; static previews are not working app features | Static fallback delivered; revised English design being reviewed |
 | UX-10 | Keep noting reported deficiencies | Maintain this register as new observations arrive; distinguish requests, drafts, implementation and passing evidence | Active |
+| UX-11 | Delivered dashboard does not match yesterday's approved dashboard selection/designs | Restore the approved six fixed dashboard choices, one active at a time and switchable, sharing the same financial data; users cannot create unlimited/custom dashboards; keep layout choice separate from Light/Dark and language | Approved scope recovered from 3 November conversation; NOT implemented in current Flutter dashboard |
 
 ## Proposed category catalogue — not final implementation
 Expense: Food, Groceries, Travel, Fuel, Rent, Utilities, Phone & Internet, Office Expenses, Salaries, Advertising, Repairs, Medical, Education, Bank Charges, Taxes, Other; plus Add Category.
@@ -47,3 +48,10 @@ Income preview: Sales, Service Fees, Commission / Brokerage, Rent, Salary, Refun
 - Confirm immutable transaction contact snapshots and save timestamps through database tests, not just mockups.
 - Verify duplicate-tap handling, failed-save behavior, editing after save, old database migration and app relaunch.
 - No new APK until the user explicitly asks, even after design approval.
+
+## Approved dashboard scope recovered — 3 November 2026
+The user approved six fixed dashboard choices, with one active layout selected at a time. Switching layouts must present the same financial data and preserve calculation correctness; end users cannot create arbitrary additional dashboards. The final chat demo was approved as perfect. That approval was for the demo; conversion into the running Flutter app was not completed.
+
+Current source inspection of lib/features/dashboard/dashboard_screen.dart shows one dashboard with three summary cards (balance, income, expenses) and navigation cards. It has no six-layout selector or six dashboard implementations. Light/Dark support alone does not satisfy the approved dashboard scope. This is an implementation gap, not a change to the user's decision.
+
+Exact visual references and layout names must be recovered from the approved previews before claiming visual parity. Do not invent new styles and describe them as yesterday's final designs. Financial dashboard coverage includes receivables, payables, collections, expenses and balance as previously requested; calculations and data completeness still need their own implementation/testing evidence.
