@@ -1,3 +1,22 @@
+# Latest checkpoint — smaller APK1.0.2 released, 4 November 2026 IST
+
+User requested a fresh APK, verify GitHub and slow downloads; "Continue this chat" and "paused kyo kiya" were status steering. Task complete: prereleasev1.0.2-preview.20261104 published. Exact app source3efb19f6a9acbcb6ed4e886074b6655dc3934df8, version1.0.2+102, com.sss.khatabook.preview, testing signature. No main changes or feature redesign.
+
+ARM64 standalone24,715,470bytes (~65% smaller than70MB Universal), SHAb0be9305321929c6cee2f975a5bc98377526354590dcd5d7ce182d7db61357db. Universal70,208,157bytes SHAd76928c162a1fa43d147418ff9794aefa9bd573977aa5b2a7b6b1d91ea57f483. ARM32also22.7MB. GitHub releaseAPI digests match exact local APK copies.
+
+Build run41823359970:100Flutter+16Python, analyzer0issues, Web offline, signatures/versions/ABI checks PASS. Native first attempt failed because emulator Android system "Pixel Launcher isn't responding" dialog covered the app; both XMLs confirmed external launcher. Test-only fix bfa66eca88777989c48dae40e3264ea510ad3fd0 handles only this observed external overlay, records evidence and still rejects SSS-specific ANR/errors. Same APKs fully retested in run41825658096: Universal andx64 install/startup,100+200-50=250, saved receipts and250 after force-stop/restart PASS. No matchedappfatal/SSSerrors. PhysicalARMdevice/UATremainunverified.
+
+Publish initially returned403 because built source3ef was no longer a named branch head and changes workflows. Created immutable source snapshot branch releases/preview-1.0.2-built-source at3ef (no code changes, no main), following documented existing-ref rule; reran only failed publish job. Finalpublishjob126562646962 PASS. Public anonymous full-file SHA256 download + HTTP206 byte-range resume both PASS. CI times ARM640.97s,Universal2.18s are CI measurements, never userWiFispeed promises. DOWNLOAD_CHECKS.json is attached to GitHub release.
+
+Alternate ChatGPT downloads already saved successfully, exact bytes: ARM64libfile_1bc3e2bb9ef081918c1b4c0ed0fa230a; Universallibfile_9a01919d8d5c8191b4610b06a9261193. Their local paths are /workspace/scratch/46b88f8863c2/apk-1.0.2/SSS-Khatabook-1.0.2-{ARM64,Universal}.apk; metadata applied. Do not duplicate uploads. library-transfer-apk102/upload-result.json contains2successes. First helper failed tools/list before preparing; safe retry completed. APK transfer/helper files are not sourcegit files.
+
+Full sourcecheckout sss-khatabook-full; HEAD/indexbfa before this docs-only checkpoint. Do not run localFlutter due previousauto-review restriction; CI only. Remaining58-point work stays partial. Production signing, physical-device redscreen verification, native optionalAPIs, SaaS auth/tenant/sync/payment/license setup, fulltranslation and visualapproval remain unfinished/blocked.
+
+verify-preview.yml now pinned to1.0.2 build/run; future releases must update provenance/version/tag and have fresh ownerauthorization. Preserve releases/preview-1.0.2-built-source as built snapshot. Never suggest uninstalling a financiallypopulatedapp to solve test-signature mismatch. Unknown phoneABI: clearlylabelARM64 and offerUniversal if unsure. Rebuild cannotguaranteeISP/CDNspeed; smallAPK+alternatehost address slowdownloads.
+
+---
+Historical checkpoints follow, superseded by the release facts above.
+
 # Latest checkpoint — published testing APK, 4 November 2026 IST
 
 Owner superseded the APK hold: "jitna kaam ho gya hai, uska new apk bna ke relese karo". Task fulfilled: testing prerelease v1.0.1-preview.20261104 published at https://github.com/exactsolution26-lgtm/sss-khatabook/releases/tag/v1.0.1-preview.20261104.
