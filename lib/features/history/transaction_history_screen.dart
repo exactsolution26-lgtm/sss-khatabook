@@ -22,7 +22,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   String t(String en, String hi) => hindi ? hi : en;
   @override
   void initState() { super.initState(); income = widget.income; reload(); }
-  void reload() => entries = TransactionHistory.load(income);
+  void reload() { entries = TransactionHistory.load(income); }
   @override
   void dispose() { search.dispose(); super.dispose(); }
 

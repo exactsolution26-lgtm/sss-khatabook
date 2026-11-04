@@ -29,7 +29,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
   String t(String en, String hi) => hindi ? hi : en;
   @override
   void initState() { super.initState(); reload(); }
-  void reload() => entry = TransactionHistory.load(widget.income, id: widget.id, accountId: widget.accountId);
+  void reload() { entry = TransactionHistory.load(widget.income, id: widget.id, accountId: widget.accountId); }
   void error(String en, String hi) {
     if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t(en, hi))));
   }

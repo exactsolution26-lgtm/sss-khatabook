@@ -17,7 +17,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _reload();
   }
 
-  void _reload() => _summary = AnalysisLogic().getAnalysisData();
+  void _reload() { _summary = AnalysisLogic().getAnalysisData(); }
 
   Future<void> _open(String route) async {
     await Navigator.pushNamed(context, route);
