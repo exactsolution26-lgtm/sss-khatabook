@@ -20,6 +20,13 @@ class HistoryEntry {
   int get attachmentCount => (row['attachment_count'] as num).toInt();
   String _text(String key) => row[key]?.toString() ?? '';
 
+  static String accountingDate(String value) {
+    final date = DateTime.tryParse(value);
+    if (date == null) return value;
+    return dates.DateUtils.formatIstDateTime(DateTime.utc(date.year, date.month, date.day))
+      .split(' · ').first;
+  }
+
   static String timestamp(Object? value) {
     if (value == null || value.toString().isEmpty) return 'Unknown historic save time';
     final text = value.toString();

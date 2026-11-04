@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../../core/utils/date_utils.dart' as dates;
 import '../../core/utils/money.dart';
 import '../settings/app_settings.dart';
@@ -115,7 +114,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
               final startsDay = index == 1 || filtered[index - 2].date != entry.date;
               return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                 if (startsDay) Padding(padding: const EdgeInsets.only(top: 12, bottom: 8),
-                  child: Text(DateFormat('EEEE, d MMMM yyyy', 'en_IN').format(DateTime.parse(entry.date)),
+                  child: Text(HistoryEntry.accountingDate(entry.date),
                     style: Theme.of(context).textTheme.titleSmall)),
                 Card(child: InkWell(key: ValueKey('history-${entry.reference}'),
                   onTap: () => open(TransactionDetailScreen(income: income, id: entry.id, accountId: entry.accountId)),

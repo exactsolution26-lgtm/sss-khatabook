@@ -92,8 +92,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
           Center(child: Text('${widget.income ? '+' : '−'}${Money.format(e.paise)}',
             style: Theme.of(context).textTheme.headlineMedium)),
           const SizedBox(height: 16),
-          field(t('Transaction date', 'लेन-देन की तारीख'), dates.DateUtils.formatIstDateTime(
-            DateTime.parse('${e.date}T00:00:00+05:30')).split(' · ').first),
+          field(t('Transaction date', 'लेन-देन की तारीख'), HistoryEntry.accountingDate(e.date)),
           field(t('Saved at · India time', 'सेव किया · भारत समय'), HistoryEntry.timestamp(e.row['created_at'])),
           field(t('Customer / party', 'ग्राहक / पार्टी'), e.name.isEmpty ? t('No contact linked', 'संपर्क नहीं जुड़ा') : e.name),
           field(t('Mobile number', 'मोबाइल नंबर'), e.phone.isEmpty ? '—' : e.phone),
