@@ -35,6 +35,11 @@ class DateUtils {
     return parsed;
   }
 
+  static String formatIstDateTime(DateTime timestamp) {
+    final ist = timestamp.toUtc().add(const Duration(hours: 5, minutes: 30));
+    return '${DateFormat('EEEE, d MMMM yyyy · hh:mm:ss a', 'en').format(ist)} IST';
+  }
+
   static DateTime today() {
     final now = DateTime.now();
     return DateTime(now.year, now.month, now.day);

@@ -52,15 +52,16 @@ class AccountTable {
     });
   }
 
-  static Future<void> saveOpeningBalance({
+  static Future<DateTime> saveOpeningBalance({
     required double cash,
     required double bank,
   }) async {
-    if (!cash.isFinite || !bank.isFinite || cash < 0 || bank < 0) {
+    if (!cash.isFinite || !bank.isFinite || !(cash + bank).isFinite || cash < 0 || bank < 0) {
       throw ArgumentError('Invalid opening balance');
     }
     final db = await DBHelper.database;
-    await db.transaction((txn) async {
+    return db.transaction((txn) async {
+      final savedAt = DateTime.now().toUtc();
       final existing = await txn.query('accounts', orderBy: 'id ASC', limit: 1);
       if (existing.isEmpty) {
         await txn.insert('accounts', {
@@ -68,7 +69,8 @@ class AccountTable {
           'opening_balance': cash + bank,
           'cash_balance': cash,
           'bank_balance': bank,
-          'created_at': DateTime.now().toUtc().toIso8601String(),
+          'created_at': savedAt.toIso8601String(),
+          'opening_balance_saved_at': savedAt.toIso8601String(),
         });
       } else {
         await txn.update(
@@ -77,11 +79,13 @@ class AccountTable {
             'opening_balance': cash + bank,
             'cash_balance': cash,
             'bank_balance': bank,
+            'opening_balance_saved_at': savedAt.toIso8601String(),
           },
           where: 'id = ?',
           whereArgs: [existing.first['id']],
         );
       }
+      return savedAt;
     });
   }
 

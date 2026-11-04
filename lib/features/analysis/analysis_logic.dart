@@ -16,6 +16,13 @@ class AnalysisLogic {
         'SELECT COUNT(*) AS count,COALESCE(SUM(amount),0) AS total FROM expenses WHERE account_id IS NULL',
       );
       final unassigned = (legacy.single['total'] as num).toDouble();
+      final recent = await txn.rawQuery('''
+        SELECT * FROM (SELECT id, account_id, amount, description AS note, date, 'income' AS kind
+        FROM income
+        UNION ALL
+        SELECT id, account_id, amount, note, date, 'expense' AS kind FROM expenses)
+        ORDER BY datetime(date) DESC, id DESC LIMIT 12
+      ''');
       var totalIncome = 0.0;
       var totalExpense = unassigned;
       var totalBalance = -unassigned;
@@ -46,6 +53,7 @@ class AnalysisLogic {
         'accountDetails': details,
         'unassignedExpense': unassigned,
         'unassignedExpenseCount': legacy.single['count'],
+        'recentTransactions': recent,
       };
     });
   }

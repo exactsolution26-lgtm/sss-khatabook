@@ -1,4 +1,5 @@
 import '../features/dashboard/dashboard_screen.dart';
+import '../features/dashboard/dashboard_templates.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/income/income_screen.dart';
 import '../features/expenses/expense_screen.dart';
@@ -20,6 +21,7 @@ class AppRoutes {
 
   static final routes = <String, WidgetBuilder>{
     dashboard: (_) => const DashboardScreen(),
+    '/dashboard-previews': (_) => const DashboardPreviewsScreen(),
     '/settings': (_) => const SettingsScreen(),
     '/accounts': (_) => const AccountsScreen(),
     '/income': (_) => const IncomeScreen(),

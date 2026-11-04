@@ -13,8 +13,20 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.dashboard_customize_outlined),
+            title: Text(settings.language == AppLanguage.hindi
+                ? 'छह डैशबोर्ड प्रीव्यू' : 'Six Dashboard Previews'),
+            subtitle: Text(settings.language == AppLanguage.hindi
+                ? 'पुनर्निर्मित डिज़ाइन · स्वीकृति बाकी है'
+                : 'Reconstructed designs · awaiting approval'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.pushNamed(context, '/dashboard-previews'),
+          ),
+          const SizedBox(height: 24),
           Text(
-            'Appearance / थीम',
+            settings.language == AppLanguage.hindi ? 'थीम' : 'Appearance',
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 12),

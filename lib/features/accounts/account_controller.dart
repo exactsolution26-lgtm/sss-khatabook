@@ -5,7 +5,7 @@ class AccountController {
   double cashOpeningBalance = 0;
   double bankOpeningBalance = 0;
 
-  Future<void> saveBalances() => AccountTable.saveOpeningBalance(
+  Future<DateTime> saveBalances() => AccountTable.saveOpeningBalance(
     cash: cashOpeningBalance,
     bank: bankOpeningBalance,
   );

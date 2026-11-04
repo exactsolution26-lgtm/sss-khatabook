@@ -34,7 +34,7 @@ class DBHelper {
   }
 
   static OpenDatabaseOptions get options => OpenDatabaseOptions(
-    version: 3,
+    version: 4,
     onConfigure: (db) async => db.execute('PRAGMA foreign_keys = ON'),
     onCreate: (db, version) async {
       await db.execute('''CREATE TABLE accounts (
@@ -43,7 +43,8 @@ class DBHelper {
           opening_balance REAL NOT NULL DEFAULT 0,
           cash_balance REAL NOT NULL DEFAULT 0,
           bank_balance REAL NOT NULL DEFAULT 0,
-          created_at TEXT NOT NULL
+          created_at TEXT NOT NULL,
+          opening_balance_saved_at TEXT
         )''');
       await db.execute('''CREATE TABLE expenses (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -88,6 +89,9 @@ class DBHelper {
         await db.execute(WorkTable.createTable);
       }
       if (oldVersion < 3) await _installIntegrityGuards(db);
+      if (oldVersion < 4) {
+        await db.execute('ALTER TABLE accounts ADD COLUMN opening_balance_saved_at TEXT');
+      }
     },
   );
   static Future<void> _installIntegrityGuards(DatabaseExecutor db) async {

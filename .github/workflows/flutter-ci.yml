@@ -33,7 +33,17 @@ jobs:
       - name: Static analysis
         run: flutter analyze
       - name: Unit tests
+        env:
+          CAPTURE_DASHBOARD_PREVIEWS: 'true'
         run: timeout 240s flutter test --reporter expanded --timeout 90s
+      - name: Upload reconstructed dashboard previews
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dashboard-reconstruction-previews
+          path: design-evidence/
+          if-no-files-found: ignore
+          retention-days: 7
       - name: SQLite v1 migration fixture tests
         run: timeout 60s python3 -m unittest discover -s test_tools -p '*_check.py' -v
       - name: Subscriber account schema checks
@@ -128,7 +138,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: browser-runtime-evidence
-          path: web-*.png
+          path: |
+            web-*.png
+            web-runtime.log
           if-no-files-found: ignore
 
   android-startup:

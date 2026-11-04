@@ -6,6 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:offline_khata_app/app.dart';
 import 'package:offline_khata_app/database/db_helper.dart';
+import 'package:offline_khata_app/features/accounts/opening_balance_screen.dart';
+import 'package:offline_khata_app/core/utils/date_utils.dart' as khata_dates;
 
 void main() {
   sqfliteFfiInit();
@@ -71,5 +73,61 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Save & Continue'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
+  });
+  testWidgets('opening save has persistent success and the actual stored IST timestamp', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: OpeningBalanceScreen()));
+    await tester.enterText(find.byType(TextFormField).at(0), '500');
+    await tester.enterText(find.byType(TextFormField).at(1), '1000');
+    await tester.tap(find.text('Save & Continue'));
+    await tester.pumpAndSettle();
+    expect(find.text('Saved ✓'), findsOneWidget);
+    expect(find.text('Opening balance saved successfully'), findsOneWidget);
+    final db = await DBHelper.database;
+    final rows = await db.query('accounts');
+    expect(rows, hasLength(1));
+    expect(rows.single['opening_balance'], 1500);
+    final stamp = DateTime.parse(rows.single['opening_balance_saved_at'] as String);
+    expect(stamp.isUtc, isTrue);
+    expect(find.text(khata_dates.DateUtils.formatIstDateTime(stamp)), findsOneWidget);
+    await tester.pump(const Duration(seconds: 6));
+    await tester.pumpAndSettle();
+    expect(find.text('Opening balance saved successfully'), findsOneWidget);
+    await tester.enterText(find.byType(TextFormField).at(0), '600');
+    await tester.pumpAndSettle();
+    expect(find.text('Saved ✓'), findsNothing);
+    await tester.tap(find.text('Save & Continue'));
+    await tester.pumpAndSettle();
+    expect((await db.query('accounts')).single['opening_balance'], 1600);
+    expect((await db.query('accounts')), hasLength(1));
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  test('IST saved timestamps include weekday and roll over independently of host timezone', () {
+    expect(khata_dates.DateUtils.formatIstDateTime(DateTime.utc(2026, 11, 4, 20, 1, 2)),
+      'Thursday, 5 November 2026 · 01:31:02 AM IST');
+  });
+
+  test('v3 migration preserves existing balances without fabricating historic save times', () async {
+    final legacyPath = '${temporary.path}/legacy-v3.db';
+    final old = await databaseFactory.openDatabase(legacyPath,
+      options: OpenDatabaseOptions(version: 3, onCreate: (db, version) async {
+        await db.execute('CREATE TABLE accounts(id INTEGER PRIMARY KEY, name TEXT, opening_balance REAL, cash_balance REAL, bank_balance REAL, created_at TEXT)');
+        await db.execute("INSERT INTO accounts VALUES(7,'Existing',1500,500,1000,'2026-10-01T00:00:00Z')");
+      }));
+    await old.close();
+    final upgraded = await DBHelper.openAt(legacyPath);
+    try {
+      final row = (await upgraded.query('accounts')).single;
+      expect(row['id'], 7);
+      expect(row['opening_balance'], 1500);
+      expect(row['cash_balance'], 500);
+      expect(row['bank_balance'], 1000);
+      expect(row['created_at'], '2026-10-01T00:00:00Z');
+      expect(row['opening_balance_saved_at'], isNull);
+      expect((await upgraded.rawQuery('PRAGMA integrity_check')).single.values.single, 'ok');
+    } finally {
+      await upgraded.close();
+    }
   });
 }
