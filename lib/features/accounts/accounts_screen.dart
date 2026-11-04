@@ -26,7 +26,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
     _reload();
   }
 
-  void _reload() => _accounts = AccountTable.getAllAccounts();
+  void _reload() { _accounts = AccountTable.getAllAccounts(); }
 
   Future<void> _edit([AccountModel? account]) async {
     final result = await showDialog<(String, double)>(

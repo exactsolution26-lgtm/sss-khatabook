@@ -11,6 +11,7 @@ import 'package:offline_khata_app/database/db_helper.dart';
 import 'package:offline_khata_app/database/tables/account_table.dart';
 import 'package:offline_khata_app/features/entries/attachments.dart';
 import 'package:offline_khata_app/features/entries/record_recovery.dart';
+import 'package:offline_khata_app/features/entries/record_editor.dart';
 import 'package:offline_khata_app/features/history/transaction_history.dart';
 import 'package:offline_khata_app/features/history/transaction_detail_screen.dart';
 import 'package:offline_khata_app/features/whatsapp/whatsapp_share_service.dart';
@@ -166,6 +167,29 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     });
   }
+  testWidgets('deleted entry can be restored from the real recycle bin without stale financial state', (tester) async {
+    await RecordRecovery.remove(income:true,id:1,accountId:account,reason:'Duplicate');
+    await tester.pumpWidget(MaterialApp(home:RecycleBinScreen(accountId:account)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Restore'));await tester.pumpAndSettle();
+    expect(find.text('No deleted entries.'),findsOneWidget);
+    expect(TransactionHistory.totalPaise(await TransactionHistory.load(true)),30030);
+    expect((await TransactionHistory.load(true,id:1,accountId:account)).single.attachmentCount,1);
+    expect(tester.takeException(),isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+  testWidgets('account creation refreshes the list and reports the saved account correctly', (tester) async {
+    await tester.pumpWidget(app());await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Accounts'),180,scrollable:find.byType(Scrollable).first);
+    await tester.tap(find.text('Accounts'));await tester.pumpAndSettle();
+    await tester.tap(find.text('New Account'));await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextFormField,'Account name'),'History account');
+    await tester.tap(find.text('Save'));await tester.pumpAndSettle();
+    expect(find.text('History account'),findsOneWidget);
+    expect(find.text('Could not save account'),findsNothing);
+    expect(tester.takeException(),isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
   testWidgets('history Add Income opens existing entry form and reloads saved record on return', (tester) async {
     await tester.pumpWidget(app());await tester.pumpAndSettle();
     await tester.tap(find.text('Income').first);await tester.pumpAndSettle();
