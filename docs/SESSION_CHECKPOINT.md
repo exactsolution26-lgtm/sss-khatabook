@@ -1,46 +1,25 @@
-# Resume checkpoint — 4 November 2026 IST
+# Resume checkpoint — 4 November 2026
 
-Branch: `development/stability-foundation`. Never merge/push to main without explicit owner permission.
-Baseline audited: `e88fb18c0d5ff22aa1d7aeee13f5ff843c457c0c`.
-First remote code commit: `a07ead42ae3d1e1bbde90944314697ee172a1de6`.
-Latest implementation commit: `72880be8d44afa49019f5319d753909882162f21`.
-Flutter CI: run `41703447919`, job `126152464443` — QUEUED.
-PostgreSQL CI: run `41703447988`, job `126152455185` — QUEUED.
-Additional work is described in TEST_REPORT_2026-11-04.md. A later docs-only checkpoint commit is intentionally marked [skip ci].
+Branch development/stability-foundation ONLY. Never modify/merge main. Current code50cf7ea27fd799af41a06f48d8073d4a6e1c248b; application code unchanged since ab0855af7a00f3810de81309b6a275ab2872291d, later commits refine tests/captures. Docs-only checkpoint may follow. Latest owner contract WORK_MODE_REQUIREMENTS_2026-11-04.md supersedes old unrecovered-design blocker by permitting labeled reconstructions.
 
-## Superseding local Android result — 4 November 2026 IST
+## Current results
+Actions41771280545 analyze126381296309 SUCCESS: analyzer0 issues,68 Flutter tests,12 SQLite+4 schema checks pass, asset bundle succeeds. Actual PostgreSQL16 security run41771280544/job126381295923 SUCCESS. Preview artifact13294538484 contains18 actual Flutter PNGs, SHA256605ddd0a015bcdf4f5085188ef6ed10fb22ac3d34faf86fe7bc55ff219fd15ba.
 
-User now prioritizes phone testing without Supabase. Tested SHA `f96a7030dd8b863f4161ae5b18299015660ba26d`: analyzer, all 40 Flutter tests, 16 Python checks, Android debug/release compilation, and debug emulator install/start/dashboard/crash checks PASS. Release APK delivered for physical-device testing; release startup on emulator and physical red-screen fix remain unverified. Web compile passed but browser installation failed due Playwright/Ubuntu 26.04 compatibility. See `LOCAL_ANDROID_TESTING_2026-11-04.md` for evidence and artifact identity. Older queued/not-executed statements below are historical, superseded for these checks only.
+Web compiles and renders, but runtime harness still under repair: prior locale/network-idle failures fixed; exact merged semantics and initial numeric-input replacement caused later failures. Latest50cf7ea uses End/Backspace and strict saved ₹100 assertion, then reload/persistence. Do not claim browser persistence passes until final evidence below. Android jobs skipped per APK hold; no fresh APK in this increment. Old f96a703 build/emulator results do not certify current contact plugin. Physical red screen remains unverified.
 
-## State and evidence
-- Read implementation/release plan and repository sources; visually inspected the supplied solid-red screenshot.
-- Recovered exact prior 25-item list (13 critical/9 high/3 medium); mapping committed.
-- Implemented stability/navigation/expense ownership/opening locks/web factory/settings/record-backed sharing/report fixes and added verification workflows.
-- 16 local tests pass; actual output in docs/evidence/2026-11-04/local-checks.txt.
-- Current Flutter builds/tests, browser runtime, emulator startup and real PostgreSQL RLS have not run. Do not mark them passed.
-- All 58 tasks remain open under strict release-evidence criteria: 50 pending/partial, 8 blocked. See TASK_STATUS_58.md.
-- No fresh APK, no production release, no main changes, no production data operations or outbound WhatsApp messages.
+## Implemented increment
+Schema5 additive migration: saved opening timestamp, entry contact snapshots/create/edit times, custom categories. Old ids/balances preserved; unknown old times remain NULL. Persistent Saved feedback on Opening/Income/Expense; database-backed receipt. Native single-phone picker Android/iOS plus manual fallback; no broad contacts enumeration. Entry accounting date separate from actual UTC save instant; explicit IST weekday/date/time. Six fixed distinct reconstruction previews, one selected/persisted, Light/Dark/optional Hindi, same analysis snapshot, working entry navigation. Main dashboard unchanged awaiting visual approval. Super Admin preview only, simulated data and locked design rows.
 
-## Actual blockers
-- 19 earlier Actions runs retrieved as in_progress; inspected run 41694471162/job 126121260445 hangs at the now-fixed backup fixture. First-increment run 41700967999 was cancelled by the new concurrency rule; latest code runs 41703447919 and 41703447988 are queued. Old runs need cancellation to release capacity.
-- The GitHub connector has no cancel-run tool. Do not initialize Browser for cancellation without obtaining the permission required for plugin fallback.
-- Local Flutter dependency setup was stopped by automatic review for unexpected cloud metadata access. Do not rerun it or bypass that rejection. Use GitHub CI.
-- PostgreSQL package downloads are blocked by network policy. Use the configured disposable CI service.
-- Supabase/merchant/signing/physical UAT remain manual dependencies. Never request private secrets in chat.
+## Next dependencies
+1. Finish/fix Web runtime acceptance, inspect logs/screenshots, preserve failing statuses until retested.
+2. Obtain visual feedback on six reconstructions; do not claim recovered original designs. Activate main layouts only after review.
+3. Continue auth, tenant-separated local stores and backend operations before subscription enforcement/sync. Supabase setup, migrations deployment and trusted owner bootstrap blocked until authorized project access exists.
+4. Complete signed30-day lease, secure clock/device binding, encrypted backup/restore, offline conflicts, minor-unit money/partial payments, attachments/exports, authorized audit/edit/delete, PIN/biometric, voice confirmation, reminders and full Hindi in dependency order. See all58 tasks; only2 checks currently complete,48 pending,8 blocked.
+5. Native picker/iOS/physical-device/WhatsApp integration still require real-device verification. Never claim message delivery merely because a draft opens. No messages have been sent.
+6. Final owner-requested APK follows implementation/design review and tests. Keep intermediate APK workflows explicitly gated; never describe a testing-signature artifact as production-ready.
 
-## Exact next steps
-1. After authorized run cancellation, inspect latest development SHA and its Actions jobs. Preserve other people's changes; use expected-head leases on connector updates.
-2. Run analyzer and complete Dart test suite first. Fix failures, rerun, retain logs. Watch FFI test setup and widget database futures; neither is yet execution-verified.
-3. Let PostgreSQL service apply both real migrations and execute test_tools/postgres/tenant_isolation.sql. These are actual authenticated-role tests, unlike static string checks.
-4. Build Android debug and release artifacts. Both currently use generated test runners/default debug signing; do not call them production signed. Record exact SHA and SHA256.
-5. Run Android emulator install/start dashboard assertions and examine logcat/screenshots, then physical-device UAT. Stable SSS error markers must fail acceptance checks; do not hide or suppress them.
-6. Generate Web worker/WASM, compile and run test_tools/browser/smoke.cjs against the built app. Verify IndexedDB survives reload and inspect desktop/mobile screenshots.
-7. Only after stability gates pass, continue auth/tenant-isolated local stores/backend writes, verified subscription/payments, signed secure 30-day leases, sync, encryption/backups, full reports/exports, full Hindi/UX and remaining checklist in dependency order.
-8. Run actual security/privacy/RLS/10k load/regression/end-to-end acceptance. Preserve honest failed/not-executed statuses and update all task evidence.
-9. Deliver a fresh real artifact link only when the artifact exists; identify testing vs production readiness accurately.
+## Environment
+Local Flutter initialization was previously rejected by automatic review for unexpected metadata access: do not rerun/reinstall/bypass; use GitHub CI. Local workspace is a partial source mirror; preserve remote files using tree base and expected-head leases. Public GitHub API supports read-only Actions discovery; connector handles mutations. No secrets in chat. Production/backend10k/signing/physical UAT remain external blockers.
 
-## Known engineering risks
-- Current ledger is local/shared and not a secure SaaS tenant store; cloud schema is not connected/deployed.
-- Local REAL money, hard-delete income API, missing encrypted backups, incomplete Hindi and best-effort draft history are unresolved.
-- Financial migration can_write_subscriber checks owner/active status only; subscription enforcement must be added after verified billing, not assumed present.
-- No automatic production migration, payment activation or messaging should be introduced to bypass setup.
+## Latest verified result and active work
+50cf7ea27fd799af41a06f48d8073d4a6e1c248b Web runtime PASSES in run41772008968/job126384199189 with strict ₹100 amount/persistence. Use full checkout sss-khatabook-full for further development; partial mirror has older draft docs. New schema6 backup/recovery/audit increment is unverified until its CI result.3 checks complete,47 pending,8 blocked at the last verified baseline.

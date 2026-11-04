@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'routes/app_routes.dart';
 import 'core/theme/app_theme.dart';
 import 'features/settings/app_settings.dart';
+import 'features/backup/automatic_backup.dart';
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -16,10 +17,12 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     settings.load();
+    AutomaticBackup.instance.start();
   }
 
   @override
   void dispose() {
+    AutomaticBackup.instance.stop();
     settings.dispose();
     super.dispose();
   }

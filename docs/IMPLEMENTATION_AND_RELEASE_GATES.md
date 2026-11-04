@@ -97,4 +97,5 @@ An older debug APK installed but displayed a solid red screen on Android. Removi
 
 ## Current execution evidence — 4 November 2026 IST
 
-See `TASK_STATUS_58.md`, `TEST_REPORT_2026-11-04.md`, `SESSION_CHECKPOINT.md` and `APPROVED_REQUIREMENTS_MAPPING.md`. No full task has been certified complete without its runtime/release evidence. Local checks: 16 passing. Flutter/platform/PostgreSQL CI verification is queued or not executed.
+See `WORK_MODE_REQUIREMENTS_2026-11-04.md`, `TASK_STATUS_58.md`, `WORK_MODE_TEST_REPORT_2026-11-04.md` and `SESSION_CHECKPOINT.md`. The ledger distinguishes verified checks, partial implementation, blocked external dependencies, and visual approval. Older queued/not-executed notes are historical. No production readiness is certified.
+

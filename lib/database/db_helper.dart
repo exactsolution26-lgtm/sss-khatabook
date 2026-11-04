@@ -3,6 +3,7 @@ import 'package:sqflite/sqflite.dart';
 
 import 'tables/income_table.dart';
 import 'tables/work_table.dart';
+import 'recovery_schema.dart';
 
 class DBHelper {
   static Database? _db;
@@ -34,7 +35,7 @@ class DBHelper {
   }
 
   static OpenDatabaseOptions get options => OpenDatabaseOptions(
-    version: 5,
+    version: 6,
     onConfigure: (db) async => db.execute('PRAGMA foreign_keys = ON'),
     onCreate: (db, version) async {
       await db.execute('''CREATE TABLE accounts (
@@ -58,6 +59,7 @@ class DBHelper {
       await db.execute(WorkTable.createTable);
       await _createCategoryTable(db);
       await _installIntegrityGuards(db);
+      await RecoverySchema.install(db);
     },
     onUpgrade: (db, oldVersion, newVersion) async {
       if (oldVersion < 2) {
@@ -109,8 +111,40 @@ class DBHelper {
           }
         }
       }
+      if (oldVersion < 6) await RecoverySchema.install(db);
     },
   );
+
+  /// Restore is one transaction. Only the recovery service calls this after
+  /// validating a complete snapshot in a disposable database.
+  static Future<void> replaceSnapshot(Database db,
+      Map<String, List<Map<String, Object?>>> tables) => db.transaction((txn) async {
+    // Old unassigned expenses must survive recovery. Temporarily drop only
+    // write guards inside this exclusive transaction; always reinstall them.
+    for (final table in ['income', 'expenses']) {
+      for (final action in ['insert', 'update']) {
+        await txn.execute('DROP TRIGGER IF EXISTS ${table}_${action}_guard');
+      }
+    }
+    await txn.execute('DROP TRIGGER IF EXISTS account_opening_lock');
+    for (final table in ['income', 'expenses', 'work', 'entry_categories']) {
+      await txn.delete(table);
+    }
+    await txn.delete('accounts');
+    for (final table in ['accounts', 'income', 'expenses', 'work', 'entry_categories']) {
+      for (final row in tables[table]!) {
+        await txn.insert(table, row);
+      }
+    }
+    for (final row in tables['app_audit']!) {
+      await txn.insert('app_audit', row, conflictAlgorithm: ConflictAlgorithm.ignore);
+    }
+    if ((await txn.rawQuery('PRAGMA foreign_key_check')).isNotEmpty) {
+      throw StateError('Backup contains invalid account links');
+    }
+    await _installIntegrityGuards(txn);
+    await txn.insert('app_audit', {'entity': 'database', 'operation': 'restore'});
+  });
   static Future<void> _createCategoryTable(DatabaseExecutor db) => db.execute(
     "CREATE TABLE IF NOT EXISTS entry_categories (kind TEXT NOT NULL CHECK(kind IN ('income','expense')), name TEXT NOT NULL CHECK(length(trim(name)) BETWEEN 1 AND 60), created_at TEXT NOT NULL, UNIQUE(kind,name COLLATE NOCASE))",
   );
