@@ -1,6 +1,7 @@
 import '../features/dashboard/dashboard_screen.dart';
 import '../features/backup/backup_screen.dart';
 import '../features/history/audit_screen.dart';
+import '../features/security/security_screen.dart';
 import '../features/dashboard/dashboard_templates.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/income/income_screen.dart';
@@ -27,6 +28,7 @@ class AppRoutes {
     '/settings': (_) => const SettingsScreen(),
     '/backup': (_) => const BackupScreen(),
     '/audit': (_) => const AuditScreen(),
+    '/security': (_) => const SecurityScreen(),
     '/accounts': (_) => const AccountsScreen(),
     '/income': (_) => const IncomeScreen(),
     '/expenses': (_) => const ExpenseScreen(),
