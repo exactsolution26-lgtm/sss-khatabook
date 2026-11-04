@@ -9,12 +9,16 @@ import 'package:offline_khata_app/database/db_helper.dart';
 
 void main() {
   sqfliteFfiInit();
-  databaseFactory = databaseFactoryFfi;
+  // Keep real SQLite on disk, without isolate I/O inside the widget fake clock.
+  databaseFactory = databaseFactoryFfiNoIsolate;
   late Directory temporary;
   setUp(() async {
+    await DBHelper.close();
     SharedPreferences.setMockInitialValues({});
     temporary = await Directory.systemTemp.createTemp('sss-widget-');
     await databaseFactory.setDatabasesPath(temporary.path);
+    // Open the actual schema before entering testWidgets' fake async zone.
+    await DBHelper.database;
   });
   tearDown(() async {
     await DBHelper.close();
@@ -25,11 +29,10 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(const MyApp());
-    await tester.runAsync(() async {
-      await DBHelper.database;
-    });
     await tester.pumpAndSettle();
     expect(find.text('Dashboard'), findsOneWidget);
+    expect(find.text('Total Balance'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
     expect(tester.takeException(), isNull);
     await tester.tap(find.byTooltip('Settings'));
     await tester.pumpAndSettle();
@@ -57,9 +60,6 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(const MyApp());
-    await tester.runAsync(() async {
-      await DBHelper.database;
-    });
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Opening Balance'));
     await tester.tap(find.text('Opening Balance'));
