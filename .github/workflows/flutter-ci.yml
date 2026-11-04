@@ -5,6 +5,12 @@ on:
       - development/stability-foundation
   pull_request:
   workflow_dispatch:
+    inputs:
+      build_android:
+        description: Build APKs only after the project owner explicitly requests them
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -39,6 +45,7 @@ jobs:
         run: flutter build bundle --release
 
   platform-builds:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_android == true }}
     runs-on: ubuntu-latest
     needs: analyze-and-test
     timeout-minutes: 35
@@ -84,7 +91,7 @@ jobs:
           retention-days: 7
 
   web-build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: analyze-and-test
     timeout-minutes: 20
     steps:
@@ -125,6 +132,7 @@ jobs:
           if-no-files-found: ignore
 
   android-startup:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_android == true }}
     runs-on: ubuntu-latest
     needs: platform-builds
     timeout-minutes: 25
