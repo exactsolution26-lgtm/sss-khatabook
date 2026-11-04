@@ -16,7 +16,8 @@ import 'transaction_history.dart';
 class TransactionDetailScreen extends StatefulWidget {
   const TransactionDetailScreen({super.key, required this.income, required this.id, required this.accountId});
   final bool income;
-  final int id, accountId;
+  final int id;
+  final int? accountId;
   @override
   State<TransactionDetailScreen> createState() => _TransactionDetailScreenState();
 }
@@ -35,7 +36,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
 
   Future<void> edit() async {
     await Navigator.push(context, MaterialPageRoute<bool>(builder: (_) => RecordEditor(
-      income: widget.income, id: widget.id, accountId: widget.accountId)));
+      income: widget.income, id: widget.id, accountId: widget.accountId!)));
     if (mounted) setState(reload);
   }
 
@@ -45,7 +46,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
     setState(() => busy = true);
     try {
       await RecordRecovery.remove(income: widget.income, id: widget.id,
-        accountId: widget.accountId, reason: reason);
+        accountId: widget.accountId!, reason: reason);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t(
           'Entry deleted. Restore it from Deleted Entries in the account ledger.',
@@ -97,6 +98,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
           field(t('Customer / party', 'ग्राहक / पार्टी'), e.name.isEmpty ? t('No contact linked', 'संपर्क नहीं जुड़ा') : e.name),
           field(t('Mobile number', 'मोबाइल नंबर'), e.phone.isEmpty ? '—' : e.phone),
           field(t('Account', 'खाता'), e.account),
+          if (widget.accountId == null) Text(t('Historic entry without an account. Editing and deletion are unavailable.', 'पुरानी एंट्री में खाता नहीं जुड़ा। बदलाव और हटाना उपलब्ध नहीं है।')),
           field(t('Category', 'श्रेणी'), e.category),
           field(t('Payment mode', 'भुगतान माध्यम'), e.mode),
           field(t('Notes / Description', 'नोट / विवरण'), e.note.isEmpty ? '—' : e.note),
@@ -108,8 +110,8 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
             icon: const Icon(Icons.attach_file), label: Text('${t('Attachments', 'अटैचमेंट')} (${e.attachmentCount})')),
           const SizedBox(height: 12),
           Wrap(spacing: 8, runSpacing: 8, children: [
-            OutlinedButton.icon(onPressed: busy ? null : edit, icon: const Icon(Icons.edit_outlined), label: Text(t('Edit entry', 'एंट्री बदलें'))),
-            OutlinedButton.icon(onPressed: busy ? null : remove, icon: const Icon(Icons.delete_outline), label: Text(t('Delete entry', 'एंट्री हटाएँ'))),
+            OutlinedButton.icon(onPressed: busy || widget.accountId == null ? null : edit, icon: const Icon(Icons.edit_outlined), label: Text(t('Edit entry', 'एंट्री बदलें'))),
+            OutlinedButton.icon(onPressed: busy || widget.accountId == null ? null : remove, icon: const Icon(Icons.delete_outline), label: Text(t('Delete entry', 'एंट्री हटाएँ'))),
             OutlinedButton.icon(onPressed: busy ? null : receipt, icon: const Icon(Icons.picture_as_pdf_outlined), label: Text(t('Receipt PDF', 'रसीद PDF'))),
             OutlinedButton.icon(onPressed: busy ? null : () => Navigator.push(context,
               MaterialPageRoute<void>(builder: (_) => VerifiedShareScreen(draft: WhatsAppDraft(

@@ -7,7 +7,7 @@ class HistoryEntry {
   final Map<String, Object?> row;
   final bool income;
   int get id => row['id'] as int;
-  int get accountId => row['account_id'] as int;
+  int? get accountId => row['account_id'] as int?;
   int get paise => ((row['amount'] as num) * 100).round();
   String get account => row['account_name'] as String;
   String get date => row['date'] as String;
@@ -45,9 +45,9 @@ class TransactionHistory {
     final rows = await (await DBHelper.database).rawQuery('''
       SELECT e.id,e.account_id,e.amount,e.date,e.$note AS note,e.created_at,
         e.updated_at,e.contact_name,e.contact_phone,e.category,e.mode,
-        a.name AS account_name,
+        COALESCE(a.name,'Unassigned legacy account') AS account_name,
         (SELECT COUNT(*) FROM attachments f WHERE f.$link=e.id) AS attachment_count
-      FROM $table e JOIN accounts a ON a.id=e.account_id
+      FROM $table e LEFT JOIN accounts a ON a.id=e.account_id
       ${clauses.isEmpty ? '' : 'WHERE ${clauses.join(' AND ')}'}
       ORDER BY e.date DESC,e.created_at DESC,e.id DESC
     ''', args);

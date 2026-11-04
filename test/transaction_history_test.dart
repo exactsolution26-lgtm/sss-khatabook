@@ -54,6 +54,21 @@ void main() {
     expect(await TransactionHistory.load(true, id:1, accountId:other), isEmpty);
     expect((await TransactionHistory.load(false, id:1, accountId:account)).single.reference, 'EXP-1');
   });
+  test('v3 unassigned expense remains visible after real migration without fabricated save time', () async {
+    await DBHelper.close();
+    final path='${folder.path}/offline_khata.db';
+    await databaseFactory.deleteDatabase(path);
+    final old=await databaseFactory.openDatabase(path,options:OpenDatabaseOptions(version:3,onCreate:(db,version) async {
+      await db.execute('CREATE TABLE accounts(id INTEGER PRIMARY KEY,name TEXT,opening_balance REAL,cash_balance REAL,bank_balance REAL,created_at TEXT)');
+      await db.execute('CREATE TABLE income(id INTEGER PRIMARY KEY,account_id INTEGER,amount REAL,description TEXT,date TEXT,created_at TEXT)');
+      await db.execute('CREATE TABLE expenses(id INTEGER PRIMARY KEY,account_id INTEGER,amount REAL,mode TEXT,category TEXT,note TEXT,date TEXT)');
+      await db.execute("INSERT INTO expenses VALUES(9,NULL,7,'cash','Other','Historic unassigned expense','2026-11-04')");
+    }));
+    await old.close();
+    final row=(await TransactionHistory.load(false)).single;
+    expect(row.id,9);expect(row.accountId,isNull);expect(row.account,'Unassigned legacy account');
+    expect(row.paise,700);expect(HistoryEntry.timestamp(row.row['created_at']),'Unknown historic save time');
+  });
   test('search/category/inclusive date filters and totals use transaction date, not save date', () async {
     final rows = await TransactionHistory.load(true);
     expect(TransactionHistory.filter(rows,query:'9876543210').single.id,1);
