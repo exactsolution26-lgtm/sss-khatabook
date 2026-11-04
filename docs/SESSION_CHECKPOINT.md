@@ -1,3 +1,20 @@
+# Latest checkpoint — Income/Expense history implemented/tested; APK HOLD
+
+Most recent owner request: approved the in-chat history design and requested implementation, explicitly “Apk mat bnana … jab tak naa bolu”. Do not build/publish a new APK until a fresh explicit request. Main remains untouched. No subagents authorized.
+
+Application source `2409f4ea33c0b55b3ae52ea5d9bd33ea1a7d671e`, branch `development/stability-foundation`. Main dashboard Income/Expenses metrics and tiles open typed transaction history; explicit Add actions retain existing forms. All actual local entries, inclusive accounting-date and category filters, contact/name/mobile/note search, integer-paise filtered totals, transaction weekday/date + original saved IST time, current snapshots/details/attachments, PDF receipts, optional verified income/expense WhatsApp draft and Skip. Reuses scoped editor/recoverable deletion; existing restore UI verified with attachments. Unassigned legacy expenses stay visible/read-only; unknown historic times/timezones remain unknown. Source type is bound to the row on detail navigation. Synchronous dashboard/account/history reload callbacks avoid Future-returning setState errors. Six reconstruction preview styles remain unchanged; their summary metrics now navigate to history.
+
+Final analyzer/test job `126611029910`, run `41840457388`: SUCCESS, zero analyzer issues, **124 Flutter tests**, **12 SQLite + 4 static schema checks**, Dart release asset bundle PASS. Includes real SQLite/type/account/legacy migration/filter/paise/receipt checks, actual form save/edit and detail→history→dashboard refresh, 320px dark/390px light, account creation and recycle restore with attachments. Initial date-locale and reload-callback failures were corrected; mobile test focus/scroll handling was corrected without bypassing UI assertions. Web job `126612375830` PASS: release compilation, actual browser startup/IndexedDB account save and reload persistence, desktop/mobile screenshots, offline reload and offline cold browser restart. This browser scenario covers the base application/storage path; the new history interactions are covered by the widget acceptance tests above.
+
+Actual disposable PostgreSQL run `41840457356` SUCCESS. No deployed Supabase/client tenant isolation or production-security certification. Android build/startup/publication jobs intentionally SKIPPED. Native harness updated for observed history/Add navigation while supporting the older pinned APK; Python syntax only, not a native test. No APK or release was generated.
+
+Installed phone APK1.0.2 is unchanged and contains neither this history implementation nor the previously tested voice Task1 fix below. Real Samsung A14 validation requires an owner-authorized future APK. Broader 58-point plan/manual/external blockers remain separate; do not claim full project completion. See `docs/TRANSACTION_HISTORY.md` for implementation and verification scope.
+
+Full checkout `/workspace/scratch/46b88f8863c2/sss-khatabook-full`; local Flutter remains restricted after prior auto-review, use CI. GitHub CLI push has no credential; connector atomic create_tree/create_commit + expected-head update_ref works. Fetch is public/read-only. Preserve working files and check remote head before updates. Final checkpoint is documentation only, with [skip ci]; cite the application source above for tests.
+
+---
+Earlier task/release checkpoints follow.
+
 # Latest checkpoint — Voice Task1 fixed/tested; APK HOLD
 
 Latest owner task: Samsung A14, installed1.0.2 Voice entry shows Speech unavailable with Hindi/on-device selected. Fix then test. User also explicitly requires English and Hinglish. Most recent constraint: "Jab tak mai naa bolu New apk mat bnana". Do not build/publish another APK without a fresh request; this supersedes older release instructions below.
