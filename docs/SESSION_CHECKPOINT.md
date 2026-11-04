@@ -1,3 +1,20 @@
+# Latest checkpoint — Voice Task1 fixed/tested; APK HOLD
+
+Latest owner task: Samsung A14, installed1.0.2 Voice entry shows Speech unavailable with Hindi/on-device selected. Fix then test. User also explicitly requires English and Hinglish. Most recent constraint: "Jab tak mai naa bolu New apk mat bnana". Do not build/publish another APK without a fresh request; this supersedes older release instructions below.
+
+Task1 source fix e4489252883a2225b7db799a7ff66799e291ebe7, development/stability-foundation. One app-lifetime VoiceCapture/PluginSpeechDevice owner keeps first-initialize callbacks alive across reopened dialogs; device adapter enables deterministic tests. Phone-mic mode uses androidNoBluetooth; permission-prompt inactive state alone doesn't cancel; actual hidden/paused/detached and hidden financial/PIN gate cancel capture, generation fences block late starts/results and no automatic restart on resume/unlock. Startup bounded, duplicate start blocked, native errors map to specific retry/permission/language/network/service/no-speech guidance. Offline-only remains default; explicit consent is required for device provider that may process audio online. English/Hindi/Hinglish selector; Hinglish requests Hindi India recognizer with provider-dependent mixed recognition/script. Manual text + Review→Use in form→explicit Save retained. No screenshot can establish exact OS error code or downloaded speech-pack state.
+
+Final CI run41833092188 SUCCESS: analyzer0issues,111 Flutter tests (11new voice service/widget cases +100existing),12SQLite+4schema checks, bundle PASS. Web job126586165776 PASS full startup/IndexedDB save+reload/mobile/desktop/offline reload/cold-browser restart. Actual disposable PG run41833092252/job126584977098 PASS. Android platform-build/startup and publish jobs all SKIPPED; no APK or new release. HardwareASR remains unverified. See docs/VOICE_TASK_1.md for evidence/manual acceptance checklist.
+
+Earlier failing attempts retained: eager pre-created cancellation future stalled fake-async widget starts (fixed lazy initialization), lifecycle harness invalid resumed→paused jump (fixed complete inactive/hidden/paused chain), visibility guard deprecated Flutter API (updated valuesOf). Report111PASS only on final tested source, not earlier failures. Don't execute localFlutter (prior auto-review restriction); use CI. No subagents authorized. No main changes.
+
+Installed APK1.0.2 remains unchanged; these code changes are NOT on the phone until an authorized new APK build. The previous release/dashboard preview links below are historical deliverables. Do not relabel old APKs as including this fix. Real A14 mic/permissions/recognizer/language accuracy and background stop indicators need real-device acceptance after build authorization. Do not claim full project completion or production security certification.
+
+Fullcheckout /workspace/scratch/46b88f8863c2/sss-khatabook-full. HEAD/index e448925 before this docs-only checkpoint. Current uncommitted file at preparation was only docs/VOICE_TASK_1.md; commit final docs with [skip ci]. Routine git fetch/reset --mixed only; if fetch fails, don't reset to a stale origin. Preserve all source/user work. Remaining58tasks and external signing/Supabase/payment/sync/load/UAT blockers persist.
+
+---
+Historical release/implementation checkpoints below, superseded by APK HOLD and Task1 facts above.
+
 # Latest checkpoint — smaller APK1.0.2 released, 4 November 2026 IST
 
 User requested a fresh APK, verify GitHub and slow downloads; "Continue this chat" and "paused kyo kiya" were status steering. Task complete: prereleasev1.0.2-preview.20261104 published. Exact app source3efb19f6a9acbcb6ed4e886074b6655dc3934df8, version1.0.2+102, com.sss.khatabook.preview, testing signature. No main changes or feature redesign.
