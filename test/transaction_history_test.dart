@@ -162,7 +162,7 @@ void main() {
       await tester.tap(find.text('Expenses').hitTestable());await tester.pumpAndSettle();
       expect(find.text('₹50.05'),findsOneWidget);expect(find.byKey(const ValueKey('history-INC-1')),findsNothing);
       await tester.pageBack();await tester.pumpAndSettle();
-      expect(find.text('₹1300.30'),findsOneWidget);
+      expect(find.text('₹1,300.30'),findsOneWidget);
       expect(tester.takeException(),isNull);
       await tester.pumpWidget(const SizedBox.shrink());
     });

@@ -5,9 +5,13 @@ import '../../core/localization/app_strings.dart';
 import '../dashboard/dashboard_layout.dart';
 
 class AppSettings extends ChangeNotifier {
+  AppSettings({Future<SharedPreferences> Function()? preferences})
+      : _preferences = preferences ?? SharedPreferences.getInstance;
+  final Future<SharedPreferences> Function() _preferences;
   ThemeMode theme = ThemeMode.light;
   AppLanguage language = AppLanguage.english;
   DashboardLayout dashboardLayout = DashboardLayout.dashboard1;
+  bool hideDashboardAmounts = false;
   String? persistenceError;
   bool _disposed = false;
   int _revision = 0;
@@ -26,7 +30,7 @@ class AppSettings extends ChangeNotifier {
   Future<void> load() async {
     final revision = _revision;
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await _preferences();
       if (_disposed || revision != _revision) return;
       theme = switch (prefs.getString('sss_theme_mode')) {
         'dark' => ThemeMode.dark,
@@ -39,6 +43,7 @@ class AppSettings extends ChangeNotifier {
       dashboardLayout = DashboardLayout.fromPreference(
         prefs.get('sss_dashboard_layout'),
       );
+      hideDashboardAmounts = prefs.get('sss_hide_dashboard_amounts') == true;
     } catch (_) {
       persistenceError =
           'Could not load preferences. Default settings are active.';
@@ -50,28 +55,32 @@ class AppSettings extends ChangeNotifier {
     ThemeMode? themeMode,
     AppLanguage? appLanguage,
     DashboardLayout? dashboardLayout,
+    bool? hideDashboardAmounts,
   }) {
     _revision++;
     final revision = _revision;
     theme = themeMode ?? theme;
     language = appLanguage ?? language;
     this.dashboardLayout = dashboardLayout ?? this.dashboardLayout;
+    this.hideDashboardAmounts = hideDashboardAmounts ?? this.hideDashboardAmounts;
     final nextTheme = theme.name;
     final nextLanguage = language.name;
     final nextLayout = this.dashboardLayout.preferenceId;
+    final nextHideAmounts = this.hideDashboardAmounts;
     persistenceError = null;
     _notify();
     // Serial writes prevent a slower earlier selection overwriting the latest.
     _pendingSave = _pendingSave.then((_) async {
       try {
-        final prefs = await SharedPreferences.getInstance();
+        final prefs = await _preferences();
         final savedTheme = await prefs.setString('sss_theme_mode', nextTheme);
         final savedLanguage = await prefs.setString('sss_language', nextLanguage);
         final savedLayout = await prefs.setString(
           'sss_dashboard_layout',
           nextLayout,
         );
-        if (!savedTheme || !savedLanguage || !savedLayout) {
+        final savedPrivacy = await prefs.setBool('sss_hide_dashboard_amounts', nextHideAmounts);
+        if (!savedTheme || !savedLanguage || !savedLayout || !savedPrivacy) {
           throw StateError('Preference write failed');
         }
       } catch (_) {

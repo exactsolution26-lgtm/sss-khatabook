@@ -17,11 +17,16 @@ class AnalysisLogic {
       );
       final unassigned = (legacy.single['total'] as num).toDouble();
       final recent = await txn.rawQuery('''
-        SELECT * FROM (SELECT id, account_id, amount, description AS note, date, 'income' AS kind
-        FROM income
+        SELECT * FROM (SELECT e.id, e.account_id, e.amount, e.description AS note,
+          e.date, e.created_at, e.contact_name, e.contact_phone, e.category, e.mode,
+          a.name AS account_name, 'income' AS kind
+        FROM income e LEFT JOIN accounts a ON a.id=e.account_id
         UNION ALL
-        SELECT id, account_id, amount, note, date, 'expense' AS kind FROM expenses)
-        ORDER BY datetime(date) DESC, id DESC LIMIT 12
+        SELECT e.id, e.account_id, e.amount, e.note,
+          e.date, e.created_at, e.contact_name, e.contact_phone, e.category, e.mode,
+          a.name AS account_name, 'expense' AS kind
+        FROM expenses e LEFT JOIN accounts a ON a.id=e.account_id)
+        ORDER BY date DESC, datetime(created_at) DESC, kind ASC, id DESC LIMIT 12
       ''');
       var totalIncome = 0.0;
       var totalExpense = unassigned;

@@ -86,4 +86,33 @@ void main() {
     expect(settings.persistenceError, isNull);
     settings.dispose();
   });
+
+  test('amount privacy survives restart without changing layout or language', () async {
+    final settings = AppSettings();
+    await settings.update(dashboardLayout: DashboardLayout.dashboard6,
+      hideDashboardAmounts: true, appLanguage: AppLanguage.hindi);
+    final restarted = AppSettings();
+    await restarted.load();
+    expect(restarted.hideDashboardAmounts, isTrue);
+    expect(restarted.dashboardLayout, DashboardLayout.dashboard6);
+    expect(restarted.language, AppLanguage.hindi);
+    settings.dispose(); restarted.dispose();
+  });
+
+  test('preference failure is explicit and a later retry persists correctly', () async {
+    var unavailable = true;
+    final settings = AppSettings(preferences: () async {
+      if (unavailable) throw StateError('Storage unavailable');
+      return SharedPreferences.getInstance();
+    });
+    await settings.update(dashboardLayout: DashboardLayout.dashboard6);
+    expect(settings.dashboardLayout, DashboardLayout.dashboard6);
+    expect(settings.persistenceError, contains('could not be saved'));
+    unavailable = false;
+    await settings.update(dashboardLayout: DashboardLayout.dashboard6);
+    final restarted = AppSettings(); await restarted.load();
+    expect(settings.persistenceError, isNull);
+    expect(restarted.dashboardLayout, DashboardLayout.dashboard6);
+    settings.dispose(); restarted.dispose();
+  });
 }

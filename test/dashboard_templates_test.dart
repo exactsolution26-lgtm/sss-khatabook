@@ -41,8 +41,8 @@ void main() {
       'openingBalance': 20000, 'income': 15000, 'expense': 3500, 'balance': 31500,
     }],
     'recentTransactions': [
-      {'kind': 'income', 'amount': 15000, 'note': 'Recorded income', 'date': '2026-11-04'},
-      {'kind': 'expense', 'amount': 3500, 'note': 'Recorded expense', 'date': '2026-11-04'},
+      {'id': 1, 'account_id': 1, 'account_name': 'Main Account', 'kind': 'income', 'amount': 15000, 'note': 'Recorded income', 'date': '2026-11-04', 'created_at': '2026-11-04T03:00:00Z', 'contact_name': 'Ravi Sharma'},
+      {'id': 1, 'account_id': 1, 'account_name': 'Main Account', 'kind': 'expense', 'amount': 3500, 'note': 'Recorded expense', 'date': '2026-11-04', 'created_at': '2026-11-04T03:15:00Z'},
     ],
   };
   for (final layout in DashboardLayout.values) {
@@ -97,6 +97,36 @@ void main() {
         await tester.pumpWidget(const SizedBox.shrink());
       });
     }
+  }
+  for (final layout in DashboardLayout.values) {
+    testWidgets('${layout.name} supports large Hindi text, desktop and empty records', (tester) async {
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      for (final width in [320.0, 1200.0]) {
+        tester.view.physicalSize = Size(width, 1000);
+        String? destination;
+        final hindi = width == 320;
+        final empty = <String,dynamic>{'totalBalance':0,'totalIncome':0,'totalExpense':0,
+          'accountDetails':<Object>[],'recentTransactions':<Object>[]};
+        await tester.pumpWidget(MaterialApp(home: MediaQuery(
+          data: MediaQueryData(size:Size(width,1000),textScaler:TextScaler.linear(hindi ? 2 : 1)),
+          child: Scaffold(body: SingleChildScrollView(child: Padding(
+            padding:const EdgeInsets.all(16),child:DashboardTemplateView(
+              layout:layout,data:empty,hindi:hindi,onNavigate:(route)=>destination=route)))))));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(),isNull);
+        for (var i=0;i<3;i++) {
+          expect(tester.widget<Text>(find.byKey(ValueKey('metric-$i'))).data, '₹0.00');
+        }
+        final expense=find.text(hindi ? 'खर्च जोड़ें' : 'Add Expense');
+        await tester.ensureVisible(expense); await tester.pumpAndSettle();
+        await tester.tap(expense.hitTestable());
+        expect(destination,'/expenses');
+        expect(tester.takeException(),isNull);
+      }
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
   }
   for (final dark in [false, true]) {
     testWidgets('super admin design is explicitly simulated in ${dark ? 'dark' : 'light'} theme', (tester) async {

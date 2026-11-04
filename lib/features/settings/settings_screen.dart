@@ -70,10 +70,10 @@ class SettingsScreen extends StatelessWidget {
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.dashboard_customize_outlined),
             title: Text(settings.language == AppLanguage.hindi
-                ? 'छह डैशबोर्ड प्रीव्यू' : 'Six Dashboard Previews'),
+                ? 'डैशबोर्ड चुनें' : 'Choose Dashboard'),
             subtitle: Text(settings.language == AppLanguage.hindi
-                ? 'पुनर्निर्मित डिज़ाइन · स्वीकृति बाकी है'
-                : 'Reconstructed designs · awaiting approval'),
+                ? 'छह डिज़ाइन · प्रीव्यू देखें और लागू करें'
+                : 'Six designs · preview and apply'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.pushNamed(context, '/dashboard-previews'),
           ),
