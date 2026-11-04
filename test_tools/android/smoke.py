@@ -1,4 +1,5 @@
 """Test the exact preview RELEASE APK with disposable emulator-only records."""
+import os
 import pathlib
 import re
 import subprocess
@@ -84,7 +85,7 @@ def launch():
 
 try:
     adb('logcat', '-c')
-    installed = adb('install', '-r', 'apk/app-release.apk')
+    installed = adb('install', '-r', os.environ.get('APK_FILE', 'apk/app-release.apk'))
     if 'Success' not in installed:
         raise AssertionError('Release APK installation failed')
     adb('shell', 'am', 'force-stop', PACKAGE)

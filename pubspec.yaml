@@ -1,7 +1,7 @@
 name: offline_khata_app
 description: Offline-first SSS Khatabook Flutter app
 publish_to: 'none'
-version: 1.0.1+101
+version: 1.0.2+102
 
 environment:
   sdk: '>=3.0.0 <4.0.0'

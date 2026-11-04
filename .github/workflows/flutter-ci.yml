@@ -101,22 +101,38 @@ jobs:
           for style in Path("android/app/src/main/res").glob("values*/styles.xml"):
               style.write_text(style.read_text().replace("@android:style/Theme.Light.NoTitleBar", "Theme.AppCompat.DayNight.NoActionBar").replace("@android:style/Theme.Black.NoTitleBar", "Theme.AppCompat.DayNight.NoActionBar"))
           PY
-      - name: Android debug APK build
-        run: flutter build apk --debug
       - name: Android release compilation (testing signature only)
-        run: flutter build apk --release
+        run: |
+          flutter build apk --release
+          cp build/app/outputs/flutter-apk/app-release.apk /tmp/sss-universal.apk
+      - name: Build smaller architecture-specific APKs
+        run: |
+          flutter build apk --release --split-per-abi
+          cp /tmp/sss-universal.apk build/app/outputs/flutter-apk/app-release.apk
       - name: Verify APK identity and signature
         run: |
           build_tools_dir=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)
-          "$build_tools_dir/apksigner" verify --verbose --print-certs build/app/outputs/flutter-apk/app-release.apk > build/app/outputs/flutter-apk/APK_SIGNATURE.txt
-          "$build_tools_dir/aapt" dump badging build/app/outputs/flutter-apk/app-release.apk > build/app/outputs/flutter-apk/APK_METADATA.txt
+          for apk in build/app/outputs/flutter-apk/*release.apk; do
+            echo "APK: $(basename "$apk")" >> build/app/outputs/flutter-apk/APK_SIGNATURE.txt
+            "$build_tools_dir/apksigner" verify --verbose --print-certs "$apk" >> build/app/outputs/flutter-apk/APK_SIGNATURE.txt
+            "$build_tools_dir/aapt" dump badging "$apk" > "${apk%.apk}.metadata.txt"
+          done
+          cp build/app/outputs/flutter-apk/app-release.metadata.txt build/app/outputs/flutter-apk/APK_METADATA.txt
           python3 - <<'PY'
           from pathlib import Path
-          text = Path('build/app/outputs/flutter-apk/APK_METADATA.txt').read_text()
-          assert "name='com.sss.khatabook.preview'" in text
-          assert "versionCode='101'" in text
-          assert "versionName='1.0.1'" in text
-          print('PASS: signed preview package and version metadata')
+          import re, zipfile
+          root=Path('build/app/outputs/flutter-apk')
+          for apk in root.glob('*release.apk'):
+              text=apk.with_suffix('.metadata.txt').read_text()
+              assert "name='com.sss.khatabook.preview'" in text
+              assert "versionName='1.0.2'" in text
+              assert int(re.search(r"versionCode='(\d+)'",text).group(1))>=102
+              if 'arm64-v8a' in apk.name:
+                  with zipfile.ZipFile(apk) as archive:
+                      arches={name.split('/')[1] for name in archive.namelist() if name.startswith('lib/') and name.endswith('.so')}
+                      assert arches=={'arm64-v8a'}, arches
+                  assert apk.stat().st_size < (root/'app-release.apk').stat().st_size
+          print('PASS: all signed APK package/version metadata; ARM64 includes only ARM64 libraries and is smaller')
           PY
       - name: Record build identity
         run: |
@@ -129,6 +145,12 @@ jobs:
         with:
           name: sss-khatabook-testing-apks
           path: build/app/outputs/flutter-apk/
+          retention-days: 7
+      - name: Upload smaller phone APK separately
+        uses: actions/upload-artifact@v4
+        with:
+          name: sss-khatabook-arm64-apk
+          path: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
           retention-days: 7
 
   web-build:
@@ -187,6 +209,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: platform-builds
     timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        apk_file: [app-release.apk, app-x86_64-release.apk]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -196,6 +222,8 @@ jobs:
       - name: Enable emulator acceleration
         run: sudo chmod 666 /dev/kvm
       - name: Install and start Android APK
+        env:
+          APK_FILE: apk/${{ matrix.apk_file }}
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -208,7 +236,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: android-runtime-evidence
+          name: android-runtime-evidence-${{ matrix.apk_file }}
           path: android-evidence/
           if-no-files-found: ignore
 
@@ -227,18 +255,26 @@ jobs:
       - name: Prepare verified preview assets
         run: |
           mkdir release-assets
-          cp apk/app-release.apk release-assets/SSS-Khatabook-Preview-1.0.1.apk
+          cp apk/app-release.apk release-assets/SSS-Khatabook-1.0.2-Universal.apk
+          cp apk/app-arm64-v8a-release.apk release-assets/SSS-Khatabook-1.0.2-ARM64.apk
+          cp apk/app-armeabi-v7a-release.apk release-assets/SSS-Khatabook-1.0.2-ARM32.apk
           cp apk/BUILD_COMMIT.txt release-assets/BUILD_COMMIT.txt
           cp apk/APK_SIGNATURE.txt release-assets/APK_SIGNATURE.txt
           cp apk/APK_METADATA.txt release-assets/APK_METADATA.txt
-          cp docs/PREVIEW_RELEASE_1_0_1.md release-assets/RELEASE_NOTES.md
+          cp docs/PREVIEW_RELEASE_1_0_2.md release-assets/RELEASE_NOTES.md
           cd release-assets
-          sha256sum SSS-Khatabook-Preview-1.0.1.apk > SHA256SUMS.txt
+          sha256sum *.apk > SHA256SUMS.txt
       - name: Publish owner-requested testing release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v1.0.1-preview.20261104 release-assets/* \
+          gh release create v1.0.2-preview.20261104 release-assets/* \
             --target "$GITHUB_SHA" --prerelease \
-            --title "SSS Khatabook 1.0.1 — Testing Preview" \
-            --notes-file docs/PREVIEW_RELEASE_1_0_1.md
+            --title "SSS Khatabook 1.0.2 — Smaller Downloads" \
+            --notes-file docs/PREVIEW_RELEASE_1_0_2.md
+      - name: Verify public APK downloads and resume after publishing
+        run: python3 test_tools/android/verify_downloads.py release-assets v1.0.2-preview.20261104
+      - name: Attach genuine download verification results
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload v1.0.2-preview.20261104 release-assets/DOWNLOAD_CHECKS.json
