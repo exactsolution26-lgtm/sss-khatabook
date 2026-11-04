@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:offline_khata_app/features/dashboard/dashboard_layout.dart';
 import 'package:offline_khata_app/features/dashboard/dashboard_templates.dart';
 import 'package:offline_khata_app/models/account_model.dart';
+import 'package:offline_khata_app/features/dashboard/super_admin_preview.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -88,5 +89,36 @@ void main() {
       });
     }
   }
+  for (final dark in [false, true]) {
+    testWidgets('super admin design is explicitly simulated in ${dark ? 'dark' : 'light'} theme', (tester) async {
+      tester.view.physicalSize = const Size(360, 1200);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final key = GlobalKey();
+      await tester.pumpWidget(RepaintBoundary(key: key, child: MaterialApp(
+        theme: ThemeData(fontFamily: 'PreviewFont', colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xff086b78), brightness: dark ? Brightness.dark : Brightness.light)),
+        home: const SuperAdminPreview(),
+      )));
+      await tester.pumpAndSettle();
+      expect(find.text('RECONSTRUCTION · SIMULATED PLATFORM DATA'), findsOneWidget);
+      expect(find.text('₹198.00 · two ₹99 payments'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      if (Platform.environment['CAPTURE_DASHBOARD_PREVIEWS'] == 'true') {
+        await tester.runAsync(() async {
+          final boundary = key.currentContext!.findRenderObject() as RenderRepaintBoundary;
+          final image = await boundary.toImage(pixelRatio: 2);
+          final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+          if (bytes == null) throw StateError('Preview encoding failed');
+          await Directory('design-evidence').create(recursive: true);
+          await File('design-evidence/super-admin-${dark ? 'dark' : 'light'}.png')
+            .writeAsBytes(bytes.buffer.asUint8List());
+          image.dispose();
+        });
+        expect(tester.takeException(), isNull);
+      }
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  }
 }
-

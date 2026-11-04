@@ -34,7 +34,7 @@ class DBHelper {
   }
 
   static OpenDatabaseOptions get options => OpenDatabaseOptions(
-    version: 4,
+    version: 5,
     onConfigure: (db) async => db.execute('PRAGMA foreign_keys = ON'),
     onCreate: (db, version) async {
       await db.execute('''CREATE TABLE accounts (
@@ -51,10 +51,12 @@ class DBHelper {
           account_id INTEGER,
           amount REAL NOT NULL CHECK(amount > 0),
           mode TEXT, category TEXT, note TEXT, date TEXT NOT NULL,
+          created_at TEXT, updated_at TEXT, contact_name TEXT, contact_phone TEXT,
           FOREIGN KEY(account_id) REFERENCES accounts(id)
         )''');
       await db.execute(IncomeTable.createTable);
       await db.execute(WorkTable.createTable);
+      await _createCategoryTable(db);
       await _installIntegrityGuards(db);
     },
     onUpgrade: (db, oldVersion, newVersion) async {
@@ -92,8 +94,27 @@ class DBHelper {
       if (oldVersion < 4) {
         await db.execute('ALTER TABLE accounts ADD COLUMN opening_balance_saved_at TEXT');
       }
+      if (oldVersion < 5) {
+        await _createCategoryTable(db);
+        for (final table in ['income', 'expenses']) {
+          final existing = (await db.rawQuery('PRAGMA table_info($table)'))
+              .map((row) => row['name']).toSet();
+          final columns = table == 'income'
+              ? ['updated_at', 'contact_name', 'contact_phone', 'category', 'mode']
+              : ['created_at', 'updated_at', 'contact_name', 'contact_phone'];
+          for (final column in columns) {
+            if (!existing.contains(column)) {
+              await db.execute('ALTER TABLE $table ADD COLUMN $column TEXT');
+            }
+          }
+        }
+      }
     },
   );
+  static Future<void> _createCategoryTable(DatabaseExecutor db) => db.execute(
+    "CREATE TABLE IF NOT EXISTS entry_categories (kind TEXT NOT NULL CHECK(kind IN ('income','expense')), name TEXT NOT NULL CHECK(length(trim(name)) BETWEEN 1 AND 60), created_at TEXT NOT NULL, UNIQUE(kind,name COLLATE NOCASE))",
+  );
+
   static Future<void> _installIntegrityGuards(DatabaseExecutor db) async {
     await db.execute(
       '''CREATE TRIGGER account_opening_lock BEFORE UPDATE ON accounts

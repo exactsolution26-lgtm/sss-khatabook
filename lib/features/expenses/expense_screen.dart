@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import 'expense_controller.dart';
+import '../entries/contact_fields.dart';
+import '../entries/category_field.dart';
+import '../../core/utils/date_utils.dart' as dates;
 import '../accounts/account_controller.dart';
 import '../../models/account_model.dart';
 import '../../models/expense_model.dart';
@@ -16,7 +19,11 @@ class ExpenseScreen extends StatefulWidget {
 class _ExpenseScreenState extends State<ExpenseScreen> {
   final controller = ExpenseController();
   final amountController = TextEditingController();
-  final categoryController = TextEditingController();
+  final categoryController = TextEditingController(text: 'Other');
+  final contactName = TextEditingController();
+  final contactPhone = TextEditingController();
+  ExpenseModel? lastSaved;
+  DateTime selectedDate = dates.DateUtils.indiaToday();
   final noteController = TextEditingController();
   String mode = 'cash';
   bool saving = false;
@@ -27,6 +34,9 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
   @override
   void initState() {
     super.initState();
+    amountController.addListener(() {
+      if (lastSaved != null && amountController.text.isNotEmpty) setState(() => lastSaved = null);
+    });
     _loadAccounts();
   }
 
@@ -44,18 +54,26 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
     }
   }
 
+  Future<void> selectDate() async {
+    final selected = await showDatePicker(context: context, initialDate: selectedDate,
+      firstDate: DateTime(2000), lastDate: dates.DateUtils.indiaToday());
+    if (mounted && selected != null) setState(() => selectedDate = selected);
+  }
+
   @override
   void dispose() {
     amountController.dispose();
     categoryController.dispose();
     noteController.dispose();
+    contactName.dispose();
+    contactPhone.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Add Expense')),
-    body: Padding(
+    body: AbsorbPointer(absorbing: saving, child: Padding(
       padding: const EdgeInsets.all(16),
       child: ListView(
         children: [
@@ -65,6 +83,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
               child: Text('$loadError — Retry'),
             ),
           DropdownButtonFormField<int>(
+            key: ValueKey('expense-account-$accountId'),
             initialValue: accountId,
             decoration: const InputDecoration(labelText: 'Account'),
             items: accounts
@@ -92,14 +111,21 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
             },
           ),
           const SizedBox(height: 12),
-          SimpleInput(hintText: 'Category', controller: categoryController),
+          CategoryField(income: false, onChanged: (value) => categoryController.text = value),
+          const SizedBox(height: 12),
+          ContactFields(name: contactName, phone: contactPhone),
           const SizedBox(height: 12),
           SimpleInput(hintText: 'Note (optional)', controller: noteController),
+          const SizedBox(height: 16),
+          InkWell(onTap: saving ? null : selectDate,
+            child: InputDecorator(decoration: const InputDecoration(
+              labelText: 'Transaction date', suffixIcon: Icon(Icons.calendar_today)),
+              child: Text(dates.DateUtils.formatDisplayDate(selectedDate)))),
           const SizedBox(height: 24),
           SimpleButton(
-            text: 'Save Expense',
+            text: lastSaved == null ? 'Save Expense' : 'Saved ✓',
             isLoading: saving,
-            onPressed: () async {
+            onPressed: lastSaved != null ? null : () async {
               if (saving) return;
               if (accountId == null) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -116,24 +142,30 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                 );
                 return;
               }
+              FocusScope.of(context).unfocus();
               setState(() => saving = true);
               try {
-                await controller.saveExpense(
+                final recorded = await controller.saveExpense(
                   ExpenseModel(
                     accountId: accountId,
                     amount: amount,
                     mode: mode,
                     category: categoryController.text.trim(),
                     note: noteController.text.trim(),
-                    date: DateTime.now().toUtc().toIso8601String(),
+                    date: dates.DateUtils.formatDate(selectedDate),
+                    contactName: contactName.text, contactPhone: contactPhone.text,
                   ),
                 );
                 if (!mounted) return;
+                setState(() => lastSaved = recorded);
                 amountController.clear();
                 noteController.clear();
                 ScaffoldMessenger.of(
                   context,
                 ).showSnackBar(const SnackBar(content: Text('Expense saved')));
+              } on ArgumentError {
+                if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Enter a contact name and valid phone number, or leave both empty.')));
               } catch (_) {
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -144,8 +176,20 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
               }
             },
           ),
+          if (lastSaved != null) Padding(padding: const EdgeInsets.only(top: 16),
+            child: Semantics(liveRegion: true, child: Card(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              child: Padding(padding: const EdgeInsets.all(16),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Expense saved ✓ · ₹${lastSaved!.amount.toStringAsFixed(2)}'),
+                  Text(lastSaved!.category),
+                  if (lastSaved!.contactName != null) Text('${lastSaved!.contactName} · ${lastSaved!.contactPhone}'),
+                  Text('Saved at: ${dates.DateUtils.formatIstDateTime(lastSaved!.createdAt!)}'),
+                  TextButton(onPressed: () => setState(() => lastSaved = null), child: const Text('Add another entry')),
+                ])),
+            ))),
         ],
       ),
-    ),
+    )),
   );
 }

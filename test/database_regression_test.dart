@@ -232,4 +232,73 @@ void main() {
     expect(report['unassignedExpenseCount'], 1);
     expect((report['accountDetails'] as List).single['expense'], 0);
   });
+
+  test('saved income contact snapshot and original save time survive edits', () async {
+    await AccountTable.saveAccount(name: 'Account', openingBalance: 1000);
+    final account = (await AccountTable.getAllAccounts()).single;
+    final id = await IncomeController().createIncome(IncomeModel(
+      accountId: account.id!, amount: 50, date: DateTime(2026, 10, 1),
+      createdAt: DateTime.utc(2000), contactName: ' Ravi Verma ',
+      contactPhone: '98765 43210', category: 'Commission / Brokerage', mode: 'cash'));
+    final original = await IncomeController().getIncomeById(id);
+    expect(original.contactName, 'Ravi Verma');
+    expect(original.contactPhone, '+919876543210');
+    expect(original.createdAt.year, greaterThan(2000));
+    expect(original.date, DateTime(2026, 10, 1));
+    await IncomeController().updateIncome(original.copyWith(
+      amount: 75, createdAt: DateTime.utc(1990)));
+    final updated = await IncomeController().getIncomeById(id);
+    expect(updated.createdAt, original.createdAt);
+    expect(updated.updatedAt, isNotNull);
+    expect(updated.contactName, 'Ravi Verma');
+    await (await DBHelper.database).update('accounts', {'name': 'Renamed account'});
+    final draft = await const WhatsAppShareService().resolveDraft(WhatsAppDraft(
+      type: WhatsAppMessageType.receipt, customer: 'Forged', amount: 999,
+      timestampUtc: DateTime.utc(1990), sourceIncomeId: id));
+    expect(draft.customer, 'Ravi Verma');
+    expect(draft.amount, 75);
+    expect(draft.timestampUtc, original.createdAt.toUtc());
+  });
+
+  test('expense receipt uses normalized saved contact and a genuine save timestamp', () async {
+    await AccountTable.saveAccount(name: 'Account', openingBalance: 1000);
+    final account = (await AccountTable.getAllAccounts()).single;
+    final saved = await ExpenseController().saveExpense(ExpenseModel(
+      accountId: account.id, amount: 200, mode: 'cash', category: 'Travel',
+      note: 'Site visit', date: '2026-10-01', contactName: 'Office Vendor',
+      contactPhone: '+44 20 7946 0000', createdAt: DateTime.utc(2000)));
+    expect(saved.id, isNotNull);
+    expect(saved.contactName, 'Office Vendor');
+    expect(saved.contactPhone, '+442079460000');
+    expect(saved.createdAt!.year, greaterThan(2000));
+    expect(saved.createdAt!.isUtc, isTrue);
+    expect(saved.date, '2026-10-01');
+    expect(saved.updatedAt, isNull);
+    await DBHelper.close();
+    final row = (await (await DBHelper.database).query('expenses')).single;
+    expect(row['contact_name'], 'Office Vendor');
+    expect(row['contact_phone'], '+442079460000');
+    expect(row['created_at'], saved.createdAt!.toIso8601String());
+  });
+
+  test('incomplete or invalid contact snapshots cannot create financial rows', () async {
+    await AccountTable.saveAccount(name: 'Account', openingBalance: 1000);
+    final account = (await AccountTable.getAllAccounts()).single;
+    for (final contact in [('', '9876543210'), ('Name', ''), ('Name', 'abc'), ('Name', '+0000000')]) {
+      await expectLater(ExpenseController().saveExpense(ExpenseModel(
+        accountId: account.id, amount: 1, mode: 'cash', category: 'Other',
+        note: '', date: '2026-11-04', contactName: contact.$1, contactPhone: contact.$2)),
+        throwsArgumentError);
+    }
+    expect(await (await DBHelper.database).query('expenses'), isEmpty);
+  });
+
+  test('custom categories are durable, case-insensitive and separated by entry kind', () async {
+    final db = await DBHelper.database;
+    await db.insert('entry_categories', {'kind': 'expense', 'name': 'Site Visit', 'created_at': '2026-11-04T00:00:00Z'});
+    await expectLater(db.insert('entry_categories', {'kind': 'expense', 'name': 'site visit', 'created_at': '2026-11-04T00:00:00Z'}), throwsA(isA<DatabaseException>()));
+    await db.insert('entry_categories', {'kind': 'income', 'name': 'Site Visit', 'created_at': '2026-11-04T00:00:00Z'});
+    await DBHelper.close();
+    expect(await (await DBHelper.database).query('entry_categories'), hasLength(2));
+  });
 }

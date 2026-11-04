@@ -103,16 +103,17 @@ class WhatsAppShareService {
         if (draft.sourceIncomeId == null)
           throw StateError('Choose a recorded payment');
         final rows = await txn.rawQuery(
-          'SELECT income.id, income.amount, income.date, accounts.name FROM income JOIN accounts ON accounts.id = income.account_id WHERE income.id = ?',
+          'SELECT income.id, income.amount, income.date, income.created_at, income.contact_name, accounts.name FROM income JOIN accounts ON accounts.id = income.account_id WHERE income.id = ?',
           [draft.sourceIncomeId],
         );
         if (rows.length != 1) throw StateError('Recorded payment not found');
         final row = rows.single;
         return WhatsAppDraft(
           type: draft.type,
-          customer: row['name'] as String,
+          customer: (row['contact_name'] as String?)?.trim().isNotEmpty == true
+              ? row['contact_name'] as String : row['name'] as String,
           amount: (row['amount'] as num).toDouble(),
-          timestampUtc: draft.timestampUtc,
+          timestampUtc: DateTime.parse(row['created_at'] as String).toUtc(),
           details: 'Recorded date: ${row['date']}',
           sourceIncomeId: draft.sourceIncomeId,
         );

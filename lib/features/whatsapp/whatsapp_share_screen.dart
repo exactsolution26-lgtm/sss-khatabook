@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'whatsapp_share_service.dart';
+import '../entries/contact_fields.dart';
 
 class WhatsAppShareScreen extends StatefulWidget {
   const WhatsAppShareScreen({super.key});
@@ -98,17 +99,7 @@ class _WhatsAppShareScreenState extends State<WhatsAppShareScreen> {
             if (value != null) setState(() => type = value);
           },
         ),
-        TextField(
-          controller: customer,
-          decoration: const InputDecoration(labelText: 'Customer Name'),
-          onChanged: (_) => setState(() {}),
-        ),
-        TextField(
-          controller: phone,
-          keyboardType: TextInputType.phone,
-          decoration: const InputDecoration(labelText: 'WhatsApp Number'),
-          onChanged: (_) => setState(() {}),
-        ),
+        ContactFields(name: customer, phone: phone, onChanged: () => setState(() {})),
         if (type != WhatsAppMessageType.custom)
           TextField(
             controller: amount,

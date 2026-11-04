@@ -3,8 +3,11 @@ import '../../database/tables/expense_table.dart';
 import '../../models/expense_model.dart';
 
 class ExpenseController {
-  Future<void> saveExpense(ExpenseModel expense) =>
-      ExpenseTable.insertExpense(expense);
+  Future<ExpenseModel> saveExpense(ExpenseModel expense) async {
+    final id = await ExpenseTable.insertExpense(expense);
+    final db = await DBHelper.database;
+    return ExpenseModel.fromMap((await db.query('expenses', where: 'id = ?', whereArgs: [id])).single);
+  }
 
   Future<double> getTotalExpensesByAccount(int accountId) async {
     final db = await DBHelper.database;

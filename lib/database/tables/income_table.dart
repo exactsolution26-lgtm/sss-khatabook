@@ -17,6 +17,7 @@ class IncomeTable {
       $description TEXT,
       $date TEXT NOT NULL,
       $createdAt TEXT NOT NULL,
+      updated_at TEXT, contact_name TEXT, contact_phone TEXT, category TEXT, mode TEXT,
       FOREIGN KEY ($accountId) REFERENCES accounts($id)
     )
   ''';

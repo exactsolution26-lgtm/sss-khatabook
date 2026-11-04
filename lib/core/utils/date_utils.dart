@@ -37,7 +37,17 @@ class DateUtils {
 
   static String formatIstDateTime(DateTime timestamp) {
     final ist = timestamp.toUtc().add(const Duration(hours: 5, minutes: 30));
-    return '${DateFormat('EEEE, d MMMM yyyy · hh:mm:ss a', 'en').format(ist)} IST';
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    String two(int value) => value.toString().padLeft(2, '0');
+    final hour = ist.hour % 12 == 0 ? 12 : ist.hour % 12;
+    return '${days[ist.weekday - 1]}, ${ist.day} ${months[ist.month - 1]} ${ist.year} · '
+        '${two(hour)}:${two(ist.minute)}:${two(ist.second)} ${ist.hour < 12 ? 'AM' : 'PM'} IST';
+  }
+
+  static DateTime indiaToday() {
+    final ist = DateTime.now().toUtc().add(const Duration(hours: 5, minutes: 30));
+    return DateTime(ist.year, ist.month, ist.day);
   }
 
   static DateTime today() {

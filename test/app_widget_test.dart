@@ -114,6 +114,8 @@ void main() {
       options: OpenDatabaseOptions(version: 3, onCreate: (db, version) async {
         await db.execute('CREATE TABLE accounts(id INTEGER PRIMARY KEY, name TEXT, opening_balance REAL, cash_balance REAL, bank_balance REAL, created_at TEXT)');
         await db.execute("INSERT INTO accounts VALUES(7,'Existing',1500,500,1000,'2026-10-01T00:00:00Z')");
+        await db.execute('CREATE TABLE income(id INTEGER PRIMARY KEY, account_id INTEGER, amount REAL, description TEXT, date TEXT, created_at TEXT)');
+        await db.execute('CREATE TABLE expenses(id INTEGER PRIMARY KEY, account_id INTEGER, amount REAL, mode TEXT, category TEXT, note TEXT, date TEXT)');
       }));
     await old.close();
     final upgraded = await DBHelper.openAt(legacyPath);

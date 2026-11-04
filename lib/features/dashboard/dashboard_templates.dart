@@ -6,6 +6,7 @@ import '../analysis/analysis_logic.dart';
 import '../settings/app_settings.dart';
 import '../../core/localization/app_strings.dart';
 import 'dashboard_layout.dart';
+import 'super_admin_preview.dart';
 
 /// Newly reconstructed layouts. These names are not recovered approvals.
 extension DashboardTemplateName on DashboardLayout {
@@ -207,6 +208,10 @@ class _DashboardPreviewsScreenState extends State<DashboardPreviewsScreen> {
               hindi ? AppLanguage.english : AppLanguage.hindi)),
         ]),
       body: ListView(padding: const EdgeInsets.all(20), children: [
+        OutlinedButton(onPressed: () => Navigator.push(context,
+          MaterialPageRoute<void>(builder: (_) => const SuperAdminPreview())),
+          child: Text(hindi ? 'सुपर एडमिन डिज़ाइन प्रीव्यू' : 'Super Admin design preview')),
+        const SizedBox(height: 12),
         Text(hindi ? 'पुनर्निर्मित डिज़ाइन · आपकी स्वीकृति बाकी है'
           : 'Reconstruction previews · awaiting your design approval',
           style: Theme.of(context).textTheme.labelLarge),

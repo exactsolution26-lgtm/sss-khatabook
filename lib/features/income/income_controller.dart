@@ -1,4 +1,5 @@
 import '../../database/db_helper.dart';
+import '../entries/party_snapshot.dart';
 import '../../database/tables/income_table.dart';
 import '../../models/income_model.dart';
 
@@ -18,7 +19,20 @@ class IncomeController {
   Future<int> createIncome(IncomeModel income) async {
     _validate(income);
     final db = await _dbHelper.database;
-    return await db.insert(IncomeTable.tableName, income.toMap());
+    final snapshot = PartySnapshot.optional(income.contactName, income.contactPhone);
+    final values = income.toMap()
+      ..remove('id')
+      ..['created_at'] = DateTime.now().toUtc().toIso8601String()
+      ..['updated_at'] = null;
+    values.addAll(snapshot?.toMap() ?? {'contact_name': null, 'contact_phone': null});
+    return db.insert(IncomeTable.tableName, values);
+  }
+
+  Future<IncomeModel> getIncomeById(int id) async {
+    final db = await _dbHelper.database;
+    final rows = await db.query(IncomeTable.tableName, where: 'id = ?', whereArgs: [id]);
+    if (rows.length != 1) throw StateError('Income entry not found');
+    return IncomeModel.fromMap(rows.single);
   }
 
   Future<List<IncomeModel>> getAllIncome() async {
@@ -54,12 +68,19 @@ class IncomeController {
     _validate(income);
     if (income.id == null) throw ArgumentError('Income ID required');
     final db = await _dbHelper.database;
-    return await db.update(
-      IncomeTable.tableName,
-      income.toMap(),
-      where: '${IncomeTable.id} = ?',
-      whereArgs: [income.id],
-    );
+    final snapshot = PartySnapshot.optional(income.contactName, income.contactPhone);
+    return db.transaction((txn) async {
+      final original = await txn.query(IncomeTable.tableName,
+        where: 'id = ? AND account_id = ?', whereArgs: [income.id, income.accountId]);
+      if (original.length != 1) throw StateError('Income entry not found for this account');
+      final values = income.toMap()
+        ..remove('id')
+        ..['created_at'] = original.single['created_at']
+        ..['updated_at'] = DateTime.now().toUtc().toIso8601String();
+      values.addAll(snapshot?.toMap() ?? {'contact_name': null, 'contact_phone': null});
+      return txn.update(IncomeTable.tableName, values,
+        where: 'id = ? AND account_id = ?', whereArgs: [income.id, income.accountId]);
+    });
   }
 
   Future<int> deleteIncome(int id) async {
