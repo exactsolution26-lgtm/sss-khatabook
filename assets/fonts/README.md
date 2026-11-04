@@ -1,0 +1,1 @@
+Noto fonts from https://github.com/notofonts/noto-fonts (SIL OFL1.1; see OFL.txt). Offline PDF assets subset with fontTools, retaining Latin/Devanagari, INR and punctuation, GSUB/GPOS and name/license metadata. No runtime font download. Hindi shaping still requires visual/device acceptance.

@@ -6,6 +6,7 @@ import '../../models/account_model.dart';
 import '../settings/app_settings.dart';
 import '../whatsapp/verified_share_screen.dart';
 import '../whatsapp/whatsapp_share_service.dart';
+import '../reports/ledger_export_screen.dart';
 
 class AccountsScreen extends StatefulWidget {
   const AccountsScreen({super.key});
@@ -271,6 +272,9 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
     appBar: AppBar(
       title: Text(widget.account.name),
       actions: [
+        IconButton(tooltip: 'Ledger PDF & CSV', icon: const Icon(Icons.picture_as_pdf_outlined),
+          onPressed: () => Navigator.push(context, MaterialPageRoute<void>(
+            builder: (_) => LedgerExportScreen(accountId: widget.account.id!)))),
         IconButton(
           tooltip: 'Share ledger',
           icon: const Icon(Icons.share_outlined),

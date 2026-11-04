@@ -78,7 +78,7 @@ class _BackupScreenState extends State<BackupScreen> {
       const SizedBox(height: 24),
       const Text('Automatic device checkpoints', style: TextStyle(fontWeight: FontWeight.bold)),
       const Text('Keeps the latest seven changed snapshots while the app is open, and checks on resume. Export a portable backup for device loss or uninstall.'),
-      ListenableBuilder(listenable: AutomaticBackup.instance, builder: (_, _) => ListTile(
+      ListenableBuilder(listenable: AutomaticBackup.instance, builder: (context, child) => ListTile(
         contentPadding: EdgeInsets.zero, title: Text(AutomaticBackup.instance.status),
         subtitle: AutomaticBackup.instance.savedAt == null ? null
           : Text(dates.DateUtils.formatIstDateTime(AutomaticBackup.instance.savedAt!)))),
