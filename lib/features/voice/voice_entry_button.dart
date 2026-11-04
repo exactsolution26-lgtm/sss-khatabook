@@ -1,66 +1,80 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'voice_capture.dart';
 import 'voice_draft.dart';
 
 class VoiceEntryButton extends StatelessWidget {
-  const VoiceEntryButton({super.key,required this.onConfirmed,required this.income});
+  const VoiceEntryButton({super.key,required this.onConfirmed,required this.income,this.capture});
   final ValueChanged<VoiceDraft> onConfirmed;final bool income;
-  @override Widget build(BuildContext context) => OutlinedButton.icon(icon: const Icon(Icons.mic_none),label: const Text('Voice entry — review first'),
-    onPressed: () async {
-      final draft=await showDialog<VoiceDraft>(context: context,builder: (_) => _VoiceDialog(income: income));
+  final VoiceCapture? capture;
+  @override Widget build(BuildContext context)=>OutlinedButton.icon(icon:const Icon(Icons.mic_none),label:const Text('Voice entry — review first'),
+    onPressed:() async {
+      final draft=await showDialog<VoiceDraft>(context:context,builder:(_)=>_VoiceDialog(income:income,capture:capture ?? VoiceCapture.instance));
       if(draft!=null && context.mounted) onConfirmed(draft);
     });
 }
 class _VoiceDialog extends StatefulWidget {
-  const _VoiceDialog({required this.income}); final bool income;
-  @override State<_VoiceDialog> createState() => _VoiceDialogState();
+  const _VoiceDialog({required this.income,required this.capture});final bool income;final VoiceCapture capture;
+  @override State<_VoiceDialog> createState()=>_VoiceDialogState();
 }
 class _VoiceDialogState extends State<_VoiceDialog> with WidgetsBindingObserver {
-  final speech=stt.SpeechToText();final transcript=TextEditingController();
-  bool hindi=false,onDevice=true,busy=false,listening=false;String? error;
-  @override void initState() {super.initState();WidgetsBinding.instance.addObserver(this);}
-  @override void didChangeAppLifecycleState(AppLifecycleState state) {if(state!=AppLifecycleState.resumed) {speech.cancel();if(mounted) setState(() => listening=false);}}
-  @override void dispose() {WidgetsBinding.instance.removeObserver(this);speech.cancel();transcript.dispose();super.dispose();}
-  Future<void> start() async {
-    if(busy || listening) return;
-    setState(() {busy=true;error=null;});
-    try {
-      final ready=await speech.initialize(onStatus: (status) {if(mounted) setState(() => listening=status=='listening');},
-        onError: (_) {if(mounted) setState(() {listening=false;error='Speech unavailable. You can type the phrase or use the entry form.';});});
-      if(!ready) throw StateError('Speech permission or service unavailable');
-      final locales=await speech.locales();
-      final matching=locales.where((l) => l.localeId.toLowerCase().replaceAll('_','-').startsWith(hindi ? 'hi-' : 'en-')).toList();
-      if(matching.isEmpty) throw StateError('Language unavailable');
-      final indian=matching.where((l) => l.localeId.toLowerCase().endsWith('in')).toList();
-      if(!mounted) return;
-      await speech.listen(onResult: (result) {if(mounted) setState(() => transcript.text=result.recognizedWords);},
-        listenOptions: stt.SpeechListenOptions(localeId: (indian.isNotEmpty ? indian.first : matching.first).localeId,
-          onDevice: onDevice,cancelOnError: true,partialResults: true,listenFor: const Duration(seconds: 25)));
-    } catch (_) {if(mounted) setState(() => error='Microphone or selected speech language is unavailable. Type below instead.');}
-    finally {if(mounted) setState(() => busy=false);}
+  final transcript=TextEditingController();String lastWords='';String? reviewError;
+  VoiceCapture get capture=>widget.capture;
+  @override void initState(){super.initState();WidgetsBinding.instance.addObserver(this);capture.open();capture.addListener(changed);}
+  void changed(){
+    if(!mounted) return;
+    if(capture.words!=lastWords){lastWords=capture.words;if(lastWords.isNotEmpty) transcript.value=TextEditingValue(text:lastWords,selection:TextSelection.collapsed(offset:lastWords.length));}
+    setState((){});
+  }
+  @override void didChangeAppLifecycleState(AppLifecycleState state){
+    if(state==AppLifecycleState.paused || state==AppLifecycleState.detached) unawaited(capture.background());
+  }
+  @override void dispose(){WidgetsBinding.instance.removeObserver(this);capture.removeListener(changed);unawaited(capture.close());transcript.dispose();super.dispose();}
+  Future<void> provider() async {
+    final accepted=await showDialog<bool>(context:context,builder:(context)=>AlertDialog(title:const Text('Use device speech service?'),
+      content:const Text('Your phone’s speech provider may process audio online. Audio is not sent to Supabase by this app. Continue only if you agree.'),
+      actions:[TextButton(onPressed:()=>Navigator.pop(context,false),child:const Text('Cancel')),
+        FilledButton(onPressed:()=>Navigator.pop(context,true),child:const Text('Continue'))]));
+    if(accepted==true && mounted){capture.setOffline(false);await capture.start();}
   }
   Future<void> review() async {
-    await speech.stop();if(!mounted) return;
+    await capture.stop();if(!mounted) return;
     try {
       final draft=VoiceDraft.parse(transcript.text);
-      if(draft.income!=null && draft.income!=widget.income) {setState(() => error='This phrase describes ${draft.income! ? 'income' : 'an expense'}. Open the matching entry form.');return;}
-      final approved=await showDialog<bool>(context: context,builder: (context) => AlertDialog(title: const Text('Confirm recognized details'),
-        content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min,crossAxisAlignment: CrossAxisAlignment.start,children: [
-          Text(widget.income ? 'Income' : 'Expense'),Text('Amount: ${draft.amount ?? 'Enter manually'}'),
-          const SizedBox(height: 12),Text(draft.transcript),const SizedBox(height: 12),
-          const Text('Use these details to fill the form. Check customer, category and amount before pressing Save.'),
-        ])),actions: [TextButton(onPressed: () => Navigator.pop(context,false),child: const Text('Go back')),
-          FilledButton(onPressed: () => Navigator.pop(context,true),child: const Text('Use in form'))]));
+      if(draft.income!=null && draft.income!=widget.income){setState(()=>reviewError='This phrase describes ${draft.income! ? 'income':'an expense'}. Open the matching entry form.');return;}
+      final approved=await showDialog<bool>(context:context,builder:(context)=>AlertDialog(title:const Text('Confirm recognized details'),
+        content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.start,children:[
+          Text(widget.income ? 'Income':'Expense'),Text('Amount: ${draft.amount ?? 'Enter manually'}'),const SizedBox(height:12),
+          Text(draft.transcript),const SizedBox(height:12),const Text('Use these details to fill the form. Check customer, category and amount before pressing Save.'),
+        ])),actions:[TextButton(onPressed:()=>Navigator.pop(context,false),child:const Text('Go back')),
+          FilledButton(onPressed:()=>Navigator.pop(context,true),child:const Text('Use in form'))]));
       if(approved==true && mounted) Navigator.pop(context,draft);
-    } catch (_) {if(mounted) setState(() => error='Say or type a short phrase first.');}
+    }catch(_){if(mounted) setState(()=>reviewError='Say or type a short phrase first.');}
   }
-  @override Widget build(BuildContext context) => AlertDialog(title: const Text('Voice entry'),content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min,children: [
+  @override Widget build(BuildContext context)=>AlertDialog(title:const Text('Voice entry'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
     const Text('Speech is optional. Nothing is saved until you review the form and press Save.'),
-    SwitchListTile(contentPadding: EdgeInsets.zero,title: const Text('Hindi / हिंदी'),value: hindi,onChanged: busy || listening ? null : (v) => setState(() => hindi=v)),
-    CheckboxListTile(contentPadding: EdgeInsets.zero,title: const Text('Use on-device recognition'),value: onDevice,onChanged: busy || listening ? null : (v) => setState(() => onDevice=v ?? true)),
-    if(!onDevice) const Text('Your device speech provider may process audio online. Continue only if you agree.'),
-    OutlinedButton.icon(onPressed: busy ? null : listening ? () async {await speech.stop();} : start,icon: Icon(listening ? Icons.stop : Icons.mic),label: Text(listening ? 'Stop' : busy ? 'Preparing…' : 'Start speaking')),
-    TextField(controller: transcript,maxLines: 3,maxLength: 2000,decoration: const InputDecoration(labelText: 'Recognized text — editable',hintText: 'Received 500 rupees / ५०० रुपये मिले')),
-    if(error!=null) Text(error!,style: TextStyle(color: Theme.of(context).colorScheme.error)),
-  ])),actions: [TextButton(onPressed: () => Navigator.pop(context),child: const Text('Cancel')),FilledButton(onPressed: busy ? null : review,child: const Text('Review details'))]);
+    DropdownButtonFormField<VoiceLanguage>(key:ValueKey(capture.language),initialValue:capture.language,isExpanded:true,
+      decoration:const InputDecoration(labelText:'Voice language'),items:const [
+        DropdownMenuItem(value:VoiceLanguage.english,child:Text('English')),
+        DropdownMenuItem(value:VoiceLanguage.hindi,child:Text('Hindi / हिंदी')),
+        DropdownMenuItem(value:VoiceLanguage.hinglish,child:Text('Hinglish / Hindi + English',overflow:TextOverflow.ellipsis)),
+      ],onChanged:capture.busy ? null:(value){if(value!=null) capture.setLanguage(value);}),
+    if(capture.language==VoiceLanguage.hinglish) const Padding(padding:EdgeInsets.only(top:8),child:Text('Hinglish uses Hindi (India) speech recognition. Mixed words and the output script depend on your phone’s provider; review and edit the text.')),
+    CheckboxListTile(contentPadding:EdgeInsets.zero,title:const Text('Offline only'),subtitle:const Text('Requires a downloaded speech language.'),
+      value:capture.offlineOnly,onChanged:capture.busy ? null:(value) async {
+        if(value==true){capture.setOffline(true);}else{await provider();}
+      }),
+    if(!capture.offlineOnly) const Text('Device speech service enabled with your consent; it may use the internet.'),
+    OutlinedButton.icon(onPressed:capture.preparing || capture.starting ? null:capture.listening ? capture.stop:capture.start,
+      icon:Icon(capture.listening ? Icons.stop:Icons.mic),label:Text(capture.listening ? 'Stop':capture.preparing ? 'Preparing…':capture.starting ? 'Starting microphone…':capture.issue!=null ? 'Retry':'Start speaking')),
+    if(capture.listening) Semantics(liveRegion:true,child:Column(children:[const Text('Listening… Speak now'),
+      LinearProgressIndicator(value:((capture.soundLevel+2)/12).clamp(0,1).toDouble())])),
+    TextField(controller:transcript,readOnly:capture.listening || capture.starting,maxLines:3,maxLength:2000,
+      decoration:const InputDecoration(labelText:'Recognized text — editable',hintText:'Received 500 rupees / ५०० रुपये मिले')),
+    if(capture.issue!=null) Semantics(liveRegion:true,child:Text(capture.message,style:TextStyle(color:Theme.of(context).colorScheme.error))),
+    if(capture.canTryProvider) TextButton(onPressed:capture.busy ? null:provider,child:const Text('Try device speech service')),
+    if(capture.issue=='permission_denied' || capture.issue=='error_permission') const Text('After allowing Microphone, return here and tap Retry.'),
+    if(reviewError!=null) Text(reviewError!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
+  ])),actions:[TextButton(onPressed:()=>Navigator.pop(context),child:const Text('Cancel')),
+    FilledButton(onPressed:capture.preparing || capture.starting ? null:review,child:const Text('Review details'))]);
 }
