@@ -5,11 +5,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:offline_khata_app/app.dart';
+import 'package:offline_khata_app/core/security/app_lock.dart';
 import 'package:offline_khata_app/database/db_helper.dart';
 import 'package:offline_khata_app/features/accounts/opening_balance_screen.dart';
 import 'package:offline_khata_app/core/utils/date_utils.dart' as khata_dates;
 
 void main() {
+  MyApp testApp() => MyApp(automaticBackups: false,
+    appLock: AppLock(read: () async => null, write: (_) async {}, supported: true));
   sqfliteFfiInit();
   // Keep real SQLite on disk, without isolate I/O inside the widget fake clock.
   databaseFactory = databaseFactoryFfiNoIsolate;
@@ -30,7 +33,7 @@ void main() {
   testWidgets('dashboard opens, settings switch theme and language', (
     tester,
   ) async {
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(testApp());
     await tester.pumpAndSettle();
     expect(find.text('Dashboard'), findsOneWidget);
     expect(find.text('Total Balance'), findsOneWidget);
@@ -61,7 +64,7 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(testApp());
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Opening Balance'));
     await tester.pumpAndSettle();

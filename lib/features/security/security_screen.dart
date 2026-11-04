@@ -3,16 +3,18 @@ import 'package:flutter/services.dart';
 import '../../core/security/app_lock.dart';
 
 class AppLockGate extends StatefulWidget {
-  const AppLockGate({super.key, required this.child}); final Widget child;
+  const AppLockGate({super.key, required this.child, this.controller});
+  final Widget child;
+  final AppLock? controller;
   @override
   State<AppLockGate> createState() => _AppLockGateState();
 }
 class _AppLockGateState extends State<AppLockGate> {
-  final lock = AppLock.instance;
+  late final AppLock lock;
   final pin = TextEditingController();
   bool opened = false, busy = false;
   @override
-  void initState() {super.initState(); WidgetsBinding.instance.addObserver(lock); lock.load();}
+  void initState() {super.initState(); lock = widget.controller ?? AppLock.instance; WidgetsBinding.instance.addObserver(lock); lock.load();}
   @override
   void dispose() {WidgetsBinding.instance.removeObserver(lock); pin.dispose(); super.dispose();}
   @override

@@ -11,7 +11,10 @@ import 'backup_vault.dart';
 /// Uninstall/device loss still requires an exported portable backup.
 class AutomaticBackup extends ChangeNotifier with WidgetsBindingObserver {
   AutomaticBackup._();
+  @visibleForTesting
+  AutomaticBackup.forTesting(this.keyProvider);
   static final instance = AutomaticBackup._();
+  Future<String?> Function()? keyProvider;
   Timer? _timer;
   bool _busy = false;
   String? _password;
@@ -44,12 +47,13 @@ class AutomaticBackup extends ChangeNotifier with WidgetsBindingObserver {
     ? Future.value(_password) : _loadingPassword ??= _readPassword();
   Future<String?> _readPassword() async {
     try {
+    if (keyProvider != null) return _password = await keyProvider!();
     if (kIsWeb) return null;
     const storage = FlutterSecureStorage();
-    var value = await storage.read(key: 'sss_auto_backup_key_v1');
+    var value = await storage.read(key: 'sss_auto_backup_key_v1').timeout(const Duration(seconds: 10));
     if (value == null) {
       value = base64Encode(BackupCipher.randomBytes(32));
-      await storage.write(key: 'sss_auto_backup_key_v1', value: value);
+      await storage.write(key: 'sss_auto_backup_key_v1', value: value).timeout(const Duration(seconds: 10));
     }
     return _password = value;
     } finally { _loadingPassword = null; }

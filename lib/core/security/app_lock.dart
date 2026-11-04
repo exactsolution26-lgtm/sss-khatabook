@@ -28,10 +28,11 @@ class AppLock extends ChangeNotifier with WidgetsBindingObserver {
   bool get biometricEnabled => enabled && _config?['biometric'] == true;
 
   Future<void> load() async {
+    loaded = false; locked = true; notifyListeners();
     try {
       storageError = null;
       if (!supported) {loaded = true; locked = false; return;}
-      final raw = await read();
+      final raw = await read().timeout(const Duration(seconds: 10));
       _config = raw == null ? null : jsonDecode(raw) as Map<String, dynamic>;
       if (_config != null && (_config!['version'] != 1 || _config!['enabled'] is! bool)) {
         throw const FormatException('Invalid lock configuration');
@@ -51,7 +52,7 @@ class AppLock extends ChangeNotifier with WidgetsBindingObserver {
   }
   void lock() {if (enabled) {locked = true; message = null; notifyListeners();}}
   Future<void> _persist(Map<String, dynamic> state) async {
-    await write(jsonEncode(state)); _config = state;
+    await write(jsonEncode(state)).timeout(const Duration(seconds: 10)); _config = state;
   }
   Future<List<int>> _hash(String pin, List<int> salt) async =>
     (await Pbkdf2(macAlgorithm: Hmac.sha256(), iterations: BackupCipher.iterations, bits: 256)
