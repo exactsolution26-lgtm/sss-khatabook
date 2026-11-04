@@ -27,7 +27,7 @@ class _VoiceDialogState extends State<_VoiceDialog> with WidgetsBindingObserver 
     setState((){});
   }
   @override void didChangeAppLifecycleState(AppLifecycleState state){
-    if(state==AppLifecycleState.paused || state==AppLifecycleState.detached) unawaited(capture.background());
+    if(state==AppLifecycleState.hidden || state==AppLifecycleState.paused || state==AppLifecycleState.detached) unawaited(capture.background());
   }
   @override void dispose(){WidgetsBinding.instance.removeObserver(this);capture.removeListener(changed);unawaited(capture.close());transcript.dispose();super.dispose();}
   Future<void> provider() async {

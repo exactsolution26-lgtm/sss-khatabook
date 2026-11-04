@@ -85,8 +85,13 @@ void main() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     device.permissionPrompt!.complete(true);await tester.pumpAndSettle();
     expect(find.text('Listening… Speak now'),findsOneWidget);expect(device.listens,1);
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);await tester.pumpAndSettle();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    expect(capture.listening,false);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);await tester.pump();
     expect(capture.listening,false);expect(device.cancels,greaterThan(0));
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);await tester.pumpAndSettle();
     expect(device.listens,1);await tester.pumpWidget(const SizedBox.shrink());await tester.pump();
   });

@@ -51,7 +51,7 @@ class VoiceCapture extends ChangeNotifier {
   String get message {
     switch(issue) {
       case 'permission_denied': case 'error_permission': case 'error_insufficient_permissions':
-        return 'Microphone permission is denied. Allow Microphone in Android Settings → Apps → SSS Khatabook Preview → Permissions, then Retry.';
+        return 'Microphone permission is not granted. Allow Microphone in Android Settings → Apps → SSS Khatabook Preview → Permissions, then Retry.';
       case 'service_unavailable': case 'error_not_available':
         return 'A speech recognition service is unavailable. Enable or update your phone’s speech service, then Retry. You can also type below.';
       case 'error_language_not_supported': case 'error_language_unavailable':
@@ -142,7 +142,7 @@ class VoiceCapture extends ChangeNotifier {
     _startTimeout?.cancel();starting=false;listening=false;preparing=false;_notify();
     try {await device.stop().timeout(const Duration(seconds: 3));}catch(_){await _cancelDevice();}
   }
-  /// Inactive can be the Android permission prompt. Only a real background or
+  /// Inactive can be the Android permission prompt. Only a real hidden/background or
   /// detach transition cancels capture; no automatic microphone restart on resume.
   Future<void> background() async {
     _generation++;_acceptEvents=false;preparing=false;starting=false;listening=false;_startTimeout?.cancel();_notify();
