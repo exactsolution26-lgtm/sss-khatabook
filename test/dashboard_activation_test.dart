@@ -132,23 +132,42 @@ void main() {
   });
 
   test('summary keeps legacy expenses in totals and exposes bounded, deterministic recent metadata', () async {
-    final db = await DBHelper.database;
-    await db.insert('expenses', {'id':2,'account_id':null,'amount':7,'date':'2026-11-04',
-      'note':'Historic unassigned','category':'Other','mode':'cash'});
+    var db = await DBHelper.database;
     var data = await AnalysisLogic().getAnalysisData();
-    expect(data['totalBalance'], closeTo(1043.05, 0.000001));
-    expect(data['unassignedExpenseCount'],1);
     final recent = data['recentTransactions'] as List;
-    expect(recent.map((e) => '${e['kind']}-${e['id']}'), ['income-1','expense-1','expense-2']);
+    expect(recent.map((e) => '${e['kind']}-${e['id']}'), ['income-1','expense-1']);
     expect(recent.first['contact_name'],'Ravi');
     expect(recent.first['contact_phone'],'+919876543210');
-    expect(recent.last['account_id'],isNull); expect(recent.last['created_at'],isNull);
     for (var i=2;i<=20;i++) {
       await db.insert('income', {'id':i,'account_id':account,'amount':1,'date':'2026-11-05',
         'created_at':'2026-11-05T00:00:00Z'});
     }
     data=await AnalysisLogic().getAnalysisData();
     expect((data['recentTransactions'] as List).map((e) => e['id']), List.generate(12,(i)=>20-i));
+
+    // Unassigned rows are legacy-only. Exercise the real upgrade path instead of
+    // bypassing the current schema's protection against new unassigned entries.
+    await DBHelper.close();
+    final path='${folder.path}/offline_khata.db';
+    await databaseFactory.deleteDatabase(path);
+    final old=await databaseFactory.openDatabase(path,options:OpenDatabaseOptions(version:3,onCreate:(db,version) async {
+      await db.execute('CREATE TABLE accounts(id INTEGER PRIMARY KEY,name TEXT,opening_balance REAL,cash_balance REAL,bank_balance REAL,created_at TEXT)');
+      await db.execute('CREATE TABLE income(id INTEGER PRIMARY KEY,account_id INTEGER,amount REAL,description TEXT,date TEXT,created_at TEXT)');
+      await db.execute('CREATE TABLE expenses(id INTEGER PRIMARY KEY,account_id INTEGER,amount REAL,mode TEXT,category TEXT,note TEXT,date TEXT)');
+      await db.execute("INSERT INTO accounts VALUES(1,'Legacy account',1000,1000,0,'2026-11-01T00:00:00Z')");
+      await db.execute("INSERT INTO income VALUES(1,1,100.10,'Payment','2026-11-04','2026-11-04T20:01:02Z')");
+      await db.execute("INSERT INTO expenses VALUES(1,1,50.05,'cash','Travel','Travel','2026-11-04')");
+      await db.execute("INSERT INTO expenses VALUES(2,NULL,7,'cash','Other','Historic unassigned','2026-11-04')");
+    }));
+    await old.close();
+    data=await AnalysisLogic().getAnalysisData();
+    expect(data['totalBalance'],closeTo(1043.05,0.000001));
+    expect(data['unassignedExpenseCount'],1);
+    final legacy=(data['recentTransactions'] as List).singleWhere((e)=>e['account_id']==null);
+    expect(legacy['created_at'],isNull); expect(legacy['account_name'],isNull);
+    db=await DBHelper.database;
+    await expectLater(db.insert('expenses',{'account_id':null,'amount':7,'date':'2026-11-04',
+      'note':'New unassigned','category':'Other','mode':'cash'}),throwsA(isA<DatabaseException>()));
   });
 
   testWidgets('loading failure is explicit; retry shows real data instead of fake zero totals', (tester) async {
