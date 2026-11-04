@@ -4,6 +4,7 @@ import 'package:sqflite/sqflite.dart';
 import 'tables/income_table.dart';
 import 'tables/work_table.dart';
 import 'recovery_schema.dart';
+import '../features/entries/attachments.dart';
 
 class DBHelper {
   static Database? _db;
@@ -35,7 +36,7 @@ class DBHelper {
   }
 
   static OpenDatabaseOptions get options => OpenDatabaseOptions(
-    version: 6,
+    version: 7,
     onConfigure: (db) async => db.execute('PRAGMA foreign_keys = ON'),
     onCreate: (db, version) async {
       await db.execute('''CREATE TABLE accounts (
@@ -60,6 +61,7 @@ class DBHelper {
       await _createCategoryTable(db);
       await _installIntegrityGuards(db);
       await RecoverySchema.install(db);
+      await AttachmentStore.install(db);
     },
     onUpgrade: (db, oldVersion, newVersion) async {
       if (oldVersion < 2) {
@@ -112,6 +114,7 @@ class DBHelper {
         }
       }
       if (oldVersion < 6) await RecoverySchema.install(db);
+      if (oldVersion < 7) await AttachmentStore.install(db);
     },
   );
 
@@ -127,11 +130,11 @@ class DBHelper {
       }
     }
     await txn.execute('DROP TRIGGER IF EXISTS account_opening_lock');
-    for (final table in ['income', 'expenses', 'work', 'entry_categories']) {
+    for (final table in ['attachments', 'income', 'expenses', 'work', 'entry_categories']) {
       await txn.delete(table);
     }
     await txn.delete('accounts');
-    for (final table in ['accounts', 'income', 'expenses', 'work', 'entry_categories']) {
+    for (final table in ['accounts', 'income', 'expenses', 'work', 'entry_categories', 'attachments']) {
       for (final row in tables[table]!) {
         await txn.insert(table, row);
       }

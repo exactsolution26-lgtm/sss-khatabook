@@ -2,9 +2,10 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:cryptography/cryptography.dart';
 import 'package:path/path.dart' as paths;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import '../../database/db_helper.dart';
+import 'backup_vault.dart';
+import '../entries/attachments.dart';
 
 class BackupCipher {
   static const iterations = 600000;
@@ -15,10 +16,12 @@ class BackupCipher {
     if (password.length < 12 || password.length > 1024) {
       throw ArgumentError('Use a backup passphrase with 12–1024 characters');
     }
+    final plain = utf8.encode(jsonEncode(data));
+    if (plain.length > 50000000) throw const FormatException('Backup exceeds 50 MB record limit');
     final salt = randomBytes(16);
     final key = await Pbkdf2(macAlgorithm: Hmac.sha256(), iterations: iterations, bits: 256)
       .deriveKey(secretKey: SecretKey(utf8.encode(password)), nonce: salt);
-    final box = await _aes.encrypt(utf8.encode(jsonEncode(data)), secretKey: key,
+    final box = await _aes.encrypt(plain, secretKey: key,
       nonce: _aes.newNonce(), aad: utf8.encode('sss-khatabook:backup:1'));
     return jsonEncode({'format': 'sss-khatabook-encrypted', 'version': 1,
       'iterations': iterations, 'salt': base64Encode(salt),
@@ -27,7 +30,7 @@ class BackupCipher {
   }
 
   static Future<Map<String, dynamic>> decrypt(String input, String password) async {
-    if (input.length > 30000000 || password.length > 1024) throw const FormatException('Backup too large');
+    if (input.length > 75000000 || password.length > 1024) throw const FormatException('Backup too large');
     final envelope = jsonDecode(input) as Map<String, dynamic>;
     if (envelope['format'] != 'sss-khatabook-encrypted' || envelope['version'] != 1 ||
         envelope['iterations'] != iterations) throw const FormatException('Unsupported backup');
@@ -46,23 +49,24 @@ class BackupCipher {
 }
 
 class BackupService {
-  static const tableNames = ['accounts', 'income', 'expenses', 'work', 'entry_categories', 'app_audit'];
+  static const tableNames = ['accounts', 'income', 'expenses', 'work', 'entry_categories', 'app_audit', 'attachments'];
 
   Future<Map<String, dynamic>> snapshot() async {
     final db = await DBHelper.database;
     return db.transaction((txn) async => {
-      'format': 'sss-khatabook-records', 'version': 1, 'schema': 6,
+      'format': 'sss-khatabook-records', 'version': 1, 'schema': 7,
       'created_at': DateTime.now().toUtc().toIso8601String(),
       'tables': {for (final table in tableNames) table: await txn.query(table, orderBy: 'rowid')},
     });
   }
 
   Map<String, List<Map<String, Object?>>> validateShape(Map<String, dynamic> data) {
-    if (data['format'] != 'sss-khatabook-records' || data['version'] != 1 || data['schema'] != 6) {
+    if (data['format'] != 'sss-khatabook-records' || data['version'] != 1 || ![6, 7].contains(data['schema'])) {
       throw const FormatException('Unsupported record format');
     }
     DateTime.parse(data['created_at'] as String);
-    final source = data['tables'] as Map<String, dynamic>;
+    final source = Map<String, dynamic>.from(data['tables'] as Map);
+    if (data['schema'] == 6 && !source.containsKey('attachments')) source['attachments'] = [];
     if (source.length != tableNames.length || !tableNames.every(source.containsKey)) {
       throw const FormatException('Incomplete backup');
     }
@@ -74,16 +78,20 @@ class BackupService {
       if (count > 100000) throw const FormatException('Backup row limit exceeded');
       result[table] = rows.map((value) {
         final row = Map<String, Object?>.from(value as Map);
-        if (['accounts', 'income', 'expenses', 'work'].contains(table) &&
+        if (['accounts', 'income', 'expenses', 'work', 'attachments'].contains(table) &&
             (row['id'] is! int || (row['id'] as int) <= 0)) {
           throw const FormatException('Invalid original record identity');
         }
-        for (final item in row.values) {
+        for (final entry in row.entries) {
+          final item = entry.value;
           if (item != null && item is! String && item is! num) {
             throw const FormatException('Invalid backup value');
           }
           if (item is num && !item.isFinite) throw const FormatException('Non-finite backup amount');
-          if (item is String && item.length > 1000000) throw const FormatException('Backup value too large');
+          final maximum = table == 'attachments' && entry.key == 'content_base64' ? 6990520 : 1000000;
+          if (item is String && item.length > maximum) throw const FormatException('Backup value too large');
+          if (item != null && entry.key.endsWith('_at') &&
+              (item is! String || DateTime.tryParse(item) == null)) throw const FormatException('Invalid stored timestamp');
         }
         if (table == 'income' || table == 'expenses') {
           final amount = row['amount'];
@@ -110,6 +118,19 @@ class BackupService {
   /// All schema constraints and links are tested away from the live database.
   Future<void> validate(Map<String, dynamic> data) async {
     final tables = validateShape(data);
+    final attachmentTotals = <String, (int, int)>{};
+    for (final row in tables['attachments']!) {
+      final bytes = base64Decode(row['content_base64'] as String);
+      final inspected = await PendingAttachment.inspect(row['name'] as String, bytes);
+      if (inspected.name != row['name'] || inspected.mime != row['mime_type'] || bytes.length != row['size_bytes']) {
+        throw const FormatException('Attachment metadata mismatch');
+      }
+      final group = '${row['income_id'] == null ? 'expense' : 'income'}:${row['income_id'] ?? row['expense_id']}';
+      final previous = attachmentTotals[group] ?? (0, 0);
+      final next = (previous.$1 + 1, previous.$2 + bytes.length);
+      if (next.$1 > 5 || next.$2 > 10 * 1024 * 1024) throw const FormatException('Attachment limit exceeded');
+      attachmentTotals[group] = next;
+    }
     final path = paths.join(await getDatabasesPath(), 'sss-validate-${base64UrlEncode(BackupCipher.randomBytes(18))}.db');
     final temporary = await DBHelper.openAt(path);
     try {
@@ -134,10 +155,7 @@ class BackupService {
     await validate(data);
     // A recoverable encrypted copy must persist before any existing row changes.
     final recovery = await BackupCipher.encrypt(await snapshot(), recoveryPassword);
-    final preferences = await SharedPreferences.getInstance();
-    if (!await preferences.setString('sss_pre_restore_recovery_v1', recovery)) {
-      throw StateError('Could not retain current records before restore');
-    }
+    await BackupVault.put(recovery, purpose: 'recovery');
     await DBHelper.replaceSnapshot(await DBHelper.database, validateShape(data));
   }
 }

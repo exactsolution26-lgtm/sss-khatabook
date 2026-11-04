@@ -1,10 +1,11 @@
 import '../../database/db_helper.dart';
 import '../../database/tables/expense_table.dart';
 import '../../models/expense_model.dart';
+import '../entries/attachments.dart';
 
 class ExpenseController {
-  Future<ExpenseModel> saveExpense(ExpenseModel expense) async {
-    final id = await ExpenseTable.insertExpense(expense);
+  Future<ExpenseModel> saveExpense(ExpenseModel expense, {List<PendingAttachment> attachments = const []}) async {
+    final id = await ExpenseTable.insertExpense(expense, attachments: attachments);
     final db = await DBHelper.database;
     return ExpenseModel.fromMap((await db.query('expenses', where: 'id = ?', whereArgs: [id])).single);
   }

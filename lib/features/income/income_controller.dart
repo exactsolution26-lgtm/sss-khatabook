@@ -1,5 +1,6 @@
 import '../../database/db_helper.dart';
 import '../entries/party_snapshot.dart';
+import '../entries/attachments.dart';
 import '../../database/tables/income_table.dart';
 import '../../models/income_model.dart';
 
@@ -16,7 +17,7 @@ class IncomeController {
     }
   }
 
-  Future<int> createIncome(IncomeModel income) async {
+  Future<int> createIncome(IncomeModel income, {List<PendingAttachment> attachments = const []}) async {
     _validate(income);
     final db = await _dbHelper.database;
     final snapshot = PartySnapshot.optional(income.contactName, income.contactPhone);
@@ -25,7 +26,11 @@ class IncomeController {
       ..['created_at'] = DateTime.now().toUtc().toIso8601String()
       ..['updated_at'] = null;
     values.addAll(snapshot?.toMap() ?? {'contact_name': null, 'contact_phone': null});
-    return db.insert(IncomeTable.tableName, values);
+    return db.transaction((txn) async {
+      final id = await txn.insert(IncomeTable.tableName, values);
+      await AttachmentStore.insertBatch(txn, attachments, incomeId: id);
+      return id;
+    });
   }
 
   Future<IncomeModel> getIncomeById(int id) async {

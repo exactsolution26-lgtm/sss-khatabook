@@ -8,6 +8,8 @@ import '../../core/utils/calculation_utils.dart';
 import '../../core/utils/validation_utils.dart';
 import '../../core/utils/date_utils.dart' as khata_dates;
 import 'income_controller.dart';
+import '../entries/attachments.dart';
+import '../entries/attachment_widgets.dart';
 import '../entries/contact_fields.dart';
 import '../entries/category_field.dart';
 import '../../models/income_model.dart';
@@ -31,6 +33,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
   String _category = 'Other';
   String _mode = 'cash';
   IncomeModel? _lastSaved;
+  final attachments = ValueNotifier<List<PendingAttachment>>([]);
   final _accountController = AccountController();
 
   List<AccountModel> _accounts = [];
@@ -105,11 +108,12 @@ class _IncomeScreenState extends State<IncomeScreen> {
         contactName: _contactName.text, contactPhone: _contactPhone.text,
       );
 
-      final id = await _incomeController.createIncome(income);
+      final id = await _incomeController.createIncome(income, attachments: attachments.value);
       final recorded = await _incomeController.getIncomeById(id);
 
       if (mounted) {
         setState(() => _lastSaved = recorded);
+        attachments.value = [];
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text(AppStrings.incomeSaved)));
@@ -134,6 +138,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
 
   @override
   void dispose() {
+    attachments.dispose();
     _amountController.dispose();
     _descriptionController.dispose();
     _contactName.dispose();
@@ -210,6 +215,8 @@ class _IncomeScreenState extends State<IncomeScreen> {
                 ),
               ),
               const SizedBox(height: 24),
+              AttachmentPicker(selected: attachments),
+              const SizedBox(height: 12),
               SimpleButton(
                 text: _lastSaved == null ? AppStrings.saveIncome : 'Saved ✓',
                 onPressed: _isLoading || _lastSaved != null ? null : _saveIncome,
@@ -224,6 +231,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
                       Text(_lastSaved!.category ?? ''),
                       if (_lastSaved!.contactName != null) Text('${_lastSaved!.contactName} · ${_lastSaved!.contactPhone}'),
                       Text('Saved at: ${khata_dates.DateUtils.formatIstDateTime(_lastSaved!.createdAt)}'),
+                      TextButton(onPressed: () => Navigator.push(context, MaterialPageRoute<void>(builder: (_) => AttachmentScreen(entryId: _lastSaved!.id!, income: true))), child: const Text('View Attachments')),
                       TextButton(onPressed: () => setState(() => _lastSaved = null), child: const Text('Add another entry')),
                     ])),
                 ))),

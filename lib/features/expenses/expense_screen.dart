@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'expense_controller.dart';
+import '../entries/attachments.dart';
+import '../entries/attachment_widgets.dart';
 import '../entries/contact_fields.dart';
 import '../entries/category_field.dart';
 import '../../core/utils/date_utils.dart' as dates;
@@ -23,6 +25,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
   final contactName = TextEditingController();
   final contactPhone = TextEditingController();
   ExpenseModel? lastSaved;
+  final attachments = ValueNotifier<List<PendingAttachment>>([]);
   DateTime selectedDate = dates.DateUtils.indiaToday();
   final noteController = TextEditingController();
   String mode = 'cash';
@@ -62,6 +65,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
 
   @override
   void dispose() {
+    attachments.dispose();
     amountController.dispose();
     categoryController.dispose();
     noteController.dispose();
@@ -122,6 +126,8 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
               labelText: 'Transaction date', suffixIcon: Icon(Icons.calendar_today)),
               child: Text(dates.DateUtils.formatDisplayDate(selectedDate)))),
           const SizedBox(height: 24),
+          AttachmentPicker(selected: attachments),
+          const SizedBox(height: 12),
           SimpleButton(
             text: lastSaved == null ? 'Save Expense' : 'Saved ✓',
             isLoading: saving,
@@ -155,9 +161,11 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                     date: dates.DateUtils.formatDate(selectedDate),
                     contactName: contactName.text, contactPhone: contactPhone.text,
                   ),
+                  attachments: attachments.value,
                 );
                 if (!mounted) return;
                 setState(() => lastSaved = recorded);
+                attachments.value = [];
                 amountController.clear();
                 noteController.clear();
                 ScaffoldMessenger.of(
@@ -185,6 +193,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                   Text(lastSaved!.category),
                   if (lastSaved!.contactName != null) Text('${lastSaved!.contactName} · ${lastSaved!.contactPhone}'),
                   Text('Saved at: ${dates.DateUtils.formatIstDateTime(lastSaved!.createdAt!)}'),
+                  TextButton(onPressed: () => Navigator.push(context, MaterialPageRoute<void>(builder: (_) => AttachmentScreen(entryId: lastSaved!.id!, income: false))), child: const Text('View Attachments')),
                   TextButton(onPressed: () => setState(() => lastSaved = null), child: const Text('Add another entry')),
                 ])),
             ))),

@@ -7,6 +7,8 @@ import '../settings/app_settings.dart';
 import '../whatsapp/verified_share_screen.dart';
 import '../whatsapp/whatsapp_share_service.dart';
 import '../reports/ledger_export_screen.dart';
+import '../entries/attachment_widgets.dart';
+import '../../core/utils/date_utils.dart' as dates;
 
 class AccountsScreen extends StatefulWidget {
   const AccountsScreen({super.key});
@@ -241,8 +243,8 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
   Future<List<Map<String, Object?>>> _load() async {
     final db = await DBHelper.database;
     return db.rawQuery(
-      '''SELECT id, amount, date, description AS note, 'income' AS kind FROM income WHERE account_id = ?
-      UNION ALL SELECT id, amount, date, note, 'expense' AS kind FROM expenses WHERE account_id = ?
+      '''SELECT id, amount, date, description AS note, created_at, contact_name, contact_phone, 'income' AS kind FROM income WHERE account_id = ?
+      UNION ALL SELECT id, amount, date, note, created_at, contact_name, contact_phone, 'expense' AS kind FROM expenses WHERE account_id = ?
       ORDER BY date ASC, kind ASC, id ASC''',
       [widget.account.id, widget.account.id],
     );
@@ -345,20 +347,26 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
                     title: Text(
                       '${income ? '+' : '−'} ₹${amount.toStringAsFixed(2)}',
                     ),
-                    subtitle: Text('${entry['date']} • ${entry['note'] ?? ''}'),
+                    subtitle: Text('${entry['date']} • ${entry['note'] ?? ''}'
+                      '${entry['contact_name'] == null ? '' : '\n${entry['contact_name']} · ${entry['contact_phone']}'}'
+                      '${entry['created_at'] == null ? '' : '\nSaved: ${dates.DateUtils.formatIstDateTime(DateTime.parse(entry['created_at'] as String))}'}'),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text('₹${running.toStringAsFixed(2)}'),
-                        if (income)
-                          IconButton(
-                            tooltip: 'Share recorded receipt',
-                            icon: const Icon(Icons.receipt_long_outlined),
-                            onPressed: () => _share(
-                              WhatsAppMessageType.receipt,
-                              incomeId: entry['id'] as int,
-                            ),
-                          ),
+                        PopupMenuButton<String>(tooltip: 'Entry actions',
+                          onSelected: (value) {
+                            if (value == 'receipt') {
+                              _share(WhatsAppMessageType.receipt, incomeId: entry['id'] as int);
+                            } else {
+                              Navigator.push(context, MaterialPageRoute<void>(builder: (_) => AttachmentScreen(
+                                entryId: entry['id'] as int, income: income)));
+                            }
+                          },
+                          itemBuilder: (_) => [
+                            const PopupMenuItem(value: 'attachments', child: Text('View Attachments')),
+                            if (income) const PopupMenuItem(value: 'receipt', child: Text('Share recorded receipt')),
+                          ]),
                       ],
                     ),
                   ),

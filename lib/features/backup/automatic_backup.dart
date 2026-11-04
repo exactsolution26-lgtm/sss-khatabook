@@ -4,8 +4,8 @@ import 'package:cryptography/cryptography.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'backup_service.dart';
+import 'backup_vault.dart';
 
 /// Foreground/resume checkpoints, kept outside the financial database.
 /// Uninstall/device loss still requires an exported portable backup.
@@ -67,12 +67,7 @@ class AutomaticBackup extends ChangeNotifier with WidgetsBindingObserver {
       final hash = base64Encode((await Sha256().hash(utf8.encode(jsonEncode(snapshot['tables'])))).bytes);
       if (!force && hash == _fingerprint) return;
       final encrypted = await BackupCipher.encrypt(snapshot, secret);
-      final prefs = await SharedPreferences.getInstance();
-      final history = prefs.getStringList('sss_auto_backups_v1') ?? [];
-      history.insert(0, encrypted);
-      if (!await prefs.setStringList('sss_auto_backups_v1', history.take(7).toList())) {
-        throw StateError('Could not write checkpoint');
-      }
+      await BackupVault.put(encrypted);
       savedAt = DateTime.parse(snapshot['created_at'] as String);
       _fingerprint = hash;
       status = 'Encrypted checkpoint saved on this device';

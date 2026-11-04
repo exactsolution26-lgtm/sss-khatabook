@@ -6,6 +6,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:offline_khata_app/database/db_helper.dart';
 import 'package:offline_khata_app/database/tables/account_table.dart';
 import 'package:offline_khata_app/features/backup/backup_service.dart';
+import 'package:offline_khata_app/features/backup/backup_vault.dart';
 import 'package:offline_khata_app/features/income/income_controller.dart';
 import 'package:offline_khata_app/features/analysis/analysis_logic.dart';
 import 'package:offline_khata_app/models/income_model.dart';
@@ -45,7 +46,7 @@ void main() {
   test('restore preserves identities, snapshots, balances and old data recovery copy', () async {
     final id = await populate();
     final service = BackupService();
-    final snapshot = await service.snapshot();
+    final snapshot = jsonDecode(jsonEncode(await service.snapshot())) as Map<String, dynamic>;
     final created = (await IncomeController().getIncomeById(id)).createdAt;
     await AccountTable.saveAccount(name: 'Created later', openingBalance: 25);
     await service.restore(snapshot, recoveryPassword: 'my portable backup password');
@@ -54,7 +55,7 @@ void main() {
     expect(income.createdAt, created);
     expect(income.contactPhone, '+919876543210');
     expect((await AnalysisLogic().getAnalysisData())['totalBalance'], 1200);
-    final retained = (await SharedPreferences.getInstance()).getString('sss_pre_restore_recovery_v1')!;
+    final retained = await BackupVault.read((await BackupVault.list(purpose: 'recovery')).single['id'] as int);
     final recovered = await BackupCipher.decrypt(retained, 'my portable backup password');
     expect(((recovered['tables'] as Map)['accounts'] as List).length, 2);
     final db = await DBHelper.database;
@@ -66,13 +67,13 @@ void main() {
 
   test('invalid account links and unknown SQL-shaped fields never alter live records', () async {
     await populate(); final service = BackupService();
-    final snapshot = await service.snapshot();
+    final snapshot = jsonDecode(jsonEncode(await service.snapshot())) as Map<String, dynamic>;
     final tables = snapshot['tables'] as Map<String, dynamic>;
     final incomes = tables['income'] as List;
     incomes[0] = Map<String, Object?>.from(incomes.single as Map)..['account_id'] = 999;
     await expectLater(service.restore(snapshot, recoveryPassword: 'my portable backup password'), throwsA(anything));
     expect((await AnalysisLogic().getAnalysisData())['totalBalance'], 1200);
-    final malicious = await service.snapshot();
+    final malicious = jsonDecode(jsonEncode(await service.snapshot())) as Map<String, dynamic>;
     final accounts = (malicious['tables'] as Map)['accounts'] as List;
     accounts[0] = Map<String, Object?>.from(accounts.first as Map)..['id); DROP TABLE income;--'] = 1;
     await expectLater(service.validate(malicious), throwsFormatException);

@@ -2,11 +2,11 @@ import 'dart:convert';
 import 'package:file_selector/file_selector.dart' as files;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/utils/date_utils.dart' as dates;
 import '../../core/utils/file_actions.dart';
 import 'automatic_backup.dart';
 import 'backup_service.dart';
+import 'backup_vault.dart';
 
 class BackupScreen extends StatefulWidget {
   const BackupScreen({super.key});
@@ -72,7 +72,7 @@ class _BackupScreenState extends State<BackupScreen> {
           label: 'Khatabook backup', extensions: ['sssbackup', 'json'],
           mimeTypes: ['application/json', 'application/octet-stream'], uniformTypeIdentifiers: ['public.json'])]);
         if (file == null) return;
-        if (await file.length() > 30000000) throw const FormatException('Backup too large');
+        if (await file.length() > 75000000) throw const FormatException('Backup too large');
         await review(await BackupCipher.decrypt(await file.readAsString(), password.text));
       }), icon: const Icon(Icons.restore), label: const Text('Import and review backup')),
       const SizedBox(height: 24),
@@ -88,8 +88,7 @@ class _BackupScreenState extends State<BackupScreen> {
       OutlinedButton(onPressed: () => run(() => AutomaticBackup.instance.capture(force: true)), child: const Text('Create checkpoint now')),
       OutlinedButton(onPressed: () => run(() async {
         requirePassword();
-        final prefs = await SharedPreferences.getInstance();
-        final history = prefs.getStringList('sss_auto_backups_v1') ?? [];
+        final history = await BackupVault.list();
         if (history.isEmpty) {if (mounted) setState(() => message = 'No device checkpoints available.'); return;}
         if (!context.mounted) return;
         final selected = await showDialog<int>(context: context, builder: (context) => SimpleDialog(
@@ -99,13 +98,13 @@ class _BackupScreenState extends State<BackupScreen> {
         if (selected == null) return;
         final secret = kIsWeb ? password.text : await AutomaticBackup.instance.password();
         if (secret == null) throw StateError('Checkpoint key unavailable');
-        await review(await BackupCipher.decrypt(history[selected], secret));
+        await review(await BackupCipher.decrypt(await BackupVault.read(history[selected]['id'] as int), secret));
       }), child: const Text('Review / Restore device checkpoint')),
       TextButton(onPressed: () => run(() async {
         requirePassword();
-        final recovery = (await SharedPreferences.getInstance()).getString('sss_pre_restore_recovery_v1');
-        if (recovery == null) {if (mounted) setState(() => message = 'No pre-restore recovery copy available.'); return;}
-        await review(await BackupCipher.decrypt(recovery, password.text));
+        final recovery = await BackupVault.list(purpose: 'recovery');
+        if (recovery.isEmpty) {if (mounted) setState(() => message = 'No pre-restore recovery copy available.'); return;}
+        await review(await BackupCipher.decrypt(await BackupVault.read(recovery.first['id'] as int), password.text));
       }), child: const Text('Recover records from before the last restore')),
       if (busy) const LinearProgressIndicator(),
       if (message != null) Padding(padding: const EdgeInsets.only(top: 16),
