@@ -145,12 +145,12 @@ void main() {
     data=await AnalysisLogic().getAnalysisData();
     expect((data['recentTransactions'] as List).map((e) => e['id']), List.generate(12,(i)=>20-i));
 
-    // Unassigned rows are legacy-only. Exercise the real upgrade path instead of
-    // bypassing the current schema's protection against new unassigned entries.
+    // Version 2 predates the version-3 integrity triggers. Exercise that actual
+    // upgrade boundary without labelling a trigger-free fixture as version 3.
     await DBHelper.close();
     final path='${folder.path}/offline_khata.db';
     await databaseFactory.deleteDatabase(path);
-    final old=await databaseFactory.openDatabase(path,options:OpenDatabaseOptions(version:3,onCreate:(db,version) async {
+    final old=await databaseFactory.openDatabase(path,options:OpenDatabaseOptions(version:2,onCreate:(db,version) async {
       await db.execute('CREATE TABLE accounts(id INTEGER PRIMARY KEY,name TEXT,opening_balance REAL,cash_balance REAL,bank_balance REAL,created_at TEXT)');
       await db.execute('CREATE TABLE income(id INTEGER PRIMARY KEY,account_id INTEGER,amount REAL,description TEXT,date TEXT,created_at TEXT)');
       await db.execute('CREATE TABLE expenses(id INTEGER PRIMARY KEY,account_id INTEGER,amount REAL,mode TEXT,category TEXT,note TEXT,date TEXT)');
