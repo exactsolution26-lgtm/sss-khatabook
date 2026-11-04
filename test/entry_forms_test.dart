@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:offline_khata_app/core/theme/app_theme.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:offline_khata_app/database/db_helper.dart';
 import 'package:offline_khata_app/features/income/income_screen.dart';
@@ -49,7 +50,8 @@ void main() {
       final key = GlobalKey();
       await tester.pumpWidget(RepaintBoundary(key: key, child: MaterialApp(
           debugShowCheckedModeBanner: false,
-        theme: ThemeData(fontFamily: 'PreviewFont', colorSchemeSeed: const Color(0xff086b78)),
+        theme: AppTheme.lightTheme.copyWith(
+          textTheme: AppTheme.lightTheme.textTheme.apply(fontFamily: 'PreviewFont')),
         home: income ? const IncomeScreen() : const ExpenseScreen(),
       )));
       await tester.pumpAndSettle();

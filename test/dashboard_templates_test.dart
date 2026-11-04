@@ -4,10 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:offline_khata_app/core/theme/app_theme.dart';
 import 'package:offline_khata_app/features/dashboard/dashboard_layout.dart';
 import 'package:offline_khata_app/features/dashboard/dashboard_templates.dart';
 import 'package:offline_khata_app/models/account_model.dart';
 import 'package:offline_khata_app/features/dashboard/super_admin_preview.dart';
+
+ThemeData previewTheme(bool dark) {
+  final base = dark ? AppTheme.darkTheme : AppTheme.lightTheme;
+  return base.copyWith(textTheme: base.textTheme.apply(fontFamily: 'PreviewFont'));
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -50,9 +56,7 @@ void main() {
         final boundaryKey = GlobalKey();
         await tester.pumpWidget(RepaintBoundary(key: boundaryKey, child: MaterialApp(
           debugShowCheckedModeBanner: false,
-          theme: ThemeData(fontFamily: 'PreviewFont',
-            colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xff086b78),
-              brightness: dark ? Brightness.dark : Brightness.light)),
+          theme: previewTheme(dark),
           home: Scaffold(appBar: AppBar(title: Text(layout.title(false))),
             body: SingleChildScrollView(child: Padding(
             padding: const EdgeInsets.all(16),
@@ -103,8 +107,7 @@ void main() {
       final key = GlobalKey();
       await tester.pumpWidget(RepaintBoundary(key: key, child: MaterialApp(
           debugShowCheckedModeBanner: false,
-        theme: ThemeData(fontFamily: 'PreviewFont', colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xff086b78), brightness: dark ? Brightness.dark : Brightness.light)),
+        theme: previewTheme(dark),
         home: const SuperAdminPreview(),
       )));
       await tester.pumpAndSettle();
