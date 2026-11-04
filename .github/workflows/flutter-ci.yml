@@ -130,7 +130,11 @@ jobs:
       - name: Install SQLite browser worker and WASM
         run: dart run sqflite_common_ffi_web:setup
       - name: Web release build
-        run: flutter build web --release
+        run: flutter build web --release --no-web-resources-cdn
+      - name: Generate offline public asset shell
+        run: |
+          python3 test_tools/browser/offline_shell.py build/web "$GITHUB_SHA"
+          node --check build/web/sss-sw.js
       - name: Install browser acceptance runner
         run: |
           npm install --no-save playwright@1.56.1

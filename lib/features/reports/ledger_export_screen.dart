@@ -30,6 +30,8 @@ class _LedgerExportScreenState extends State<LedgerExportScreen> {
             onPressed: () => share(context, bytes, 'pdf', 'application/pdf')),
           TextButton.icon(icon: const Icon(Icons.table_chart_outlined), label: const Text('Download / Share CSV'),
             onPressed: () => share(context, ledger.csv(), 'csv', 'text/csv')),
+          TextButton.icon(icon: const Icon(Icons.grid_on_outlined), label: const Text('Download / Share Excel'),
+            onPressed: () => share(context, ledger.xlsx(), 'xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')),
         ]),
         Expanded(child: PdfPreview(build: (_) async => bytes, canChangePageFormat: false,
           canChangeOrientation: false, allowSharing: false, allowPrinting: true)),

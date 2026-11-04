@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../../database/db_helper.dart';
+import '../entries/party_snapshot.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -24,6 +25,7 @@ class WhatsAppDraft {
     this.month = '',
     this.sourceAccountId,
     this.sourceIncomeId,
+    this.recipientPhone,
   });
   final WhatsAppMessageType type;
   final String customer;
@@ -33,6 +35,7 @@ class WhatsAppDraft {
   final String month;
   final int? sourceAccountId;
   final int? sourceIncomeId;
+  final String? recipientPhone;
 
   String get message {
     final name = customer.trim();
@@ -82,7 +85,9 @@ class WhatsAppShareService {
   }
 
   static Uri buildLink(String phone, String message) {
-    final number = normalizeIndianPhone(phone);
+    String number;
+    try {number = PartySnapshot.optional('Recipient', phone)!.phone.substring(1);}
+    catch (_) {throw const FormatException('Enter a valid phone number, with country code for international contacts');}
     if (message.trim().isEmpty || message.length > 4000) {
       throw ArgumentError('Message must contain 1 to 4000 characters');
     }
@@ -103,7 +108,7 @@ class WhatsAppShareService {
         if (draft.sourceIncomeId == null)
           throw StateError('Choose a recorded payment');
         final rows = await txn.rawQuery(
-          'SELECT income.id, income.amount, income.date, income.created_at, income.contact_name, accounts.name FROM income JOIN accounts ON accounts.id = income.account_id WHERE income.id = ?',
+          'SELECT income.id, income.amount, income.date, income.created_at, income.contact_name, income.contact_phone, accounts.name FROM income JOIN accounts ON accounts.id = income.account_id WHERE income.id = ?',
           [draft.sourceIncomeId],
         );
         if (rows.length != 1) throw StateError('Recorded payment not found');
@@ -116,6 +121,7 @@ class WhatsAppShareService {
           timestampUtc: DateTime.parse(row['created_at'] as String).toUtc(),
           details: 'Recorded date: ${row['date']}',
           sourceIncomeId: draft.sourceIncomeId,
+          recipientPhone: row['contact_phone'] as String?,
         );
       }
       if (draft.sourceAccountId == null)
@@ -161,8 +167,11 @@ class WhatsAppShareService {
   }
 
   /// Opens a user-confirmed WhatsApp draft. Never claims delivery.
-  Future<bool> openDraft(String phone, WhatsAppDraft requested) async {
+  Future<bool> openDraft(String phone, WhatsAppDraft requested, {String? expectedMessage}) async {
     final draft = await resolveDraft(requested);
+    if (expectedMessage != null && expectedMessage != draft.message) {
+      throw StateError('Financial record changed; review the preview again');
+    }
     if (draft.customer.trim().isEmpty) {
       throw ArgumentError('Customer name is required');
     }

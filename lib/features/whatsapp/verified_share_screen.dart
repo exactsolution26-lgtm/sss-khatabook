@@ -15,11 +15,17 @@ class _VerifiedShareScreenState extends State<VerifiedShareScreen> {
   late Future<WhatsAppDraft> preview;
   bool optedIn = false;
   bool busy = false;
+  bool phoneEdited = false;
   String? error;
   @override
   void initState() {
     super.initState();
-    preview = service.resolveDraft(widget.draft);
+    preview = resolve();
+  }
+  Future<WhatsAppDraft> resolve() async {
+    final result = await service.resolveDraft(widget.draft);
+    if (mounted && !phoneEdited && result.recipientPhone != null) phone.text = result.recipientPhone!;
+    return result;
   }
 
   @override
@@ -35,7 +41,8 @@ class _VerifiedShareScreenState extends State<VerifiedShareScreen> {
       error = null;
     });
     try {
-      final opened = await service.openDraft(phone.text, widget.draft);
+      final shown = await preview;
+      final opened = await service.openDraft(phone.text, widget.draft, expectedMessage: shown.message);
       if (!mounted) return;
       if (!opened) throw StateError('WhatsApp could not open');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -46,8 +53,10 @@ class _VerifiedShareScreenState extends State<VerifiedShareScreen> {
     } catch (_) {
       if (mounted)
         setState(
-          () =>
-              error = 'Check the phone number and recorded entry, then retry.',
+          () {
+            preview = resolve(); optedIn = false;
+            error = 'Review the current record and phone number, then select Share again.';
+          },
         );
     } finally {
       if (mounted) setState(() => busy = false);
@@ -79,6 +88,7 @@ class _VerifiedShareScreenState extends State<VerifiedShareScreen> {
         const SizedBox(height: 20),
         TextField(
           controller: phone,
+          onChanged: (_) => phoneEdited = true,
           keyboardType: TextInputType.phone,
           decoration: const InputDecoration(labelText: 'WhatsApp number'),
         ),

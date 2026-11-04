@@ -2,6 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:offline_khata_app/features/whatsapp/whatsapp_share_service.dart';
 
 void main() {
+  test('international contact numbers can open an encoded draft link without any sending', () {
+    expect(WhatsAppShareService.buildLink('+44 20 7946 0000', 'Payment reminder').path, '/442079460000');
+  });
   final date = DateTime.utc(2026, 11, 4, 18, 30);
   WhatsAppDraft draft(WhatsAppMessageType type, {String details = 'Details'}) =>
       WhatsAppDraft(

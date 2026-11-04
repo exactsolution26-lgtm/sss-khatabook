@@ -5,6 +5,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import '../../database/db_helper.dart';
 import '../../core/utils/date_utils.dart' as dates;
+import 'xlsx_export.dart';
 
 class LedgerExport {
   LedgerExport(this.account, this.entries);
@@ -37,9 +38,9 @@ class LedgerExport {
     if (value is! num && RegExp(r'^[\s]*[=+@\-\t\r]').hasMatch(text)) text = "'$text";
     return '"${text.replaceAll('"', '""')}"';
   }
-  Uint8List csv() {
+  List<List<Object?>> tabularRows() {
     var running = openingPaise;
-    final rows = <List<Object?>>[
+    return <List<Object?>>[
       ['Account', account['name']],
       ['Date', 'Type', 'Amount INR', 'Running Balance INR', 'Category', 'Payment Mode',
         'Contact Name', 'Contact Phone', 'Description', 'Saved at IST'],
@@ -52,8 +53,9 @@ class LedgerExport {
           : dates.DateUtils.formatIstDateTime(DateTime.parse(row['created_at'] as String)),
       ],
     ];
-    return Uint8List.fromList(utf8.encode('\ufeff${rows.map((r) => r.map(csvCell).join(',')).join('\r\n')}'));
   }
+  Uint8List csv() => Uint8List.fromList(utf8.encode('\ufeff${tabularRows().map((r) => r.map(csvCell).join(',')).join('\r\n')}'));
+  Uint8List xlsx() => XlsxExport.write(tabularRows());
 
   Future<Uint8List> pdf() async {
     final latin = pw.Font.ttf(await rootBundle.load('assets/fonts/NotoSans-Regular.ttf'));

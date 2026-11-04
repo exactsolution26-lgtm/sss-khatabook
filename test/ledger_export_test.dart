@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:offline_khata_app/database/db_helper.dart';
@@ -33,6 +34,10 @@ void main() {
     expect(csv, contains('Ravi Verma')); expect(csv, contains("'+919876543210"));
     expect(csv, contains("'=HYPERLINK")); expect(csv, contains('1150.0'));
     expect(csv, isNot(contains('Other account'))); expect(csv, contains('IST'));
+    final workbook = ZipDecoder().decodeBytes(report.xlsx());
+    final xml = utf8.decode(workbook.findFile('xl/worksheets/sheet1.xml')!.content);
+    expect(xml, contains('t="inlineStr"')); expect(xml, isNot(contains('<f>')));
+    expect(xml, contains('=HYPERLINK')); expect(xml, contains('<v>1150.0</v>'));
     final pdf = await report.pdf();
     expect(ascii.decode(pdf.take(5).toList()), '%PDF-');
     expect(pdf.length, greaterThan(1000));
@@ -40,6 +45,7 @@ void main() {
       await Directory('design-evidence').create(recursive: true);
       await File('design-evidence/ledger-example.pdf').writeAsBytes(pdf);
       await File('design-evidence/ledger-example.csv').writeAsBytes(report.csv());
+      await File('design-evidence/ledger-example.xlsx').writeAsBytes(report.xlsx());
     }
   });
   test('CSV escapes quotes, multiline notes and spreadsheet formulas', () {

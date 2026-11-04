@@ -258,6 +258,10 @@ void main() {
     expect(draft.customer, 'Ravi Verma');
     expect(draft.amount, 75);
     expect(draft.timestampUtc, original.createdAt.toUtc());
+    expect(draft.recipientPhone, '+919876543210');
+    await expectLater(const WhatsAppShareService().openDraft('9876543210', WhatsAppDraft(
+      type: WhatsAppMessageType.receipt, customer: '', amount: 0, timestampUtc: DateTime.utc(2000), sourceIncomeId: id),
+      expectedMessage: 'An outdated or forged preview'), throwsStateError);
   });
 
   test('expense receipt uses normalized saved contact and a genuine save timestamp', () async {
