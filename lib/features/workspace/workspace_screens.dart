@@ -183,7 +183,7 @@ class _DraftHistoryState extends State<DraftHistoryScreen> {
 
 class SupportScreen extends StatelessWidget {
   const SupportScreen({super.key});
-  static const diagnostic='SSS Khatabook 1.0.2+102\nMode: offline workspace\nDatabase schema: 10\nSupport codes: SSS-UI, SSS-CLOUD-SETUP, SSS-STARTUP\nDescribe the screen, action and problem. Remove financial/contact information from screenshots before sharing.';
+  static const diagnostic='SSS Khatabook 1.0.2+102\nMode: offline workspace\nDatabase schema: 11\nSupport codes: SSS-UI, SSS-CLOUD-SETUP, SSS-STARTUP\nDescribe the screen, action and problem. Remove financial/contact information from screenshots before sharing.';
   @override Widget build(BuildContext context){String t(String en,String hi)=>workspaceText(context,en,hi);
     return Scaffold(appBar:AppBar(title:Text(t('Help & Support','सहायता'))),body:ListView(padding:const EdgeInsets.all(20),children:[
       Text(t('Keep your records safe','अपने रिकॉर्ड सुरक्षित रखें'),style:Theme.of(context).textTheme.titleLarge),

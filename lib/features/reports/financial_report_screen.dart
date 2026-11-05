@@ -12,7 +12,7 @@ class FinancialReportScreen extends StatefulWidget {
   @override State<FinancialReportScreen> createState()=>_FinancialReportState();
 }
 class _FinancialReportState extends State<FinancialReportScreen> {
-  late Future<FinancialReport> report;late final Future<List<AccountModel>> accounts=AccountTable.getAllAccounts();
+  late Future<FinancialReport> report;late final Future<List<AccountModel>> accounts=AccountTable.getAllAccounts(includeArchived:true);
   DateTimeRange? range;int? accountId;
   @override void initState(){super.initState();reload();}
   String t(String en,String hi)=>workspaceText(context,en,hi);
@@ -45,7 +45,7 @@ class _FinancialReportState extends State<FinancialReportScreen> {
         if(!s.hasData)return const LinearProgressIndicator();
         return DropdownButtonFormField<int>(initialValue:accountId??0,isExpanded:true,decoration:InputDecoration(labelText:t('Account','खाता')),
           items:[DropdownMenuItem(value:0,child:Text(t('All accounts (including unassigned)','सभी खाते (असंबद्ध सहित)'))),
-            for(final a in s.data!)DropdownMenuItem(value:a.id,child:Text(a.name))],
+            for(final a in s.data!)DropdownMenuItem(value:a.id,child:Text('${a.name}${a.isArchived?' (Archived)':''}'))],
           onChanged:(v)=>setState((){accountId=v==0?null:v;reload();}));
       }),
       const SizedBox(height:12),Wrap(spacing:8,runSpacing:8,children:[

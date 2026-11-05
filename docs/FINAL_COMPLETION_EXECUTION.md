@@ -14,10 +14,11 @@ Work only on development/stability-foundation. Owner requests completion of all 
 8. Add profile/contacts/templates/import identifiers to encrypted backup validation/restore, schema migration and recovery; retain schema6–9 compatibility. No silent omission of new workspace records.
 9. Implement bounded CSV parsing/import with sample, preview, explicit confirmation, integer-paise validation, accounting-date/contact checks, existing account lookup, idempotency, source-ID conflicts and atomic rollback. Never overwrite existing financial rows. Identical intentional payments can use distinct source IDs.
 10. Implement date/account-filtered monthly/category/payment-mode reports using one SQLite snapshot and integer-paise sums. Show period net movement separately from opening balances/unpaid dues; preserve all-account legacy expense accounting.
-11. Add useful help/backup/voice guidance and safe diagnostic-copy action; no automatic financial/contact data upload or fabricated support submission.
-12. Run targeted tests and the full combined analyzer/Flutter/SQLite/PostgreSQL/Web/browser regression suite; fix actual failures and preserve run/commit evidence. No Android builds.
-13. Continue remaining security/authentication/subscriber/admin/billing/lease/sync work in dependency order. Live Supabase deployment and trusted owner bootstrap, merchant credentials, trusted license/signing custody, physical-device verification and representative 10,000-user infrastructure are external blockers. Do not replace these with simulations labeled complete.
-14. Keep full localization, account archival/recovery, production encryption/auth integration, advanced SaaS management and device acceptance visible as open gates until independently implemented and verified.
+11. Add recoverable account archival: active pickers exclude archived accounts; all-time reports/history retain their records; SQLite rejects financial writes until restore. Preserve archive state through schema11 migration and backups.
+12. Add useful help/backup/voice guidance and safe diagnostic-copy action; no automatic financial/contact data upload or fabricated support submission.
+13. Run targeted tests and the full combined analyzer/Flutter/SQLite/PostgreSQL/Web/browser regression suite; fix actual failures and preserve run/commit evidence. No Android builds.
+14. Continue remaining security/authentication/subscriber/admin/billing/lease/sync work in dependency order. Live Supabase deployment and trusted owner bootstrap, merchant credentials, trusted license/signing custody, physical-device verification and representative 10,000-user infrastructure are external blockers. Do not replace these with simulations labeled complete.
+15. Keep full localization, production encryption/auth integration, advanced SaaS management and device acceptance visible as open gates until independently implemented and verified.
 
 ## Review decisions
 

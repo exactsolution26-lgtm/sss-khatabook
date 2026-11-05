@@ -61,14 +61,14 @@ class BackupService {
   Future<Map<String, dynamic>> snapshot() async {
     final db = await DBHelper.database;
     return db.transaction((txn) async => {
-      'format': 'sss-khatabook-records', 'version': 1, 'schema': 10,
+      'format': 'sss-khatabook-records', 'version': 1, 'schema': 11,
       'created_at': DateTime.now().toUtc().toIso8601String(),
       'tables': {for (final table in tableNames) table: await txn.query(table, orderBy: 'rowid')},
     });
   }
 
   Map<String, List<Map<String, Object?>>> validateShape(Map<String, dynamic> data) {
-    if (data['format'] != 'sss-khatabook-records' || data['version'] != 1 || ![6, 7, 8, 9, 10].contains(data['schema'])) {
+    if (data['format'] != 'sss-khatabook-records' || data['version'] != 1 || ![6, 7, 8, 9, 10, 11].contains(data['schema'])) {
       throw const FormatException('Unsupported record format');
     }
     DateTime.parse(data['created_at'] as String);
@@ -84,6 +84,7 @@ class BackupService {
     var count = 0;
     for (final table in tableNames) {
       final rows = source[table] as List;
+      if(table=='message_templates' && rows.length>50)throw const FormatException('Too many message templates');
       count += rows.length;
       if (count > 100000) throw const FormatException('Backup row limit exceeded');
       result[table] = rows.map((value) {
@@ -117,7 +118,7 @@ class BackupService {
           if(row['id'] is! int || (row['id'] as int)<=0) throw const FormatException('Invalid template identity');
         }
         if(table=='import_records' &&
-          (row['source_key'] is! String || (row['source_key'] as String).length>140 ||
+          (row['source_key'] is! String || !RegExp(r'^(hash:[a-f0-9]{64}|external:[A-Za-z0-9_.:-]{1,120})$').hasMatch(row['source_key'] as String) ||
           !RegExp(r'^[a-f0-9]{64}$').hasMatch(row['content_hash'] as String) ||
           !['income','expense'].contains(row['kind']) || row['record_id'] is! int || (row['record_id'] as int)<=0)) {
           throw const FormatException('Invalid import identity');

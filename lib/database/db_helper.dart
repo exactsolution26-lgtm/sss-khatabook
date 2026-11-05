@@ -40,7 +40,7 @@ class DBHelper {
   }
 
   static OpenDatabaseOptions get options => OpenDatabaseOptions(
-    version: 10,
+    version: 11,
     onConfigure: (db) async => db.execute('PRAGMA foreign_keys = ON'),
     onCreate: (db, version) async {
       await db.execute('''CREATE TABLE accounts (
@@ -50,7 +50,7 @@ class DBHelper {
           cash_balance REAL NOT NULL DEFAULT 0,
           bank_balance REAL NOT NULL DEFAULT 0,
           created_at TEXT NOT NULL,
-          opening_balance_saved_at TEXT
+          opening_balance_saved_at TEXT, archived_at TEXT
         )''');
       await db.execute('''CREATE TABLE expenses (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -72,6 +72,7 @@ class DBHelper {
       await WorkspaceSchema.install(db);
     },
     onUpgrade: (db, oldVersion, newVersion) async {
+      if(oldVersion<11) await db.execute('ALTER TABLE accounts ADD COLUMN archived_at TEXT');
       if (oldVersion < 2) {
         final columns = await db.rawQuery('PRAGMA table_info(accounts)');
         final names = columns.map((c) => c['name']).toSet();
@@ -126,6 +127,7 @@ class DBHelper {
       if (oldVersion < 8) {await DuesSchema.install(db); await FollowupSchema.install(db);}
       if (oldVersion < 9) await RecordRecovery.install(db);
       if (oldVersion < 10) await WorkspaceSchema.install(db);
+      if (oldVersion < 11) await _installIntegrityGuards(db);
     },
   );
 
@@ -174,6 +176,10 @@ class DBHelper {
   );
 
   static Future<void> _installIntegrityGuards(DatabaseExecutor db) async {
+    await db.execute('DROP TRIGGER IF EXISTS account_opening_lock');
+    for(final table in ['income','expenses']) {for(final action in ['insert','update']) {
+      await db.execute('DROP TRIGGER IF EXISTS ${table}_${action}_guard');
+    }}
     await db.execute(
       '''CREATE TRIGGER account_opening_lock BEFORE UPDATE ON accounts
       WHEN (NEW.opening_balance IS NOT OLD.opening_balance
@@ -189,6 +195,7 @@ class DBHelper {
           BEFORE $operation ON $table
           WHEN NEW.account_id IS NULL OR NEW.amount IS NULL OR NEW.amount <= 0
             OR NEW.amount > 90000000000000
+            OR EXISTS(SELECT 1 FROM accounts a WHERE a.id=NEW.account_id AND a.archived_at IS NOT NULL)
           BEGIN SELECT RAISE(ABORT, 'Invalid financial record'); END''',
         );
       }

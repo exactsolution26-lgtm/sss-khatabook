@@ -54,7 +54,7 @@ void main(){
   test('new workspace data and import identities survive validated encrypted-compatible restore',()async{
     await WorkspaceStore.saveProfile(name:'Business');await WorkspaceStore.saveContact('Ravi','9876543210');
     await WorkspaceStore.saveTemplate('Reminder','Please review your ledger.');await CsvImport.commit([entry()]);
-    final service=BackupService();final snapshot=await service.snapshot();expect(snapshot['schema'],10);await service.validate(snapshot);
+    final service=BackupService();final snapshot=await service.snapshot();expect(snapshot['schema'],11);await service.validate(snapshot);
     await WorkspaceStore.saveProfile(name:'Changed');
     await DBHelper.replaceSnapshot(await DBHelper.database,service.validateShape(snapshot));
     expect((await WorkspaceStore.profile())!['name'],'Business');expect(await WorkspaceStore.contacts(),hasLength(1));
@@ -111,6 +111,35 @@ void main(){
     await expectLater(FinancialReport.load(accountId:999),throwsStateError);
   });
 
+  test('account archive keeps financial totals/history and blocks writes until restore',()async{
+    await CsvImport.commit([entry()]);final db=await DBHelper.database;
+    final before=(await AnalysisLogic().getAnalysisData())['totalBalance'];
+    await AccountTable.archive(account,archived:true);
+    expect(await AccountTable.getAllAccounts(),isEmpty);
+    expect((await AccountTable.getAllAccounts(includeArchived:true)).single.isArchived,isTrue);
+    expect((await AnalysisLogic().getAnalysisData())['totalBalance'],before);
+    expect(await db.query('income'),hasLength(1));
+    await expectLater(CsvImport.commit([entry(id:'blocked')]),throwsA(isA<DatabaseException>()));
+    await expectLater(db.update('income',{'amount':200},where:'id=1'),throwsA(isA<DatabaseException>()));
+    final service=BackupService();final snapshot=await service.snapshot();await service.validate(snapshot);
+    await DBHelper.replaceSnapshot(db,service.validateShape(snapshot));
+    expect((await AccountTable.getAllAccounts(includeArchived:true)).single.isArchived,isTrue);
+    await AccountTable.archive(account,archived:false);
+    expect(await AccountTable.getAllAccounts(),hasLength(1));
+    expect((await CsvImport.commit([entry(id:'after-restore')])).inserted,1);
+  });
+  test('schema10 workspace upgrades without changing records and adds archive guards',()async{
+    await CsvImport.commit([entry()]);final db=await DBHelper.database;
+    for(final table in ['income','expenses']){for(final action in ['insert','update']){await db.execute('DROP TRIGGER ${table}_${action}_guard');}}
+    await db.execute('ALTER TABLE accounts DROP COLUMN archived_at');
+    await db.execute('PRAGMA user_version=10');await DBHelper.close();
+    final upgraded=await DBHelper.database;
+    expect((await upgraded.rawQuery('PRAGMA user_version')).single.values.single,11);
+    expect((await upgraded.query('income')).single['amount'],100.10);
+    await AccountTable.archive(account,archived:true);
+    await expectLater(CsvImport.commit([entry(id:'must-block')]),throwsA(isA<DatabaseException>()));
+    expect((await upgraded.rawQuery('PRAGMA integrity_check')).single.values.single,'ok');
+  });
   testWidgets('profile form saves durable values and actual saved timestamp through app navigation',(tester)async{
     await tester.pumpWidget(app());await tester.pumpAndSettle();await tester.tap(find.byTooltip('Settings'));await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('Business Profile'),200,scrollable:find.byType(Scrollable).first);
@@ -128,7 +157,7 @@ void main(){
     await tester.tap(find.text('Review WhatsApp draft'));await tester.pumpAndSettle();
     expect(find.byType(WhatsAppShareScreen),findsOneWidget);expect(find.text('Please call when convenient.'),findsWidgets);
     expect(tester.widget<CheckboxListTile>(find.byType(CheckboxListTile)).value,isFalse);
-    expect(tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,isNull);
+    expect(tester.widget<FilledButton>(find.byWidgetPredicate((w)=>w is FilledButton)).onPressed,isNull);
     expect(tester.takeException(),isNull);await tester.pumpWidget(const SizedBox.shrink());settings.dispose();
   });
   testWidgets('draft history distinguishes opening from delivery and tolerates malformed historic rows',(tester)async{

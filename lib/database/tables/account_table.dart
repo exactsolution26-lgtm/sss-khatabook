@@ -52,6 +52,16 @@ class AccountTable {
     });
   }
 
+  static Future<void> archive(int id,{required bool archived}) async {
+    await (await DBHelper.database).transaction((txn) async {
+      final rows=await txn.query('accounts',where:'id=?',whereArgs:[id]);
+      if(rows.length!=1)throw StateError('Account not found');
+      if((rows.single['archived_at']!=null)==archived)return;
+      await txn.update('accounts',{'archived_at':archived?DateTime.now().toUtc().toIso8601String():null},where:'id=?',whereArgs:[id]);
+      await txn.insert('app_audit',{'entity':'accounts','record_id':id,'operation':archived?'archive':'unarchive','new_label':rows.single['name']});
+    });
+  }
+
   static Future<DateTime> saveOpeningBalance({
     required double cash,
     required double bank,
@@ -62,7 +72,7 @@ class AccountTable {
     final db = await DBHelper.database;
     return db.transaction((txn) async {
       final savedAt = DateTime.now().toUtc();
-      final existing = await txn.query('accounts', orderBy: 'id ASC', limit: 1);
+      final existing = await txn.query('accounts',where:'archived_at IS NULL',orderBy:'id ASC',limit:1);
       if (existing.isEmpty) {
         await txn.insert('accounts', {
           'name': 'Main Account',
@@ -89,9 +99,9 @@ class AccountTable {
     });
   }
 
-  static Future<List<AccountModel>> getAllAccounts() async {
+  static Future<List<AccountModel>> getAllAccounts({bool includeArchived=false}) async {
     final db = await DBHelper.database;
-    final rows = await db.query('accounts', orderBy: 'id ASC');
+    final rows = await db.query('accounts', where:includeArchived?null:'archived_at IS NULL',orderBy: 'id ASC');
     return rows.map(AccountModel.fromMap).toList();
   }
 }

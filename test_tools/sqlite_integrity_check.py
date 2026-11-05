@@ -24,10 +24,10 @@ class IntegrityGuards(unittest.TestCase):
     def setUp(self):
         self.db = sqlite3.connect(':memory:')
         self.db.execute('PRAGMA foreign_keys=ON')
-        self.db.execute('CREATE TABLE accounts(id INTEGER PRIMARY KEY,name TEXT,opening_balance REAL,cash_balance REAL,bank_balance REAL)')
+        self.db.execute('CREATE TABLE accounts(id INTEGER PRIMARY KEY,name TEXT,opening_balance REAL,cash_balance REAL,bank_balance REAL,archived_at TEXT)')
         for table in ('income', 'expenses'):
             self.db.execute(f'CREATE TABLE {table}(id INTEGER PRIMARY KEY,account_id INTEGER REFERENCES accounts(id),amount REAL)')
-        self.db.execute("INSERT INTO accounts VALUES(1,'A',100,50,50)")
+        self.db.execute("INSERT INTO accounts VALUES(1,'A',100,50,50,NULL)")
         self.db.execute('INSERT INTO expenses VALUES(10,NULL,20)')
         install_actual_guard_sql(self.db)
 
@@ -66,6 +66,18 @@ class IntegrityGuards(unittest.TestCase):
         self.db.execute('INSERT INTO expenses VALUES(2,1,10)')
         with self.assertRaises(sqlite3.IntegrityError):
             self.db.execute('UPDATE accounts SET opening_balance=200 WHERE id=1')
+
+    def test_archive_blocks_financial_writes_and_restore_reenables_them(self):
+        self.db.execute('INSERT INTO income VALUES(1,1,10)')
+        self.db.execute("UPDATE accounts SET archived_at='2026-11-06T00:00:00Z' WHERE id=1")
+        for table in ('income', 'expenses'):
+            with self.assertRaises(sqlite3.IntegrityError):
+                self.db.execute(f'INSERT INTO {table}(account_id,amount) VALUES(1,5)')
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.db.execute('UPDATE income SET amount=20 WHERE id=1')
+        self.assertEqual(self.db.execute('SELECT amount FROM income WHERE id=1').fetchone(), (10,))
+        self.db.execute('UPDATE accounts SET archived_at=NULL WHERE id=1')
+        self.db.execute('INSERT INTO expenses(account_id,amount) VALUES(1,5)')
 
     def test_unknown_account_rejected(self):
         with self.assertRaises(sqlite3.IntegrityError):

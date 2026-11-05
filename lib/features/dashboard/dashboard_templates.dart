@@ -116,7 +116,7 @@ class DashboardTemplateView extends StatelessWidget {
   ]);
 
   Widget accountList(BuildContext context) {
-    final accounts = data['accountDetails'] as List;
+    final accounts = (data['accountDetails'] as List).where((row)=>!(row['account'] as AccountModel).isArchived).toList();
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Text(t('Accounts', 'खाते'), style: Theme.of(context).textTheme.titleLarge),
       const SizedBox(height: 8),

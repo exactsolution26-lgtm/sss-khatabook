@@ -4,6 +4,7 @@ import '../../database/db_helper.dart';
 import '../../database/tables/account_table.dart';
 import '../../models/account_model.dart';
 import '../settings/app_settings.dart';
+import 'archived_accounts_screen.dart';
 import '../whatsapp/verified_share_screen.dart';
 import '../whatsapp/whatsapp_share_service.dart';
 import '../reports/ledger_export_screen.dart';
@@ -85,9 +86,19 @@ class _AccountsScreenState extends State<AccountsScreen> {
     }
   }
 
+  Future<void> _archive(AccountModel account) async {
+    final ok=await showDialog<bool>(context:context,builder:(c)=>AlertDialog(title:const Text('Archive account?'),
+      content:const Text('Records and balances stay in reports and history. Restore the account before adding or editing its financial entries.'),
+      actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:const Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(c,true),child:const Text('Archive'))]));
+    if(ok!=true)return;
+    try{await AccountTable.archive(account.id!,archived:true);if(mounted)setState(_reload);}
+    catch(_){if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not archive account.')));}
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(SettingsScope.of(context).text('accounts'))),
+    appBar: AppBar(title: Text(SettingsScope.of(context).text('accounts')),actions:[IconButton(tooltip:'Archived accounts',icon:const Icon(Icons.archive_outlined),
+      onPressed:()async{await Navigator.push(context,MaterialPageRoute<void>(builder:(_)=>const ArchivedAccountsScreen()));if(mounted)setState(_reload);})]),
     floatingActionButton: FloatingActionButton.extended(
       onPressed: _edit,
       icon: const Icon(Icons.add),
@@ -130,9 +141,10 @@ class _AccountsScreenState extends State<AccountsScreen> {
                     ),
                     trailing: PopupMenuButton<String>(
                       onSelected: (value) =>
-                          value == 'edit' ? _edit(a) : _remove(a),
+                          value == 'edit' ? _edit(a) : value=='archive'?_archive(a):_remove(a),
                       itemBuilder: (_) => const [
                         PopupMenuItem(value: 'edit', child: Text('Edit')),
+                        PopupMenuItem(value:'archive',child:Text('Archive account')),
                         PopupMenuItem(
                           value: 'delete',
                           child: Text('Delete empty account'),
