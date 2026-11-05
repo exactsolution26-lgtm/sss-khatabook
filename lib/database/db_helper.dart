@@ -2,6 +2,7 @@ import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
 import 'tables/income_table.dart';
+import '../features/workspace/workspace_schema.dart';
 import '../features/entries/record_recovery.dart';
 import 'tables/work_table.dart';
 import 'recovery_schema.dart';
@@ -39,7 +40,7 @@ class DBHelper {
   }
 
   static OpenDatabaseOptions get options => OpenDatabaseOptions(
-    version: 9,
+    version: 10,
     onConfigure: (db) async => db.execute('PRAGMA foreign_keys = ON'),
     onCreate: (db, version) async {
       await db.execute('''CREATE TABLE accounts (
@@ -68,6 +69,7 @@ class DBHelper {
       await DuesSchema.install(db);
       await FollowupSchema.install(db);
       await RecordRecovery.install(db);
+      await WorkspaceSchema.install(db);
     },
     onUpgrade: (db, oldVersion, newVersion) async {
       if (oldVersion < 2) {
@@ -123,6 +125,7 @@ class DBHelper {
       if (oldVersion < 7) await AttachmentStore.install(db);
       if (oldVersion < 8) {await DuesSchema.install(db); await FollowupSchema.install(db);}
       if (oldVersion < 9) await RecordRecovery.install(db);
+      if (oldVersion < 10) await WorkspaceSchema.install(db);
     },
   );
 
@@ -139,11 +142,11 @@ class DBHelper {
     }
     await txn.execute('DROP TRIGGER IF EXISTS account_opening_lock');
     await txn.execute('DROP TRIGGER IF EXISTS payment_no_delete');
-    for (final table in ['recycled_entries', 'attachments', 'follow_ups', 'payment_allocations', 'obligations', 'income', 'expenses', 'work', 'entry_categories']) {
+    for (final table in [...WorkspaceSchema.tables, 'recycled_entries', 'attachments', 'follow_ups', 'payment_allocations', 'obligations', 'income', 'expenses', 'work', 'entry_categories']) {
       await txn.delete(table);
     }
     await txn.delete('accounts');
-    for (final table in ['accounts', 'income', 'expenses', 'work', 'entry_categories', 'obligations', 'payment_allocations', 'attachments', 'follow_ups', 'recycled_entries']) {
+    for (final table in ['accounts', 'income', 'expenses', 'work', 'entry_categories', 'obligations', 'payment_allocations', 'attachments', 'follow_ups', 'recycled_entries', ...WorkspaceSchema.tables]) {
       for (final row in tables[table]!) {
         await txn.insert(table, table == 'follow_ups' ? {...row, 'notification_scheduled': 0} : row);
       }

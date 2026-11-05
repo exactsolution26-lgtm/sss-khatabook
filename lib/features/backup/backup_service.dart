@@ -5,6 +5,9 @@ import 'package:path/path.dart' as paths;
 import 'package:sqflite/sqflite.dart';
 import '../../database/db_helper.dart';
 import 'backup_vault.dart';
+import '../workspace/workspace_schema.dart';
+import '../workspace/workspace_store.dart';
+import '../entries/party_snapshot.dart';
 import '../entries/attachments.dart';
 import '../entries/record_recovery.dart';
 import '../followups/reminder_notifications.dart';
@@ -53,19 +56,19 @@ class BackupCipher {
 class BackupService {
   BackupService({Future<void> Function(int)? cancelReminder}) : cancelReminder = cancelReminder ?? ReminderNotifications.cancel;
   final Future<void> Function(int) cancelReminder;
-  static const tableNames = ['accounts', 'income', 'expenses', 'work', 'entry_categories', 'app_audit', 'attachments', 'obligations', 'payment_allocations', 'follow_ups', 'recycled_entries'];
+  static const tableNames = ['accounts', 'income', 'expenses', 'work', 'entry_categories', 'app_audit', 'attachments', 'obligations', 'payment_allocations', 'follow_ups', 'recycled_entries', ...WorkspaceSchema.tables];
 
   Future<Map<String, dynamic>> snapshot() async {
     final db = await DBHelper.database;
     return db.transaction((txn) async => {
-      'format': 'sss-khatabook-records', 'version': 1, 'schema': 9,
+      'format': 'sss-khatabook-records', 'version': 1, 'schema': 10,
       'created_at': DateTime.now().toUtc().toIso8601String(),
       'tables': {for (final table in tableNames) table: await txn.query(table, orderBy: 'rowid')},
     });
   }
 
   Map<String, List<Map<String, Object?>>> validateShape(Map<String, dynamic> data) {
-    if (data['format'] != 'sss-khatabook-records' || data['version'] != 1 || ![6, 7, 8, 9].contains(data['schema'])) {
+    if (data['format'] != 'sss-khatabook-records' || data['version'] != 1 || ![6, 7, 8, 9, 10].contains(data['schema'])) {
       throw const FormatException('Unsupported record format');
     }
     DateTime.parse(data['created_at'] as String);
@@ -73,6 +76,7 @@ class BackupService {
     if (data['schema'] == 6 && !source.containsKey('attachments')) source['attachments'] = [];
     if ((data['schema'] as int) < 8) {source['obligations'] = []; source['payment_allocations'] = []; source['follow_ups'] = [];}
     if ((data['schema'] as int) < 9) source['recycled_entries'] = [];
+    if ((data['schema'] as int) < 10) {for(final table in WorkspaceSchema.tables) {source[table]=[];}}
     if (source.length != tableNames.length || !tableNames.every(source.containsKey)) {
       throw const FormatException('Incomplete backup');
     }
@@ -98,6 +102,25 @@ class BackupService {
           if (item is String && item.length > maximum) throw const FormatException('Backup value too large');
           if (item != null && entry.key.endsWith('_at') &&
               (item is! String || DateTime.tryParse(item) == null)) throw const FormatException('Invalid stored timestamp');
+        }
+        if(table=='business_profile') {
+          if(row['id']!=1) throw const FormatException('Invalid business profile identity');
+          WorkspaceStore.profileValues(name:row['name'] as String,phone:row['phone'] as String,
+            email:row['email'] as String,address:row['address'] as String);
+        }
+        if(table=='contact_directory') {
+          final contact=PartySnapshot.optional(row['name'] as String,row['phone'] as String);
+          if(row['id'] is! int || (row['id'] as int)<=0 || contact==null || contact.phone!=row['phone']) throw const FormatException('Invalid contact');
+        }
+        if(table=='message_templates') {
+          WorkspaceStore.validateTemplate(row['title'] as String,row['body'] as String);
+          if(row['id'] is! int || (row['id'] as int)<=0) throw const FormatException('Invalid template identity');
+        }
+        if(table=='import_records' &&
+          (row['source_key'] is! String || (row['source_key'] as String).length>140 ||
+          !RegExp(r'^[a-f0-9]{64}$').hasMatch(row['content_hash'] as String) ||
+          !['income','expense'].contains(row['kind']) || row['record_id'] is! int || (row['record_id'] as int)<=0)) {
+          throw const FormatException('Invalid import identity');
         }
         if (table == 'income' || table == 'expenses') {
           final amount = row['amount'];

@@ -76,12 +76,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Text(hindi ? 'सेटिंग इस सत्र में लागू है, लेकिन सेव नहीं हुई। फिर कोशिश करें।' : settings.persistenceError!)),
             const SizedBox(height: 20),
             DashboardSnapshot(future: _summary, hindi: hindi, retry: () => setState(_reload),
-              builder: (data) => DashboardTemplateView(
+              builder: (data) => Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
+                if((data['accounts'] as List).isEmpty) OutlinedButton.icon(icon:const Icon(Icons.checklist),
+                  onPressed:()=>_open('/getting-started'),label:Text(hindi?'शुरुआत करें':'Getting Started')),
+                DashboardTemplateView(
                 layout: settings.dashboardLayout, data: data, hindi: hindi,
                 hideAmounts: settings.hideDashboardAmounts, onNavigate: _open,
                 onOpenAccount: (account) => _openPage(AccountLedgerScreen(account: account)),
                 onOpenEntry: (income, id, accountId) => _openPage(TransactionDetailScreen(
-                    income: income, id: id, accountId: accountId)))),
+                    income: income, id: id, accountId: accountId))),
+              ])),
             const SizedBox(height: 24),
             Text(hindi ? 'और सुविधाएं' : 'More tools', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),

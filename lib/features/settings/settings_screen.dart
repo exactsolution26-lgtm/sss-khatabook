@@ -77,6 +77,17 @@ class SettingsScreen extends StatelessWidget {
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.pushNamed(context, '/dashboard-previews'),
           ),
+          for(final item in <(String,String,IconData,String)>[
+            ('Getting Started','शुरुआत करें',Icons.checklist,'/getting-started'),
+            ('Business Profile','व्यवसाय प्रोफ़ाइल',Icons.business_outlined,'/profile'),
+            ('Contact Directory','संपर्क सूची',Icons.contacts_outlined,'/contacts'),
+            ('Message Templates','संदेश टेम्पलेट',Icons.message_outlined,'/message-templates'),
+            ('WhatsApp Draft History','WhatsApp ड्राफ्ट इतिहास',Icons.open_in_new,'/draft-history'),
+            ('Detailed Reports','विस्तृत रिपोर्ट',Icons.analytics_outlined,'/reports/detailed'),
+            ('Import CSV','CSV आयात करें',Icons.upload_file_outlined,'/import'),
+            ('Help & Support','सहायता',Icons.help_outline,'/support'),
+          ]) ListTile(leading:Icon(item.$3),title:Text(settings.language==AppLanguage.hindi?item.$2:item.$1),
+            trailing:const Icon(Icons.chevron_right),onTap:()=>Navigator.pushNamed(context,item.$4)),
           if (settings.persistenceError != null)
             Padding(
               padding: const EdgeInsets.only(top: 16),

@@ -4,7 +4,8 @@ import 'whatsapp_share_service.dart';
 import '../entries/contact_fields.dart';
 
 class WhatsAppShareScreen extends StatefulWidget {
-  const WhatsAppShareScreen({super.key});
+  const WhatsAppShareScreen({super.key,this.initialMessage});
+  final String? initialMessage;
   @override
   State<WhatsAppShareScreen> createState() => _WhatsAppShareScreenState();
 }
@@ -19,6 +20,12 @@ class _WhatsAppShareScreenState extends State<WhatsAppShareScreen> {
   bool optedIn = false;
   bool busy = false;
   String? error;
+
+  @override
+  void initState() {
+    super.initState();
+    if(widget.initialMessage!=null){type=WhatsAppMessageType.custom;details.text=widget.initialMessage!;}
+  }
 
   @override
   void dispose() {

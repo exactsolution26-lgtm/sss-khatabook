@@ -68,6 +68,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                   children: [
                     const HeaderText(text: AppStrings.financialAnalysis),
                     const SizedBox(height: 24),
+                    OutlinedButton.icon(onPressed:()=>Navigator.pushNamed(context,'/reports/detailed'),icon:const Icon(Icons.analytics_outlined),label:const Text('Detailed Reports')),
                     _buildSummaryCard(
                       AppStrings.totalIncome,
                       CalculationUtils.formatCurrency(

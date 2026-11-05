@@ -1,4 +1,7 @@
 import '../features/dashboard/dashboard_screen.dart';
+import '../features/workspace/workspace_screens.dart';
+import '../features/imports/csv_import_screen.dart';
+import '../features/reports/financial_report_screen.dart';
 import '../features/backup/backup_screen.dart';
 import '../features/history/audit_screen.dart';
 import '../features/history/transaction_history_screen.dart';
@@ -27,6 +30,14 @@ class AppRoutes {
 
   static final routes = <String, WidgetBuilder>{
     dashboard: (_) => const DashboardScreen(),
+    '/reports/detailed': (_) => const FinancialReportScreen(),
+    '/import': (_) => const CsvImportScreen(),
+    '/profile': (_) => const BusinessProfileScreen(),
+    '/getting-started': (_) => const GettingStartedScreen(),
+    '/contacts': (_) => const WorkspaceDirectoryScreen(contacts:true),
+    '/message-templates': (_) => const WorkspaceDirectoryScreen(contacts:false),
+    '/draft-history': (_) => const DraftHistoryScreen(),
+    '/support': (_) => const SupportScreen(),
     '/dashboard-previews': (_) => const DashboardPreviewsScreen(),
     '/settings': (_) => const SettingsScreen(),
     '/backup': (_) => const BackupScreen(),

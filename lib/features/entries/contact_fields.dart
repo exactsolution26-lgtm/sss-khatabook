@@ -74,6 +74,7 @@ class _SavedContactPickerState extends State<_SavedContactPicker> {
   Future<List<Map<String,Object?>>> load() async => (await DBHelper.database).rawQuery('''SELECT contact_name,contact_phone FROM income
     WHERE contact_name IS NOT NULL AND contact_phone IS NOT NULL
     UNION SELECT contact_name,contact_phone FROM expenses WHERE contact_name IS NOT NULL AND contact_phone IS NOT NULL
+    UNION SELECT name AS contact_name,phone AS contact_phone FROM contact_directory
     UNION SELECT contact_name,contact_phone FROM obligations WHERE contact_name IS NOT NULL AND contact_phone IS NOT NULL
     ORDER BY contact_name COLLATE NOCASE''');
   @override Widget build(BuildContext context) => SafeArea(child: SizedBox(height: MediaQuery.sizeOf(context).height*0.75,

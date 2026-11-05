@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'core/security/backend_mode.dart';
 
 import 'app.dart';
 import 'core/startup_error.dart';
@@ -8,7 +8,7 @@ import 'database/platform/database_setup.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  configureErrorReporting(() => runApp(const MyApp()));
+  configureErrorReporting(() { startApplication(); });
   configureDatabase();
   await startApplication();
 }
@@ -17,11 +17,10 @@ Future<void> startApplication() async {
   try {
     const url = String.fromEnvironment('SUPABASE_URL');
     const key = String.fromEnvironment('SUPABASE_ANON_KEY');
-    if (url.isEmpty != key.isEmpty) {
-      throw StateError('Backend configuration incomplete');
-    }
-    if (url.isNotEmpty) {
-      await Supabase.initialize(url: url, publishableKey: key);
+    if (!BackendMode.localOnly(url,key)) {
+      runApp(const MaterialApp(home: Scaffold(body: SafeArea(child: Center(child: Padding(
+        padding: EdgeInsets.all(24), child: Text('Cloud account access is not ready. Tenant authentication, storage and synchronization must be configured and verified before cloud access can open.\nSupport code: SSS-CLOUD-SETUP',textAlign:TextAlign.center)))))));
+      return;
     }
     runApp(const MyApp());
   } catch (_) {
