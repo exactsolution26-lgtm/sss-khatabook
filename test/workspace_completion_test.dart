@@ -140,6 +140,14 @@ void main(){
     await expectLater(CsvImport.commit([entry(id:'must-block')]),throwsA(isA<DatabaseException>()));
     expect((await upgraded.rawQuery('PRAGMA integrity_check')).single.values.single,'ok');
   });
+  testWidgets('Hindi preference also localizes framework calendar and dialog controls',(tester)async{
+    SharedPreferences.setMockInitialValues({'sss_language':'hindi'});
+    await tester.pumpWidget(app());await tester.pumpAndSettle();
+    final context=tester.element(find.text('डैशबोर्ड'));
+    expect(Localizations.localeOf(context).languageCode,'hi');
+    expect(MaterialLocalizations.of(context).cancelButtonLabel,isNot('Cancel'));
+    expect(tester.takeException(),isNull);await tester.pumpWidget(const SizedBox.shrink());
+  });
   testWidgets('profile form saves durable values and actual saved timestamp through app navigation',(tester)async{
     await tester.pumpWidget(app());await tester.pumpAndSettle();await tester.tap(find.byTooltip('Settings'));await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('Business Profile'),200,scrollable:find.byType(Scrollable).first);
@@ -157,6 +165,8 @@ void main(){
     await tester.tap(find.text('Review WhatsApp draft'));await tester.pumpAndSettle();
     expect(find.byType(WhatsAppShareScreen),findsOneWidget);expect(find.text('Please call when convenient.'),findsWidgets);
     expect(tester.widget<CheckboxListTile>(find.byType(CheckboxListTile)).value,isFalse);
+    await tester.scrollUntilVisible(find.text('Open WhatsApp Draft'),160,scrollable:find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
     expect(tester.widget<FilledButton>(find.byWidgetPredicate((w)=>w is FilledButton)).onPressed,isNull);
     expect(tester.takeException(),isNull);await tester.pumpWidget(const SizedBox.shrink());settings.dispose();
   });

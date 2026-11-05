@@ -59,6 +59,16 @@ void main() {
     expect(utf8.decode(report.csv()),contains('2026-11-01 to 2026-11-30'));
     await expectLater(LedgerExport.load(id,fromDate: '2026-02-30'),throwsArgumentError);
   });
+  test('exported historic timestamps retain unknown timezone instead of inventing IST',() async {
+    await AccountTable.saveAccount(name:'Historic',openingBalance:0);
+    final account=(await AccountTable.getAllAccounts()).single;
+    final db=await DBHelper.database;
+    await db.insert('income',{'account_id':account.id,'amount':10,'date':'2026-11-04','description':'Historic',
+      'created_at':'2026-11-04 12:00:00'});
+    final report=await LedgerExport.load(account.id!);
+    expect(utf8.decode(report.csv()),contains('historic timezone unknown'));
+    expect(report.tabularRows().last.last,contains('historic timezone unknown'));
+  });
   test('CSV escapes quotes, multiline notes and spreadsheet formulas', () {
     expect(LedgerExport.csvCell('a,"b"\nc'), '"a,""b""\nc"');
     expect(LedgerExport.csvCell(' =SUM(1,2)'), '"\' =SUM(1,2)"');

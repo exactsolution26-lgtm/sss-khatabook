@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../database/tables/account_table.dart';
 import '../../core/utils/date_utils.dart' as dates;
 import '../entries/contact_fields.dart';
+import '../history/transaction_history.dart';
 import '../settings/app_settings.dart';
 import '../whatsapp/whatsapp_share_screen.dart';
 import 'workspace_store.dart';
@@ -175,7 +176,7 @@ class _DraftHistoryState extends State<DraftHistoryScreen> {
         Text(t('Opened drafts only. Sending and delivery are not confirmed. History keeps up to 500 opens on this device; it is not included in ledger backups.','केवल खुले ड्राफ्ट। भेजने या पहुंचने की पुष्टि नहीं है। इस डिवाइस पर अंतिम 500 रिकॉर्ड रखे जाते हैं; लेजर बैकअप में शामिल नहीं हैं।')),
         if(s.data!.isEmpty)Padding(padding:const EdgeInsets.only(top:24),child:Text(t('No draft opens recorded.','अभी कोई ड्राफ्ट खुलना रिकॉर्ड नहीं है।'))),
         for(final r in s.data!)ListTile(leading:const Icon(Icons.open_in_new),title:Text('${r['type'] ?? 'draft'} · ${t('Opened','खुला')}'),
-          subtitle:Text(dates.DateUtils.formatIstDateTime(DateTime.parse(r['opened_at_utc'] as String)))),
+          subtitle:Text(HistoryEntry.timestamp(r['opened_at_utc']))),
       ]);
     }));
   }

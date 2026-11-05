@@ -6,6 +6,8 @@ import 'package:pdf/widgets.dart' as pw;
 import '../../database/db_helper.dart';
 import '../../core/utils/date_utils.dart' as dates;
 import 'xlsx_export.dart';
+import '../history/transaction_history.dart';
+import '../workspace/workspace_store.dart';
 
 class LedgerExport {
   LedgerExport(this.account, this.entries);
@@ -56,14 +58,13 @@ class LedgerExport {
       ['Account', account['name']],
       if(account['from_date']!=null || account['to_date']!=null) ['Period', '${account['from_date'] ?? 'Beginning'} to ${account['to_date'] ?? 'Latest'}'],
       ['Date', 'Type', 'Amount INR', 'Running Balance INR', 'Category', 'Payment Mode',
-        'Contact Name', 'Contact Phone', 'Description', 'Saved at IST'],
+        'Contact Name', 'Contact Phone', 'Description', 'Saved time (IST when verified)'],
       ['', 'Opening balance', openingPaise / 100, openingPaise / 100, '', '', '', '', '', ''],
       for (final row in entries) [
         row['date'], row['kind'], row['amount'],
         (running += (row['kind'] == 'income' ? 1 : -1) * ((row['amount'] as num) * 100).round()) / 100,
         row['category'], row['mode'], row['contact_name'], row['contact_phone'], row['note'],
-        row['created_at'] == null ? 'Unknown historic save time'
-          : dates.DateUtils.formatIstDateTime(DateTime.parse(row['created_at'] as String)),
+        HistoryEntry.timestamp(row['created_at']),
       ],
     ];
   }
@@ -73,6 +74,7 @@ class LedgerExport {
   Future<Uint8List> pdf() async {
     final latin = pw.Font.ttf(await rootBundle.load('assets/fonts/NotoSans-Regular.ttf'));
     final hindi = pw.Font.ttf(await rootBundle.load('assets/fonts/NotoSansDevanagari-Regular.ttf'));
+    final business=await WorkspaceStore.profile();
     final document = pw.Document(theme: pw.ThemeData.withFont(base: latin, bold: latin, fontFallback: [hindi]));
     var running = openingPaise;
     final rows = <List<String>>[
@@ -82,7 +84,7 @@ class LedgerExport {
         [row['category'], if (row['contact_name'] != null) '${row['contact_name']} · ${row['contact_phone']}',
           if (row['note'] != null) (row['note'] as String).length > 500
             ? '${(row['note'] as String).substring(0, 500)}…' : row['note'],
-          if (row['created_at'] != null) 'Saved: ${dates.DateUtils.formatIstDateTime(DateTime.parse(row['created_at'] as String))}',
+          if (row['created_at'] != null) 'Saved: ${HistoryEntry.timestamp(row['created_at'])}',
         ].where((s) => s != null && s.toString().isNotEmpty).join('\n'),
         row['kind'] == 'income' ? money(((row['amount'] as num) * 100).round()) : '',
         row['kind'] == 'expense' ? money(((row['amount'] as num) * 100).round()) : '',
@@ -92,6 +94,7 @@ class LedgerExport {
     document.addPage(pw.MultiPage(pageFormat: PdfPageFormat.a4, maxPages: 10000,
       margin: const pw.EdgeInsets.all(28),
       header: (_) => pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+        if(business!=null)pw.Text(business['name'] as String,style:pw.TextStyle(fontSize:16)),
         pw.Text('SSS Khatabook — Customer Ledger', style: pw.TextStyle(fontSize: 18)),
         pw.Text(account['name'] as String),
         if(account['from_date']!=null || account['to_date']!=null) pw.Text('Period: ${account['from_date'] ?? 'Beginning'} to ${account['to_date'] ?? 'Latest'}'),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'routes/app_routes.dart';
 import 'core/theme/app_theme.dart';
@@ -38,6 +39,9 @@ class _MyAppState extends State<MyApp> {
       listenable: settings,
       builder: (context, _) => MaterialApp(
         title: settings.text('appTitle'),
+        locale: Locale(settings.language.name=='hindi'?'hi':'en'),
+        supportedLocales: const [Locale('en'),Locale('hi')],
+        localizationsDelegates: const [GlobalMaterialLocalizations.delegate,GlobalWidgetsLocalizations.delegate,GlobalCupertinoLocalizations.delegate],
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
