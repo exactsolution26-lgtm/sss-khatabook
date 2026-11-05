@@ -26,6 +26,17 @@ const path = require('node:path');
     const placeholder = page.locator('flt-semantics-placeholder');
     if (await placeholder.count()) await placeholder.evaluate(el => el.click());
   };
+  const openProfile = async () => {
+    await page.getByRole('button', {name:'Settings',exact:true}).first().click();
+    await page.mouse.move(640,600); await page.mouse.wheel(0,500);
+    await text('Business Profile').click();
+    await page.getByRole('textbox', {name:'Business name',exact:true}).waitFor();
+  };
+  const returnHomeFromProfile = async () => {
+    await page.getByRole('button', {name:'Back',exact:true}).click();
+    await page.getByRole('button', {name:'Back',exact:true}).click();
+    await text('Active: Timeline').waitFor();
+  };
   try {
   await page.goto('http://127.0.0.1:8080', {waitUntil: 'domcontentloaded', timeout: 60000});
   // Flutter engine DOM wrappers vary by version; await the accessibility entry point.
@@ -72,6 +83,13 @@ const path = require('node:path');
   await page.getByRole('button', {name:'Back', exact:true}).click();
   await text('Active: Timeline').waitFor();
   await page.screenshot({path:'web-dashboard-desktop.png'});
+  await openProfile();
+  await page.getByRole('textbox',{name:'Business name',exact:true}).pressSequentially('Browser test business');
+  await page.getByRole('textbox',{name:'Business phone (optional)',exact:true}).pressSequentially('9876543210');
+  await page.getByRole('button',{name:'Save Profile',exact:true}).click();
+  await page.getByText(/^Saved ✓/).waitFor();
+  await page.screenshot({path:'web-profile-saved.png'});
+  await returnHomeFromProfile();
   await page.reload({waitUntil:'domcontentloaded', timeout:60000});
   await enableSemantics();
   await text('Active: Timeline').waitFor();
@@ -102,8 +120,14 @@ const path = require('node:path');
   await text('Accounts').click(); await record().waitFor();
   assert.match(await record().getAttribute('aria-label'), /Opening: ₹100\.00/);
   await page.screenshot({path:'web-offline-cold-start.png'});
+  await page.getByRole('button',{name:'Back',exact:true}).click();
+  await text('Active: Timeline').waitFor();
+  await openProfile();
+  assert.equal(await page.getByRole('textbox',{name:'Business name',exact:true}).inputValue(),'Browser test business');
+  assert.equal(await page.getByRole('textbox',{name:'Business phone (optional)',exact:true}).inputValue(),'+919876543210');
+  await page.screenshot({path:'web-profile-offline-cold-start.png'});
   assert.deepEqual(errors, [], 'Browser runtime must have no unhandled page errors');
-  console.log('PASS: startup, real IndexedDB account create/persistence, dashboard preview/cancel/apply/persistence, desktop/mobile rendering, selected dashboard and records retained on offline reload and offline browser cold start');
+  console.log('PASS: startup, real IndexedDB account create/persistence, dashboard preview/cancel/apply/persistence, desktop/mobile rendering, selected dashboard and records retained on offline reload and offline browser cold start; business profile saved through UI and verified after offline cold restart');
   } finally {
     if (!page.isClosed()) await page.screenshot({path: 'web-final-state.png'});
     fs.writeFileSync('web-runtime.log', diagnostic.concat(errors).join('\n'));

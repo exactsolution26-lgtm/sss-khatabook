@@ -1,4 +1,3 @@
-import '../../core/localization/app_text.dart';
 import 'package:flutter/material.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -150,7 +149,7 @@ class TransactionReceipt {
       ]) pw.Padding(padding: const pw.EdgeInsets.only(bottom: 10), child: pw.Text(line)),
       pw.SizedBox(height: 18),
       pw.Text('Generated: ${dates.DateUtils.formatIstDateTime(DateTime.now().toUtc())}'),
-      pw.AppText('Based on a locally recorded transaction; not independent payment verification.'),
+      pw.Text('Based on a locally recorded transaction; not independent payment verification.'),
     ]));
     return doc.save();
   }
