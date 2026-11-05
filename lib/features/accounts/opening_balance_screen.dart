@@ -1,3 +1,4 @@
+import '../../core/localization/app_text.dart';
 import 'package:flutter/material.dart';
 
 import 'account_controller.dart';
@@ -44,7 +45,7 @@ class _OpeningBalanceScreenState extends State<OpeningBalanceScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: const Text('Opening Balance'),
+      title: const AppText('Opening Balance'),
       actions: [
         IconButton(
           tooltip: 'WhatsApp Sharing',
@@ -86,7 +87,7 @@ class _OpeningBalanceScreenState extends State<OpeningBalanceScreen> {
                   bank < 0) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Enter valid non-negative balances'),
+                    content: AppText('Enter valid non-negative balances'),
                   ),
                 );
                 return;
@@ -108,12 +109,12 @@ class _OpeningBalanceScreenState extends State<OpeningBalanceScreen> {
                 });
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Opening balance saved')),
+                  const SnackBar(content: AppText('Opening balance saved')),
                 );
               } catch (_) {
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Could not save balance')),
+                  const SnackBar(content: AppText('Could not save balance')),
                 );
               } finally {
                 if (mounted) setState(() => saving = false);
@@ -129,7 +130,7 @@ class _OpeningBalanceScreenState extends State<OpeningBalanceScreen> {
               color: Theme.of(context).colorScheme.primaryContainer,
               child: Padding(padding: const EdgeInsets.all(16),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('Opening balance saved successfully'),
+                  const AppText('Opening balance saved successfully'),
                   const SizedBox(height: 8),
                   Text('Cash: ₹$savedCash · Bank: ₹$savedBank'),
                   const SizedBox(height: 8),

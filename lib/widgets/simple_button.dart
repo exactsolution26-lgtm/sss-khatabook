@@ -1,3 +1,4 @@
+import '../core/localization/app_text.dart';
 import 'package:flutter/material.dart';
 
 class SimpleButton extends StatelessWidget {
@@ -15,15 +16,15 @@ class SimpleButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SizedBox(
     width: double.infinity,
-    height: 48,
     child: ElevatedButton(
+      style: ElevatedButton.styleFrom(minimumSize:const Size(0,48)),
       onPressed: isLoading ? null : onPressed,
       child: isLoading
           ? const SizedBox(
               height: 20, width: 20,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : Text(text),
+          : AppText(text),
     ),
   );
 }

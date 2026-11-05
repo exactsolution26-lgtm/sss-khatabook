@@ -1,3 +1,4 @@
+import '../../core/localization/app_text.dart';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
@@ -36,8 +37,8 @@ class _LedgerExportScreenState extends State<LedgerExportScreen> {
     });
   }
   @override
-  Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: const Text('Ledger & Statements'),actions: [PopupMenuButton<String>(tooltip: 'Statement period',onSelected: period,itemBuilder: (_) => const [
-      PopupMenuItem(value: 'all',child: Text('All time')),PopupMenuItem(value: 'month',child: Text('Monthly statement')),PopupMenuItem(value: 'year',child: Text('Yearly statement')),PopupMenuItem(value: 'custom',child: Text('Custom date range'))])]),
+  Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: const AppText('Ledger & Statements'),actions: [PopupMenuButton<String>(tooltip: 'Statement period',onSelected: period,itemBuilder: (_) => const [
+      PopupMenuItem(value: 'all',child: AppText('All time')),PopupMenuItem(value: 'month',child: AppText('Monthly statement')),PopupMenuItem(value: 'year',child: AppText('Yearly statement')),PopupMenuItem(value: 'custom',child: AppText('Custom date range'))])]),
     body: FutureBuilder(future: report, builder: (context, snapshot) {
       if (snapshot.hasError) return Center(child: TextButton(onPressed: () => setState(() {report = load();}), child: const Text('Could not create ledger — Retry')));
       if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
@@ -45,11 +46,11 @@ class _LedgerExportScreenState extends State<LedgerExportScreen> {
       return Column(children: [
         if(fromDate!=null || toDate!=null) Padding(padding: const EdgeInsets.all(8),child: Text('$fromDate to $toDate · opening includes earlier transactions')),
         Wrap(spacing: 8, children: [
-          TextButton.icon(icon: const Icon(Icons.picture_as_pdf), label: const Text('Download / Share PDF'),
+          TextButton.icon(icon: const Icon(Icons.picture_as_pdf), label: const AppText('Download / Share PDF'),
             onPressed: () => share(context, bytes, 'pdf', 'application/pdf')),
-          TextButton.icon(icon: const Icon(Icons.table_chart_outlined), label: const Text('Download / Share CSV'),
+          TextButton.icon(icon: const Icon(Icons.table_chart_outlined), label: const AppText('Download / Share CSV'),
             onPressed: () => share(context, ledger.csv(), 'csv', 'text/csv')),
-          TextButton.icon(icon: const Icon(Icons.grid_on_outlined), label: const Text('Download / Share Excel'),
+          TextButton.icon(icon: const Icon(Icons.grid_on_outlined), label: const AppText('Download / Share Excel'),
             onPressed: () => share(context, ledger.xlsx(), 'xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')),
         ]),
         Expanded(child: PdfPreview(build: (_) async => bytes, canChangePageFormat: false,
@@ -58,6 +59,6 @@ class _LedgerExportScreenState extends State<LedgerExportScreen> {
     }));
   Future<void> share(BuildContext context, Uint8List bytes, String extension, String mime) async {
     try {await shareFile(context, bytes, 'sss-ledger-${widget.accountId}.$extension', mime);}
-    catch (_) {if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open file sharing. Please retry.')));}
+    catch (_) {if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: AppText('Could not open file sharing. Please retry.')));}
   }
 }

@@ -1,3 +1,4 @@
+import '../../core/localization/app_text.dart';
 import 'package:flutter/foundation.dart';
 import '../../database/db_helper.dart';
 import 'package:flutter/material.dart';
@@ -37,7 +38,7 @@ class _ContactFieldsState extends State<ContactFields> {
       widget.onChanged?.call();
     } catch (_) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Contact picker unavailable. Enter the details below.')),
+        const SnackBar(content: AppText('Contact picker unavailable. Enter the details below.')),
       );
     } finally {
       if (mounted) setState(() => picking = false);
@@ -48,18 +49,18 @@ class _ContactFieldsState extends State<ContactFields> {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      OutlinedButton.icon(onPressed: saved,icon: const Icon(Icons.people_outline),label: const Text('Choose saved contact')),
+      OutlinedButton.icon(onPressed: saved,icon: const Icon(Icons.people_outline),label: const AppText('Choose saved contact')),
       if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.android ||
           defaultTargetPlatform == TargetPlatform.iOS))
         OutlinedButton.icon(onPressed: picking ? null : pick,
           icon: const Icon(Icons.contact_page_outlined),
-          label: Text(picking ? 'Opening contacts…' : 'Choose from Contacts')),
+          label: AppText(picking ? 'Opening contacts…' : 'Choose from Contacts')),
       TextFormField(controller: widget.name, keyboardType: TextInputType.name,
-        decoration: const InputDecoration(labelText: 'Contact name (optional)'),
+        decoration: const InputDecoration(label: AppText('Contact name (optional)')),
         onChanged: (_) => widget.onChanged?.call()),
       const SizedBox(height: 12),
       TextFormField(controller: widget.phone, keyboardType: TextInputType.phone,
-        decoration: const InputDecoration(labelText: 'Mobile number (optional)'),
+        decoration: const InputDecoration(label: AppText('Mobile number (optional)')),
         onChanged: (_) => widget.onChanged?.call()),
     ],
   );
@@ -79,13 +80,13 @@ class _SavedContactPickerState extends State<_SavedContactPicker> {
     ORDER BY contact_name COLLATE NOCASE''');
   @override Widget build(BuildContext context) => SafeArea(child: SizedBox(height: MediaQuery.sizeOf(context).height*0.75,
     child: Column(children: [
-      const Padding(padding: EdgeInsets.all(16),child: Text('Saved contacts',style: TextStyle(fontSize: 20,fontWeight: FontWeight.bold))),
-      Padding(padding: const EdgeInsets.symmetric(horizontal: 16),child: TextField(decoration: const InputDecoration(labelText: 'Search name or number',prefixIcon: Icon(Icons.search)),onChanged: (v) => setState(() => query=v.toLowerCase()))),
+      const Padding(padding: EdgeInsets.all(16),child: AppText('Saved contacts',style: TextStyle(fontSize: 20,fontWeight: FontWeight.bold))),
+      Padding(padding: const EdgeInsets.symmetric(horizontal: 16),child: TextField(decoration: const InputDecoration(label: AppText('Search name or number'),prefixIcon: Icon(Icons.search)),onChanged: (v) => setState(() => query=v.toLowerCase()))),
       Expanded(child: FutureBuilder<List<Map<String,Object?>>>(future: contacts,builder: (context,snapshot) {
-        if(snapshot.hasError) return const Center(child: Text('Could not load contacts. Enter details manually.'));
+        if(snapshot.hasError) return const Center(child: AppText('Could not load contacts. Enter details manually.'));
         if(!snapshot.hasData) return const Center(child: CircularProgressIndicator());
         final rows=snapshot.data!.where((r) => '${r['contact_name']} ${r['contact_phone']}'.toLowerCase().contains(query)).toList();
-        if(rows.isEmpty) return const Center(child: Text('No saved contacts. Choose a phone contact or enter details below.'));
+        if(rows.isEmpty) return const Center(child: AppText('No saved contacts. Choose a phone contact or enter details below.'));
         return ListView(children: rows.map((r) => ListTile(leading: const Icon(Icons.person_outline),title: Text(r['contact_name'] as String),subtitle: Text(r['contact_phone'] as String),
           onTap: () => Navigator.pop(context,(r['contact_name'] as String,r['contact_phone'] as String)))).toList());
       })),

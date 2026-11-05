@@ -1,3 +1,4 @@
+import '../../core/localization/app_text.dart';
 import 'package:flutter/material.dart';
 import '../../database/tables/account_table.dart';
 import '../../models/account_model.dart';
@@ -14,7 +15,7 @@ class _ArchivedState extends State<ArchivedAccountsScreen> {
   void reload(){accounts=AccountTable.getAllAccounts(includeArchived:true);}
   Future<void> restore(AccountModel a)async{
     try{await AccountTable.archive(a.id!,archived:false);if(mounted)setState(reload);}
-    catch(_){if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not restore account. Retry.')));}
+    catch(_){if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:AppText('Could not restore account. Retry.')));}
   }
   @override Widget build(BuildContext context){String t(String en,String hi)=>workspaceText(context,en,hi);
     return Scaffold(appBar:AppBar(title:Text(t('Archived accounts','संग्रहित खाते'))),body:FutureBuilder<List<AccountModel>>(future:accounts,builder:(context,s){

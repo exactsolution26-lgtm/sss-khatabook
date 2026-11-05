@@ -1,3 +1,4 @@
+import '../../core/localization/app_text.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/localization/app_strings.dart';
@@ -23,12 +24,12 @@ class SettingsScreen extends StatelessWidget {
             segments: const [
               ButtonSegment(
                 value: ThemeMode.light,
-                label: Text('Light'),
+                label: AppText('Light'),
                 icon: Icon(Icons.light_mode_outlined),
               ),
               ButtonSegment(
                 value: ThemeMode.dark,
-                label: Text('Dark'),
+                label: AppText('Dark'),
                 icon: Icon(Icons.dark_mode_outlined),
               ),
             ],
@@ -48,7 +49,7 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: 12),
           SegmentedButton<AppLanguage>(
             segments: const [
-              ButtonSegment(value: AppLanguage.english, label: Text('English')),
+              ButtonSegment(value: AppLanguage.english, label: AppText('English')),
               ButtonSegment(value: AppLanguage.hindi, label: Text('हिंदी')),
             ],
             selected: {settings.language},
@@ -56,15 +57,15 @@ class SettingsScreen extends StatelessWidget {
                 settings.update(appLanguage: selection.first),
           ),
           const SizedBox(height: 24),
-          ListTile(leading: const Icon(Icons.event_note), title: const Text('Follow-ups & Reminders'),
+          ListTile(leading: const Icon(Icons.event_note), title: const AppText('Follow-ups & Reminders'),
             trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.pushNamed(context, '/followups')),
-          ListTile(leading: const Icon(Icons.payments_outlined), title: const Text('Dues & Partial Payments'),
+          ListTile(leading: const Icon(Icons.payments_outlined), title: const AppText('Dues & Partial Payments'),
             trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.pushNamed(context, '/dues')),
-          ListTile(leading: const Icon(Icons.lock_outline), title: const Text('PIN & Biometrics'),
+          ListTile(leading: const Icon(Icons.lock_outline), title: const AppText('PIN & Biometrics'),
             trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.pushNamed(context, '/security')),
-          ListTile(leading: const Icon(Icons.backup_outlined), title: const Text('Backup & Restore'),
+          ListTile(leading: const Icon(Icons.backup_outlined), title: const AppText('Backup & Restore'),
             trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.pushNamed(context, '/backup')),
-          ListTile(leading: const Icon(Icons.history), title: const Text('Audit History'),
+          ListTile(leading: const Icon(Icons.history), title: const AppText('Audit History'),
             trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.pushNamed(context, '/audit')),
           ListTile(
             contentPadding: EdgeInsets.zero,
@@ -96,8 +97,7 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: 32),
           const Text('SSS Khatabook • Development build'),
           const SizedBox(height: 8),
-          const Text(
-            'Keep a secure backup of your records. Cloud sync and subscription enforcement require additional setup and verification.',
+          const AppText('Keep a secure backup of your records. Cloud sync and subscription enforcement require additional setup and verification.',
           ),
         ],
       ),

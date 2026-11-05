@@ -1,3 +1,4 @@
+import '../core/localization/app_text.dart';
 import 'package:flutter/material.dart';
 
 class SimpleInput extends StatelessWidget {
@@ -22,11 +23,11 @@ class SimpleInput extends StatelessWidget {
   Widget build(BuildContext context) => TextFormField(
     controller: controller,
     keyboardType: keyboardType,
-    validator: validator,
+    validator: validator==null?null:(value){final error=validator!(value);return error==null?null:localizeUi(context,error);},
     maxLines: maxLines,
     decoration: InputDecoration(
-      hintText: hintText,
-      labelText: label,
+      hintText: hintText==null?null:localizeUi(context,hintText!),
+      label: label==null?null:AppText(label!),
       border: const OutlineInputBorder(),
     ),
   );

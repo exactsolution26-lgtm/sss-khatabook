@@ -1,3 +1,4 @@
+import '../../core/localization/app_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/security/app_lock.dart';
@@ -25,9 +26,9 @@ class _AppLockGateState extends State<AppLockGate> {
       if (opened) ExcludeSemantics(excluding: hidden, child: Offstage(offstage: hidden, child: TickerMode(enabled: !hidden, child: widget.child))),
       if (hidden) Scaffold(body: Center(child: SingleChildScrollView(padding: const EdgeInsets.all(24), child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 400), child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Icon(Icons.lock_outline, size: 40), const SizedBox(height: 16), const Text('Unlock SSS Khatabook'),
+          const Icon(Icons.lock_outline, size: 40), const SizedBox(height: 16), const AppText('Unlock SSS Khatabook'),
           if (lock.storageError != null) ...[
-            Text(lock.storageError!), TextButton(onPressed: lock.load, child: const Text('Retry')),
+            Text(lock.storageError!), TextButton(onPressed: lock.load, child: const AppText('Retry')),
           ] else if (!lock.loaded) const CircularProgressIndicator() else ...[
             const SizedBox(height: 20),
             TextField(controller: pin, obscureText: true, keyboardType: TextInputType.number,
@@ -39,7 +40,7 @@ class _AppLockGateState extends State<AppLockGate> {
               if (mounted) setState(() => busy = false);
             }, child: Text(busy ? 'Checking…' : 'Unlock')),
             if (lock.biometricEnabled) TextButton.icon(onPressed: busy ? null : () => lock.unlockBiometric(),
-              icon: const Icon(Icons.fingerprint), label: const Text('Use biometrics')),
+              icon: const Icon(Icons.fingerprint), label: const AppText('Use biometrics')),
             if (lock.message != null) Text(lock.message!),
           ],
         ]),
@@ -70,12 +71,12 @@ class _SecurityScreenState extends State<SecurityScreen> {
     finally {if (mounted) setState(() => busy = false);}
   }
   @override
-  Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: const Text('PIN & Biometrics')),
+  Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: const AppText('PIN & Biometrics')),
     body: ListenableBuilder(listenable: lock, builder: (context, child) => AbsorbPointer(absorbing: busy,
       child: ListView(padding: const EdgeInsets.all(24), children: [
-        const Text('Lock this app on your device. Keep your PIN and portable backup passphrase safe.'),
+        const AppText('Lock this app on your device. Keep your PIN and portable backup passphrase safe.'),
         const SizedBox(height: 20),
-        if (!lock.supported) const Text('App PIN and biometrics are available on Android and iOS. Browser account security requires the online authentication setup.') else ...[
+        if (!lock.supported) const AppText('App PIN and biometrics are available on Android and iOS. Browser account security requires the online authentication setup.') else ...[
           if (lock.enabled) field(current, 'Current PIN'),
           field(next, 'New six digit PIN'), field(confirm, 'Confirm new PIN'),
           FilledButton(onPressed: () => run(() async {
@@ -85,8 +86,8 @@ class _SecurityScreenState extends State<SecurityScreen> {
           if (lock.enabled) ...[
             OutlinedButton(onPressed: () => run(() => lock.setBiometric(!lock.biometricEnabled, current.text)),
               child: Text(lock.biometricEnabled ? 'Disable biometrics' : 'Enable biometrics')),
-            TextButton(onPressed: () => run(() => lock.disable(current.text)), child: const Text('Disable PIN')),
-            TextButton(onPressed: lock.lock, child: const Text('Lock now')),
+            TextButton(onPressed: () => run(() => lock.disable(current.text)), child: const AppText('Disable PIN')),
+            TextButton(onPressed: lock.lock, child: const AppText('Lock now')),
           ],
         ],
         if (busy) const LinearProgressIndicator(),

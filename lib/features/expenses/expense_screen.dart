@@ -1,3 +1,4 @@
+import '../../core/localization/app_text.dart';
 import 'package:flutter/material.dart';
 
 import 'expense_controller.dart';
@@ -78,7 +79,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Add Expense')),
+    appBar: AppBar(title: const AppText('Add Expense')),
     body: AbsorbPointer(absorbing: saving, child: Padding(
       padding: const EdgeInsets.all(16),
       child: ListView(
@@ -92,14 +93,14 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
           DropdownButtonFormField<int>(
             key: ValueKey('expense-account-$accountId'),
             initialValue: accountId,
-            decoration: const InputDecoration(labelText: 'Account'),
+            decoration: const InputDecoration(label: AppText('Account')),
             items: accounts
                 .map((a) => DropdownMenuItem(value: a.id, child: Text(a.name)))
                 .toList(),
             onChanged: saving ? null : (id) => setState(() => accountId = id),
           ),
           if (accounts.isEmpty)
-            const Text('Create an account before adding an expense.'),
+            const AppText('Create an account before adding an expense.'),
           const SizedBox(height: 16),
           SimpleInput(
             hintText: 'Amount',
@@ -110,8 +111,8 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
           DropdownButton<String>(
             value: mode,
             items: const [
-              DropdownMenuItem(value: 'cash', child: Text('Cash')),
-              DropdownMenuItem(value: 'online', child: Text('Online')),
+              DropdownMenuItem(value: 'cash', child: AppText('Cash')),
+              DropdownMenuItem(value: 'online', child: AppText('Online')),
             ],
             onChanged: (value) {
               if (value != null) setState(() => mode = value);
@@ -138,7 +139,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
               if (saving) return;
               if (accountId == null) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Select an account first')),
+                  const SnackBar(content: AppText('Select an account first')),
                 );
                 return;
               }
@@ -147,7 +148,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
               if (amount == null || !amount.isFinite || amount <= 0) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Enter a valid positive amount'),
+                    content: AppText('Enter a valid positive amount'),
                   ),
                 );
                 return;
@@ -174,14 +175,14 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                 noteController.clear();
                 ScaffoldMessenger.of(
                   context,
-                ).showSnackBar(const SnackBar(content: Text('Expense saved')));
+                ).showSnackBar(const SnackBar(content: AppText('Expense saved')));
               } on ArgumentError {
                 if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Enter a contact name and valid phone number, or leave both empty.')));
+                  const SnackBar(content: AppText('Enter a contact name and valid phone number, or leave both empty.')));
               } catch (_) {
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Could not save expense')),
+                  const SnackBar(content: AppText('Could not save expense')),
                 );
               } finally {
                 if (mounted) setState(() => saving = false);
@@ -197,8 +198,8 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                   Text(lastSaved!.category),
                   if (lastSaved!.contactName != null) Text('${lastSaved!.contactName} · ${lastSaved!.contactPhone}'),
                   Text('Saved at: ${dates.DateUtils.formatIstDateTime(lastSaved!.createdAt!)}'),
-                  TextButton(onPressed: () => Navigator.push(context, MaterialPageRoute<void>(builder: (_) => AttachmentScreen(entryId: lastSaved!.id!, income: false))), child: const Text('View Attachments')),
-                  TextButton(onPressed: () => setState(() => lastSaved = null), child: const Text('Add another entry')),
+                  TextButton(onPressed: () => Navigator.push(context, MaterialPageRoute<void>(builder: (_) => AttachmentScreen(entryId: lastSaved!.id!, income: false))), child: const AppText('View Attachments')),
+                  TextButton(onPressed: () => setState(() => lastSaved = null), child: const AppText('Add another entry')),
                 ])),
             ))),
         ],

@@ -1,3 +1,4 @@
+import '../../core/localization/app_text.dart';
 import 'package:flutter/material.dart';
 
 import '../../database/db_helper.dart';
@@ -46,7 +47,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
       if (mounted)
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Could not save account')));
+        ).showSnackBar(const SnackBar(content: AppText('Could not save account')));
     }
   }
 
@@ -54,18 +55,17 @@ class _AccountsScreenState extends State<AccountsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete empty account?'),
-        content: const Text(
-          'Accounts with financial transactions cannot be deleted.',
+        title: const AppText('Delete empty account?'),
+        content: const AppText('Accounts with financial transactions cannot be deleted.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: const AppText('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
+            child: const AppText('Delete'),
           ),
         ],
       ),
@@ -78,8 +78,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
       if (mounted)
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              'Account could not be deleted. It may have financial records.',
+            content: AppText('Account could not be deleted. It may have financial records.',
             ),
           ),
         );
@@ -87,12 +86,12 @@ class _AccountsScreenState extends State<AccountsScreen> {
   }
 
   Future<void> _archive(AccountModel account) async {
-    final ok=await showDialog<bool>(context:context,builder:(c)=>AlertDialog(title:const Text('Archive account?'),
-      content:const Text('Records and balances stay in reports and history. Restore the account before adding or editing its financial entries.'),
-      actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:const Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(c,true),child:const Text('Archive'))]));
+    final ok=await showDialog<bool>(context:context,builder:(c)=>AlertDialog(title:const AppText('Archive account?'),
+      content:const AppText('Records and balances stay in reports and history. Restore the account before adding or editing its financial entries.'),
+      actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:const AppText('Cancel')),FilledButton(onPressed:()=>Navigator.pop(c,true),child:const AppText('Archive'))]));
     if(ok!=true)return;
     try{await AccountTable.archive(account.id!,archived:true);if(mounted)setState(_reload);}
-    catch(_){if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not archive account.')));}
+    catch(_){if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:AppText('Could not archive account.')));}
   }
 
   @override
@@ -102,7 +101,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
     floatingActionButton: FloatingActionButton.extended(
       onPressed: _edit,
       icon: const Icon(Icons.add),
-      label: const Text('New Account'),
+      label: const AppText('New Account'),
     ),
     body: FutureBuilder<List<AccountModel>>(
       future: _accounts,
@@ -118,7 +117,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
           return const Center(child: CircularProgressIndicator());
         if (snapshot.data!.isEmpty)
           return const Center(
-            child: Text('Add your first customer or business account.'),
+            child: AppText('Add your first customer or business account.'),
           );
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
@@ -143,11 +142,11 @@ class _AccountsScreenState extends State<AccountsScreen> {
                       onSelected: (value) =>
                           value == 'edit' ? _edit(a) : value=='archive'?_archive(a):_remove(a),
                       itemBuilder: (_) => const [
-                        PopupMenuItem(value: 'edit', child: Text('Edit')),
-                        PopupMenuItem(value:'archive',child:Text('Archive account')),
+                        PopupMenuItem(value: 'edit', child: AppText('Edit')),
+                        PopupMenuItem(value:'archive',child:AppText('Archive account')),
                         PopupMenuItem(
                           value: 'delete',
-                          child: Text('Delete empty account'),
+                          child: AppText('Delete empty account'),
                         ),
                       ],
                     ),
@@ -193,7 +192,7 @@ class _AccountEditorDialogState extends State<_AccountEditorDialog> {
             TextFormField(
               controller: name,
               maxLength: 120,
-              decoration: const InputDecoration(labelText: 'Account name'),
+              decoration: const InputDecoration(label: AppText('Account name')),
               validator: (value) =>
                   value == null || value.trim().isEmpty ? 'Enter a name' : null,
             ),
@@ -203,7 +202,7 @@ class _AccountEditorDialogState extends State<_AccountEditorDialog> {
                 decimal: true,
               ),
               decoration: const InputDecoration(
-                labelText: 'Opening balance (₹)',
+                label: AppText('Opening balance (₹)'),
                 helperText: 'Locked after the first transaction.',
               ),
               validator: (value) {
@@ -220,7 +219,7 @@ class _AccountEditorDialogState extends State<_AccountEditorDialog> {
     actions: [
       TextButton(
         onPressed: () => Navigator.pop(context),
-        child: const Text('Cancel'),
+        child: const AppText('Cancel'),
       ),
       FilledButton(
         onPressed: () {
@@ -232,7 +231,7 @@ class _AccountEditorDialogState extends State<_AccountEditorDialog> {
                   : double.parse(balance.text),
             ));
         },
-        child: const Text('Save'),
+        child: const AppText('Save'),
       ),
     ],
   );
@@ -274,8 +273,8 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
     final reason = await showDialog<String>(context: context,builder: (_) => const _DeleteReasonDialog());
     if(reason==null) return;
     try {await RecordRecovery.remove(income: income,id: entry['id'] as int,accountId: widget.account.id!,reason: reason);
-      if(mounted) {setState(() {_entries=_load();});ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Deleted. You can restore it from Deleted Entries.')));}}
-    catch(_) {if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not delete. Allocated payments must be reversed in Payment History.')));}
+      if(mounted) {setState(() {_entries=_load();});ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: AppText('Deleted. You can restore it from Deleted Entries.')));}}
+    catch(_) {if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: AppText('Could not delete. Allocated payments must be reversed in Payment History.')));}
   }
 
   void _share(WhatsAppMessageType type, {int? incomeId, String month = ''}) {
@@ -362,7 +361,7 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
               var running = widget.account.openingBalance;
               final tiles = <Widget>[
                 ListTile(
-                  title: const Text('Opening balance'),
+                  title: const AppText('Opening balance'),
                   trailing: Text('₹${running.toStringAsFixed(2)}'),
                 ),
               ];
@@ -397,10 +396,10 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
                             }
                           },
                           itemBuilder: (_) => [
-                            const PopupMenuItem(value: 'edit',child: Text('Edit entry')),
-                            const PopupMenuItem(value: 'delete',child: Text('Delete entry')),
-                            const PopupMenuItem(value: 'attachments', child: Text('View Attachments')),
-                            if (income) const PopupMenuItem(value: 'receipt', child: Text('Share recorded receipt')),
+                            const PopupMenuItem(value: 'edit',child: AppText('Edit entry')),
+                            const PopupMenuItem(value: 'delete',child: AppText('Delete entry')),
+                            const PopupMenuItem(value: 'attachments', child: AppText('View Attachments')),
+                            if (income) const PopupMenuItem(value: 'receipt', child: AppText('Share recorded receipt')),
                           ]),
                       ],
                     ),
@@ -423,10 +422,10 @@ class _DeleteReasonDialog extends StatefulWidget {
 class _DeleteReasonDialogState extends State<_DeleteReasonDialog> {
   final reason=TextEditingController();
   @override void dispose() {reason.dispose();super.dispose();}
-  @override Widget build(BuildContext context) => AlertDialog(title: const Text('Delete this entry?'),
+  @override Widget build(BuildContext context) => AlertDialog(title: const AppText('Delete this entry?'),
     content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min,children: [
-      const Text('The balance will be recalculated. This entry and its attachments remain recoverable in Deleted Entries.'),
+      const AppText('The balance will be recalculated. This entry and its attachments remain recoverable in Deleted Entries.'),
       TextField(controller: reason,maxLength: 500,decoration: const InputDecoration(labelText: 'Reason (required)')),
-    ])),actions: [TextButton(onPressed: () => Navigator.pop(context),child: const Text('Cancel')),
-      FilledButton(onPressed: () {if(reason.text.trim().isNotEmpty) Navigator.pop(context,reason.text.trim());},child: const Text('Delete'))]);
+    ])),actions: [TextButton(onPressed: () => Navigator.pop(context),child: const AppText('Cancel')),
+      FilledButton(onPressed: () {if(reason.text.trim().isNotEmpty) Navigator.pop(context,reason.text.trim());},child: const AppText('Delete'))]);
 }

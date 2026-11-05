@@ -1,3 +1,4 @@
+import '../../core/localization/app_text.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -44,11 +45,11 @@ class _SubscriberManagementScreenState
                 ),
               TextField(
                 controller: name,
-                decoration: const InputDecoration(labelText: 'Account Name'),
+                decoration: const InputDecoration(label: AppText('Account Name')),
               ),
               if (account != null)
                 SwitchListTile(
-                  title: const Text('Active'),
+                  title: const AppText('Active'),
                   value: active,
                   onChanged: (value) => update(() => active = value),
                 ),
@@ -57,11 +58,11 @@ class _SubscriberManagementScreenState
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
+              child: const AppText('Cancel'),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Save'),
+              child: const AppText('Save'),
             ),
           ],
         ),
@@ -91,8 +92,7 @@ class _SubscriberManagementScreenState
         if (mounted)
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text(
-                'Unable to save subscriber. Check account details and your access.',
+              content: AppText('Unable to save subscriber. Check account details and your access.',
               ),
             ),
           );
@@ -104,11 +104,11 @@ class _SubscriberManagementScreenState
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Subscriber Accounts')),
+    appBar: AppBar(title: const AppText('Subscriber Accounts')),
     floatingActionButton: FloatingActionButton.extended(
       onPressed: () => edit(),
       icon: const Icon(Icons.person_add_alt_1),
-      label: const Text('Add Subscriber'),
+      label: const AppText('Add Subscriber'),
     ),
     body: FutureBuilder<List<SubscriberAccount>>(
       future: accounts,
@@ -121,15 +121,15 @@ class _SubscriberManagementScreenState
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('Unable to load subscriber accounts'),
-                TextButton(onPressed: refresh, child: const Text('Retry')),
+                const AppText('Unable to load subscriber accounts'),
+                TextButton(onPressed: refresh, child: const AppText('Retry')),
               ],
             ),
           );
         }
         final items = snapshot.data ?? [];
         if (items.isEmpty) {
-          return const Center(child: Text('No subscriber accounts yet'));
+          return const Center(child: AppText('No subscriber accounts yet'));
         }
         return ListView.builder(
           itemCount: items.length,

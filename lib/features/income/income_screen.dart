@@ -1,3 +1,4 @@
+import '../../core/localization/app_text.dart';
 import 'package:flutter/material.dart';
 
 import '../../widgets/header_text.dart';
@@ -65,7 +66,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Could not load accounts'),
+          content: const AppText('Could not load accounts'),
           action: SnackBarAction(label: 'Retry', onPressed: _loadAccounts),
         ),
       );
@@ -89,7 +90,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
     if (_selectedAccount == null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text(AppStrings.selectAccount)));
+      ).showSnackBar(const SnackBar(content: AppText(AppStrings.selectAccount)));
       return;
     }
 
@@ -117,17 +118,17 @@ class _IncomeScreenState extends State<IncomeScreen> {
         attachments.value = [];
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text(AppStrings.incomeSaved)));
+        ).showSnackBar(const SnackBar(content: AppText(AppStrings.incomeSaved)));
         _amountController.clear();
         _descriptionController.clear();
       }
     } on ArgumentError {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a contact name and valid phone number, or leave both empty.')));
+        const SnackBar(content: AppText('Enter a contact name and valid phone number, or leave both empty.')));
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not save income. Please retry.')),
+          const SnackBar(content: AppText('Could not save income. Please retry.')),
         );
       }
     } finally {
@@ -150,7 +151,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text(AppStrings.addIncome)),
+      appBar: AppBar(title: const AppText(AppStrings.addIncome)),
       body: AbsorbPointer(absorbing: _isLoading, child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -191,8 +192,8 @@ class _IncomeScreenState extends State<IncomeScreen> {
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(initialValue: _mode,
                 decoration: const InputDecoration(labelText: 'Payment mode'),
-                items: const [DropdownMenuItem(value: 'cash', child: Text('Cash')),
-                  DropdownMenuItem(value: 'online', child: Text('Online'))],
+                items: const [DropdownMenuItem(value: 'cash', child: AppText('Cash')),
+                  DropdownMenuItem(value: 'online', child: AppText('Online'))],
                 onChanged: (value) { if (value != null) setState(() => _mode = value); }),
               const SizedBox(height: 16),
               ContactFields(name: _contactName, phone: _contactPhone),
@@ -233,8 +234,8 @@ class _IncomeScreenState extends State<IncomeScreen> {
                       Text(_lastSaved!.category ?? ''),
                       if (_lastSaved!.contactName != null) Text('${_lastSaved!.contactName} · ${_lastSaved!.contactPhone}'),
                       Text('Saved at: ${khata_dates.DateUtils.formatIstDateTime(_lastSaved!.createdAt)}'),
-                      TextButton(onPressed: () => Navigator.push(context, MaterialPageRoute<void>(builder: (_) => AttachmentScreen(entryId: _lastSaved!.id!, income: true))), child: const Text('View Attachments')),
-                      TextButton(onPressed: () => setState(() => _lastSaved = null), child: const Text('Add another entry')),
+                      TextButton(onPressed: () => Navigator.push(context, MaterialPageRoute<void>(builder: (_) => AttachmentScreen(entryId: _lastSaved!.id!, income: true))), child: const AppText('View Attachments')),
+                      TextButton(onPressed: () => setState(() => _lastSaved = null), child: const AppText('Add another entry')),
                     ])),
                 ))),
             ],

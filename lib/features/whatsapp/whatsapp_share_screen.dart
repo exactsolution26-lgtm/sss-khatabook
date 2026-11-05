@@ -1,3 +1,4 @@
+import '../../core/localization/app_text.dart';
 import 'package:flutter/material.dart';
 
 import 'whatsapp_share_service.dart';
@@ -68,7 +69,7 @@ class _WhatsAppShareScreenState extends State<WhatsAppShareScreen> {
       if (mounted)
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Draft opened. Confirm Send in WhatsApp.'),
+            content: AppText('Draft opened. Confirm Send in WhatsApp.'),
           ),
         );
     } catch (e) {
@@ -80,13 +81,13 @@ class _WhatsAppShareScreenState extends State<WhatsAppShareScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('WhatsApp Sharing')),
+    appBar: AppBar(title: const AppText('WhatsApp Sharing')),
     body: ListView(
       padding: const EdgeInsets.all(16),
       children: [
         DropdownButtonFormField<WhatsAppMessageType>(
           initialValue: type,
-          decoration: const InputDecoration(labelText: 'Message Type'),
+          decoration: const InputDecoration(label: AppText('Message Type')),
           items: WhatsAppMessageType.values
               .map(
                 (t) => DropdownMenuItem(
@@ -111,13 +112,13 @@ class _WhatsAppShareScreenState extends State<WhatsAppShareScreen> {
           TextField(
             controller: amount,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(labelText: 'Amount (INR)'),
+            decoration: const InputDecoration(label: AppText('Amount (INR)')),
             onChanged: (_) => setState(() {}),
           ),
         if (type == WhatsAppMessageType.monthlyStatement)
           TextField(
             controller: month,
-            decoration: const InputDecoration(labelText: 'Statement Month'),
+            decoration: const InputDecoration(label: AppText('Statement Month')),
             onChanged: (_) => setState(() {}),
           ),
         if (type == WhatsAppMessageType.custom ||
@@ -127,7 +128,7 @@ class _WhatsAppShareScreenState extends State<WhatsAppShareScreen> {
           TextField(
             controller: details,
             maxLines: 4,
-            decoration: const InputDecoration(labelText: 'Message Details'),
+            decoration: const InputDecoration(label: AppText('Message Details')),
             onChanged: (_) => setState(() {}),
           ),
         const SizedBox(height: 16),
@@ -138,20 +139,18 @@ class _WhatsAppShareScreenState extends State<WhatsAppShareScreen> {
         ].contains(type))
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 12),
-            child: Text(
-              'Open an account ledger to share a statement or receipt from recorded transactions. Manual financial drafts cannot be shared.',
+            child: AppText('Open an account ledger to share a statement or receipt from recorded transactions. Manual financial drafts cannot be shared.',
             ),
           ),
-        const Text(
-          'Message Preview',
+        const AppText('Message Preview',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         SelectableText(draft().message),
         CheckboxListTile(
           value: optedIn,
           onChanged: (v) => setState(() => optedIn = v ?? false),
-          title: const Text('Share via WhatsApp'),
-          subtitle: const Text('Optional. You must confirm Send in WhatsApp.'),
+          title: const AppText('Share via WhatsApp'),
+          subtitle: const AppText('Optional. You must confirm Send in WhatsApp.'),
         ),
         if (error != null)
           Text(
@@ -170,11 +169,11 @@ class _WhatsAppShareScreenState extends State<WhatsAppShareScreen> {
               ? share
               : null,
           icon: const Icon(Icons.send),
-          label: const Text('Open WhatsApp Draft'),
+          label: const AppText('Open WhatsApp Draft'),
         ),
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Skip'),
+          child: const AppText('Skip'),
         ),
       ],
     ),

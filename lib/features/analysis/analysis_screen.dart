@@ -1,3 +1,4 @@
+import '../../core/localization/app_text.dart';
 import 'package:flutter/material.dart';
 
 import '../../widgets/header_text.dart';
@@ -38,7 +39,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not load report. Please retry.')),
+          const SnackBar(content: AppText('Could not load report. Please retry.')),
         );
       }
     } finally {
@@ -52,7 +53,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(AppStrings.analysis),
+        title: const AppText(AppStrings.analysis),
         actions: [
           IconButton(icon: const Icon(Icons.refresh), onPressed: _loadAnalysis),
         ],
@@ -68,7 +69,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                   children: [
                     const HeaderText(text: AppStrings.financialAnalysis),
                     const SizedBox(height: 24),
-                    OutlinedButton.icon(onPressed:()=>Navigator.pushNamed(context,'/reports/detailed'),icon:const Icon(Icons.analytics_outlined),label:const Text('Detailed Reports')),
+                    OutlinedButton.icon(onPressed:()=>Navigator.pushNamed(context,'/reports/detailed'),icon:const Icon(Icons.analytics_outlined),label:const AppText('Detailed Reports')),
                     _buildSummaryCard(
                       AppStrings.totalIncome,
                       CalculationUtils.formatCurrency(
@@ -99,8 +100,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                         0)
                       Padding(
                         padding: const EdgeInsets.only(top: 16),
-                        child: Text(
-                          'Legacy expenses without an account are included in overall totals. They are not assigned to any customer.',
+                        child: AppText('Legacy expenses without an account are included in overall totals. They are not assigned to any customer.',
                         ),
                       ),
                     const SizedBox(height: 32),

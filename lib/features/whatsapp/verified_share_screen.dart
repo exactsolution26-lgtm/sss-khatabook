@@ -1,3 +1,4 @@
+import '../../core/localization/app_text.dart';
 import 'package:flutter/material.dart';
 
 import 'whatsapp_share_service.dart';
@@ -47,7 +48,7 @@ class _VerifiedShareScreenState extends State<VerifiedShareScreen> {
       if (!opened) throw StateError('WhatsApp could not open');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Draft opened. Review and confirm Send in WhatsApp.'),
+          content: AppText('Draft opened. Review and confirm Send in WhatsApp.'),
         ),
       );
     } catch (_) {
@@ -65,7 +66,7 @@ class _VerifiedShareScreenState extends State<VerifiedShareScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Share recorded ledger')),
+    appBar: AppBar(title: const AppText('Share recorded ledger')),
     body: ListView(
       padding: const EdgeInsets.all(24),
       children: [
@@ -73,8 +74,7 @@ class _VerifiedShareScreenState extends State<VerifiedShareScreen> {
           future: preview,
           builder: (context, snapshot) {
             if (snapshot.hasError)
-              return const Text(
-                'This financial record could not be verified. Sharing is unavailable.',
+              return const AppText('This financial record could not be verified. Sharing is unavailable.',
               );
             if (!snapshot.hasData) return const LinearProgressIndicator();
             return Card(
@@ -90,14 +90,13 @@ class _VerifiedShareScreenState extends State<VerifiedShareScreen> {
           controller: phone,
           onChanged: (_) => phoneEdited = true,
           keyboardType: TextInputType.phone,
-          decoration: const InputDecoration(labelText: 'WhatsApp number'),
+          decoration: const InputDecoration(label: AppText('WhatsApp number')),
         ),
         CheckboxListTile(
           value: optedIn,
           onChanged: busy ? null : (v) => setState(() => optedIn = v ?? false),
-          title: const Text('Share via WhatsApp'),
-          subtitle: const Text(
-            'Optional. The current ledger is checked again before opening.',
+          title: const AppText('Share via WhatsApp'),
+          subtitle: const AppText('Optional. The current ledger is checked again before opening.',
           ),
         ),
         if (error != null) Text(error!),
@@ -107,7 +106,7 @@ class _VerifiedShareScreenState extends State<VerifiedShareScreen> {
         ),
         TextButton(
           onPressed: busy ? null : () => Navigator.pop(context),
-          child: const Text('Skip'),
+          child: const AppText('Skip'),
         ),
       ],
     ),

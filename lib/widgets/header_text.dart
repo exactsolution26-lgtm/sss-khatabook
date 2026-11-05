@@ -1,3 +1,4 @@
+import '../core/localization/app_text.dart';
 import 'package:flutter/material.dart';
 
 class HeaderText extends StatelessWidget {
@@ -10,7 +11,7 @@ class HeaderText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
+    return AppText(
       text,
       style: Theme.of(context).textTheme.headlineMedium?.copyWith(
             fontWeight: FontWeight.bold,

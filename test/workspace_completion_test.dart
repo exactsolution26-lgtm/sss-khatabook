@@ -148,6 +148,16 @@ void main(){
     expect(MaterialLocalizations.of(context).cancelButtonLabel,isNot('Cancel'));
     expect(tester.takeException(),isNull);await tester.pumpWidget(const SizedBox.shrink());
   });
+  testWidgets('Hindi account controls leave customer names and stored finance untouched',(tester)async{
+    await AccountTable.saveAccount(name:'Save',openingBalance:25);
+    SharedPreferences.setMockInitialValues({'sss_language':'hindi'});
+    await tester.pumpWidget(app());await tester.pumpAndSettle();
+    final accounts=find.text('खाते').first;await tester.ensureVisible(accounts);await tester.pumpAndSettle();await tester.tap(accounts.hitTestable());await tester.pumpAndSettle();
+    expect(find.text('नया खाता'),findsOneWidget);expect(find.text('Save'),findsOneWidget);
+    expect((await AccountTable.getAllAccounts()).last.name,'Save');
+    expect((await AnalysisLogic().getAnalysisData())['totalBalance'],1025);
+    expect(tester.takeException(),isNull);await tester.pumpWidget(const SizedBox.shrink());
+  });
   testWidgets('profile form saves durable values and actual saved timestamp through app navigation',(tester)async{
     await tester.pumpWidget(app());await tester.pumpAndSettle();await tester.tap(find.byTooltip('Settings'));await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('Business Profile'),200,scrollable:find.byType(Scrollable).first);

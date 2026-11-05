@@ -1,3 +1,4 @@
+import '../../core/localization/app_text.dart';
 import 'package:flutter/material.dart';
 
 import '../../widgets/header_text.dart';
@@ -33,8 +34,7 @@ class _WorkTodayScreenState extends State<WorkTodayScreen> {
       if (mounted)
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              'Timer notifications are unavailable on this device.',
+            content: AppText('Timer notifications are unavailable on this device.',
             ),
           ),
         );
@@ -73,7 +73,7 @@ class _WorkTodayScreenState extends State<WorkTodayScreen> {
       if (mounted)
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Could not restore timer. Please retry.'),
+            content: AppText('Could not restore timer. Please retry.'),
           ),
         );
     }
@@ -118,12 +118,12 @@ class _WorkTodayScreenState extends State<WorkTodayScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text(AppStrings.workSaved)));
+            .showSnackBar(const SnackBar(content: AppText(AppStrings.workSaved)));
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not save timer. Please retry.')),
+          const SnackBar(content: AppText('Could not save timer. Please retry.')),
         );
       }
     } finally {
@@ -143,7 +143,7 @@ class _WorkTodayScreenState extends State<WorkTodayScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text(AppStrings.workToday)),
+      appBar: AppBar(title: const AppText(AppStrings.workToday)),
       body: ListenableBuilder(
         listenable: _timerService,
         builder: (context, _) {
