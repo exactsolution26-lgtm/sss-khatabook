@@ -41,6 +41,16 @@ class AccountTable {
       );
       if ((rows.first['count'] as num) != 0)
         throw StateError('Account has transactions');
+      // Financial obligations, follow-ups and recoverable entries also
+      // reference accounts; never erase their owner even when the live
+      // income/expense tables are empty.
+      for (final table in ['obligations', 'follow_ups', 'recycled_entries']) {
+        final dependencies = await txn.rawQuery(
+          'SELECT COUNT(*) AS count FROM $table WHERE account_id = ?', [id]);
+        if ((dependencies.single['count'] as num) != 0) {
+          throw StateError('Account has historical or pending records');
+        }
+      }
       final account = await txn.query(
         'accounts',
         where: 'id = ?',
