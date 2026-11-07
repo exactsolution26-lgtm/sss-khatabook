@@ -25,10 +25,10 @@ class AccountTable {
       final count = await db.update(
         'accounts',
         values,
-        where: 'id = ?',
+        where: 'id = ? AND archived_at IS NULL',
         whereArgs: [id],
       );
-      if (count != 1) throw StateError('Account not found');
+      if (count != 1) throw StateError('Account not found or archived');
     }
   }
 
