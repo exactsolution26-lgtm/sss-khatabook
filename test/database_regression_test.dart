@@ -81,6 +81,27 @@ void main() {
     expect((await AccountTable.getAllAccounts()).single.name, 'Customer');
   });
 
+  test('archived account rejects financial inserts until restored', () async {
+    await AccountTable.saveAccount(name: 'Archived customer', openingBalance: 0);
+    final account = (await AccountTable.getAllAccounts()).single;
+    await AccountTable.archive(account.id!, archived: true);
+    final db = await DBHelper.database;
+    await expectLater(db.insert('income', {
+      'account_id': account.id, 'amount': 10,
+      'date': '2026-11-04', 'created_at': DateTime.now().toUtc().toIso8601String(),
+    }), throwsA(isA<DatabaseException>()));
+    await expectLater(db.insert('expenses', {
+      'account_id': account.id, 'amount': 10,
+      'date': '2026-11-04', 'created_at': DateTime.now().toUtc().toIso8601String(),
+    }), throwsA(isA<DatabaseException>()));
+    await AccountTable.archive(account.id!, archived: false);
+    final saved = await IncomeController().createIncome(IncomeModel(
+      accountId: account.id, amount: 10,
+      date: DateTime(2026, 11, 4), createdAt: DateTime.now(),
+    ));
+    expect(saved, greaterThan(0));
+  });
+
   test('new expenses are included in the selected account only', () async {
     await AccountTable.saveAccount(name: 'A', openingBalance: 100);
     await AccountTable.saveAccount(name: 'B', openingBalance: 200);
