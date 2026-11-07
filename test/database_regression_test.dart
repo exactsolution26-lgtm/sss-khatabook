@@ -62,6 +62,25 @@ void main() {
     },
   );
 
+  test('archived accounts reject edits and cannot be erased with pending dues', () async {
+    await AccountTable.saveAccount(name: 'Customer', openingBalance: 0);
+    final account = (await AccountTable.getAllAccounts()).single;
+    final db = await DBHelper.database;
+    await db.insert('obligations', {
+      'account_id': account.id!, 'kind': 'receivable', 'total_paise': 100,
+      'description': 'Outstanding', 'created_at': DateTime.now().toUtc().toIso8601String(),
+    });
+    await expectLater(AccountTable.deleteEmptyAccount(account.id!), throwsStateError);
+    await AccountTable.archive(account.id!, archived: true);
+    expect(await AccountTable.getAllAccounts(), isEmpty);
+    await expectLater(AccountTable.saveAccount(
+      id: account.id, name: 'Unauthorized edit', openingBalance: 0,
+    ), throwsStateError);
+    expect((await AccountTable.getAllAccounts(includeArchived: true)).single.name, 'Customer');
+    await AccountTable.archive(account.id!, archived: false);
+    expect((await AccountTable.getAllAccounts()).single.name, 'Customer');
+  });
+
   test('new expenses are included in the selected account only', () async {
     await AccountTable.saveAccount(name: 'A', openingBalance: 100);
     await AccountTable.saveAccount(name: 'B', openingBalance: 200);
