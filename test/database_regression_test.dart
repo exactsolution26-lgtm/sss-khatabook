@@ -9,6 +9,7 @@ import 'package:offline_khata_app/features/income/income_controller.dart';
 import 'package:offline_khata_app/models/expense_model.dart';
 import 'package:offline_khata_app/models/income_model.dart';
 import 'package:offline_khata_app/features/analysis/analysis_logic.dart';
+import 'package:offline_khata_app/features/entries/record_recovery.dart';
 import 'package:offline_khata_app/features/whatsapp/whatsapp_share_service.dart';
 
 void main() {
@@ -100,6 +101,32 @@ void main() {
       date: DateTime(2026, 11, 4), createdAt: DateTime.now(),
     ));
     expect(saved, greaterThan(0));
+  });
+
+  test('archived account prevents edit, removal and recycle restore', () async {
+    await AccountTable.saveAccount(name: 'Locked', openingBalance: 0);
+    final id = (await AccountTable.getAllAccounts()).single.id!;
+    final incomeId = await IncomeController().createIncome(IncomeModel(
+      accountId: id, amount: 25, date: DateTime(2026, 11, 4),
+      createdAt: DateTime.now(),
+    ));
+    final archiveId = await RecordRecovery.remove(
+      income: true, id: incomeId, accountId: id, reason: 'Correction');
+    await AccountTable.archive(id, archived: true);
+    await expectLater(RecordRecovery.restore(archiveId, id), throwsStateError);
+    await AccountTable.archive(id, archived: false);
+    await RecordRecovery.restore(archiveId, id);
+    await AccountTable.archive(id, archived: true);
+    await expectLater(RecordRecovery.remove(
+      income: true, id: incomeId, accountId: id, reason: 'Correction'),
+      throwsStateError);
+    await expectLater(RecordRecovery.edit(
+      income: true, id: incomeId, accountId: id, amount: '30',
+      date: '2026-11-04', note: 'Blocked', category: 'Other',
+      mode: 'cash', name: '', phone: ''),
+      throwsStateError);
+    expect((await (await DBHelper.database).query('income',
+      where: 'id=?', whereArgs: [incomeId])).single['amount'], 25);
   });
 
   test('new expenses are included in the selected account only', () async {
