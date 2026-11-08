@@ -15,6 +15,11 @@ class RecordRecovery {
     payload TEXT NOT NULL, reason TEXT NOT NULL, deleted_at TEXT NOT NULL,
     restored_at TEXT, UNIQUE(kind,record_id,deleted_at))''');
   static String table(bool income) => income ? 'income' : 'expenses';
+  static Future<void> _requireActiveAccount(DatabaseExecutor db, int accountId) async {
+    final rows = await db.query('accounts', columns: ['id'],
+      where: 'id=? AND archived_at IS NULL', whereArgs: [accountId], limit: 1);
+    if (rows.isEmpty) throw StateError('Account is archived or does not exist');
+  }
   static Future<void> _unallocated(DatabaseExecutor db, bool income, int id) async {
     final column = income ? 'income_id' : 'expense_id';
     if ((await db.rawQuery('SELECT id FROM payment_allocations WHERE $column=? OR reversal_$column=? LIMIT 1',[id,id])).isNotEmpty) {
@@ -33,6 +38,7 @@ class RecordRecovery {
     }
     final contact = PartySnapshot.optional(name,phone);
     await (await DBHelper.database).transaction((txn) async {
+      await _requireActiveAccount(txn, accountId);
       await _unallocated(txn,income,id);
       final count = await txn.update(table(income), {'amount': paise / 100,'date': date,
         income ? 'description' : 'note': note,'category': category.trim(),'mode': mode,
@@ -44,6 +50,8 @@ class RecordRecovery {
   static Future<int> remove({required bool income, required int id, required int accountId, required String reason}) async {
     if (reason.trim().isEmpty || reason.length > 500) throw ArgumentError('Deletion reason required');
     return (await DBHelper.database).transaction((txn) async {
+      await _requireActiveAccount(txn, accountId);
+      await _unallocated(txn, income, id);
       final rows = await txn.query(table(income),where: 'id=? AND account_id=?',whereArgs: [id,accountId]);
       if (rows.length != 1) throw StateError('Entry not found in this account');
       final attachments = await txn.query('attachments',where: '${income ? 'income_id' : 'expense_id'}=?',whereArgs: [id]);
@@ -86,6 +94,7 @@ class RecordRecovery {
   }
   static Future<void> restore(int archiveId, int accountId) async {
     await (await DBHelper.database).transaction((txn) async {
+      await _requireActiveAccount(txn, accountId);
       final rows = await txn.query('recycled_entries',where: 'id=? AND account_id=? AND restored_at IS NULL',whereArgs: [archiveId,accountId]);
       if (rows.length != 1) throw StateError('Deleted entry not found');
       final row = rows.single;
