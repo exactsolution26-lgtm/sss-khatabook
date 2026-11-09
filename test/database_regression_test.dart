@@ -97,7 +97,7 @@ void main() {
     }), throwsA(isA<DatabaseException>()));
     await AccountTable.archive(account.id!, archived: false);
     final saved = await IncomeController().createIncome(IncomeModel(
-      accountId: account.id, amount: 10,
+      accountId: account.id!, amount: 10,
       date: DateTime(2026, 11, 4), createdAt: DateTime.now(),
     ));
     expect(saved, greaterThan(0));
@@ -168,6 +168,8 @@ void main() {
     expect((await logic.getHistoryPage(accountId: a, fromDate: '2026-11-05')), isEmpty);
     await expectLater(logic.getHistoryPage(limit: 101), throwsArgumentError);
     await expectLater(logic.getHistoryPage(beforeDate: '2026-11-04'), throwsArgumentError);
+    await expectLater(logic.getHistoryPage(fromDate: '2026-13-01'), throwsArgumentError);
+    expect((await logic.getHistoryPage(accountId: a, fromDate: '2026-11-04', toDate: '2026-11-04')).length, 5);
   });
 
   test('new expenses are included in the selected account only', () async {
