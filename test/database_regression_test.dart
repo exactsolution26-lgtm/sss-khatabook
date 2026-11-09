@@ -129,6 +129,47 @@ void main() {
       where: 'id=?', whereArgs: [incomeId])).single['amount'], 25);
   });
 
+  test('history keyset pages preserve ties, account and type filters', () async {
+    await AccountTable.saveAccount(name: 'A', openingBalance: 0);
+    await AccountTable.saveAccount(name: 'B', openingBalance: 0);
+    final accounts = await AccountTable.getAllAccounts();
+    final a = accounts.first.id!;
+    final b = accounts.last.id!;
+    for (var i = 0; i < 5; i++) {
+      await IncomeController().createIncome(IncomeModel(
+        accountId: a, amount: i + 1.0, date: DateTime(2026, 11, 4),
+        createdAt: DateTime.now(),
+      ));
+    }
+    await IncomeController().createIncome(IncomeModel(
+      accountId: b, amount: 99, date: DateTime(2026, 11, 4),
+      createdAt: DateTime.now(),
+    ));
+    final logic = AnalysisLogic();
+    final all = <Map<String, Object?>>[];
+    String? date;
+    String? kind;
+    int? id;
+    while (true) {
+      final page = await logic.getHistoryPage(
+        accountId: a, beforeDate: date, beforeKind: kind, beforeId: id, limit: 2);
+      if (page.isEmpty) break;
+      all.addAll(page);
+      date = page.last['date'] as String;
+      kind = page.last['kind'] as String;
+      id = page.last['id'] as int;
+    }
+    expect(all.length, 5);
+    expect(all.map((e) => e['id']).toSet().length, 5);
+    expect(all.every((e) => e['account_id'] == a), isTrue);
+    expect(all.map((e) => e['id']).toList(),
+      orderedEquals([...all.map((e) => e['id'] as int)]..sort((x,y)=>y.compareTo(x))));
+    expect((await logic.getHistoryPage(accountId: a, kind: 'expense')), isEmpty);
+    expect((await logic.getHistoryPage(accountId: a, fromDate: '2026-11-05')), isEmpty);
+    await expectLater(logic.getHistoryPage(limit: 101), throwsArgumentError);
+    await expectLater(logic.getHistoryPage(beforeDate: '2026-11-04'), throwsArgumentError);
+  });
+
   test('new expenses are included in the selected account only', () async {
     await AccountTable.saveAccount(name: 'A', openingBalance: 100);
     await AccountTable.saveAccount(name: 'B', openingBalance: 200);
