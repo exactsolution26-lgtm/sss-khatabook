@@ -38,11 +38,25 @@ jobs:
           path: pubspec.lock
           retention-days: 7
       - name: Static analysis
+        id: analyze
+        continue-on-error: true
         run: flutter analyze
       - name: Unit tests
+        id: unit_tests
+        if: always()
+        continue-on-error: true
         env:
           CAPTURE_DASHBOARD_PREVIEWS: 'true'
         run: timeout 240s flutter test --reporter expanded --timeout 90s
+      - name: Enforce analyzer and unit-test gate
+        if: always()
+        env:
+          ANALYZE_OUTCOME: ${{ steps.analyze.outcome }}
+          TEST_OUTCOME: ${{ steps.unit_tests.outcome }}
+        run: |
+          echo "Flutter analyze: $ANALYZE_OUTCOME"
+          echo "Flutter tests: $TEST_OUTCOME"
+          test "$ANALYZE_OUTCOME" = success && test "$TEST_OUTCOME" = success
       - name: Upload reconstructed dashboard previews
         if: always()
         uses: actions/upload-artifact@v4
