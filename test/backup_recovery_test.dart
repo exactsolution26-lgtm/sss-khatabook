@@ -83,10 +83,10 @@ void main() {
   test('restore commits exactly the rows it validated', () async {
     await populate();
     final service = BackupService();
-    final snapshot = await service.snapshot();
+    final snapshot = jsonDecode(jsonEncode(await service.snapshot())) as Map<String, dynamic>;
     final accounts = (snapshot['tables'] as Map)['accounts'] as List;
     final restore = service.restore(snapshot, recoveryPassword: 'my portable backup password');
-    accounts[0] = {...accounts.single as Map, 'name': 'Changed after validation began'};
+    (accounts.single as Map)['name'] = 'Changed after validation began';
     await restore;
     expect((await AccountTable.getAllAccounts()).single.name, 'Ravi Verma');
     expect((await AnalysisLogic().getAnalysisData())['totalBalance'], 1200);
