@@ -146,10 +146,18 @@ void main() {
     await expectLater(const WhatsAppShareService().resolveDraft(WhatsAppDraft(
       type:WhatsAppMessageType.receipt,customer:'',amount:0,timestampUtc:DateTime.utc(2026),sourceExpenseId:1)),throwsStateError);
   });
-  test('receipt PDF uses real entry details and generates a readable PDF container', () async {
-    final row=(await TransactionHistory.load(true,id:1,accountId:account)).single;
-    final pdf=await TransactionReceipt.pdf(row);
-    expect(ascii.decode(pdf.take(5).toList()),'%PDF-');expect(pdf.length,greaterThan(2000));
+  test('income receipt and expense voucher generate PDFs from their own saved rows', () async {
+    for (final income in [true, false]) {
+      final row=(await TransactionHistory.load(income,id:1,accountId:account)).single;
+      final pdf=await TransactionReceipt.pdf(row);
+      expect(row.reference, income ? 'INC-1' : 'EXP-1');
+      expect(ascii.decode(pdf.take(5).toList()),'%PDF-');expect(pdf.length,greaterThan(2000));
+      if (Platform.environment['CAPTURE_DASHBOARD_PREVIEWS'] == 'true') {
+        await Directory('design-evidence').create(recursive: true);
+        final document = income ? 'income-receipt' : 'expense-voucher';
+        await File('design-evidence/$document-example.pdf').writeAsBytes(pdf);
+      }
+    }
   });
 
   MyApp app() => MyApp(automaticBackups:false,

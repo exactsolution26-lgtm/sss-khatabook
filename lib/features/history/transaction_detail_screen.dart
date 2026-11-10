@@ -66,7 +66,8 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
       final current = (await TransactionHistory.load(widget.income,
         id: widget.id, accountId: widget.accountId)).single;
       final bytes = await TransactionReceipt.pdf(current);
-      if (mounted) await shareFile(context, bytes, '${current.reference}-receipt.pdf', 'application/pdf');
+      final document = current.income ? 'receipt' : 'voucher';
+      if (mounted) await shareFile(context, bytes, '${current.reference}-$document.pdf', 'application/pdf');
     } catch (_) { error('Could not export this entry.', 'यह एंट्री एक्सपोर्ट नहीं हुई।'); }
     finally { if (mounted) setState(() => busy = false); }
   }
@@ -111,7 +112,8 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
           Wrap(spacing: 8, runSpacing: 8, children: [
             OutlinedButton.icon(onPressed: busy || widget.accountId == null ? null : edit, icon: const Icon(Icons.edit_outlined), label: Text(t('Edit entry', 'एंट्री बदलें'))),
             OutlinedButton.icon(onPressed: busy || widget.accountId == null ? null : remove, icon: const Icon(Icons.delete_outline), label: Text(t('Delete entry', 'एंट्री हटाएँ'))),
-            OutlinedButton.icon(onPressed: busy ? null : receipt, icon: const Icon(Icons.picture_as_pdf_outlined), label: Text(t('Receipt PDF', 'रसीद PDF'))),
+            OutlinedButton.icon(onPressed: busy ? null : receipt, icon: const Icon(Icons.picture_as_pdf_outlined),
+              label: Text(e.income ? t('Receipt PDF', 'रसीद PDF') : t('Expense voucher PDF', 'खर्च वाउचर PDF'))),
             OutlinedButton.icon(onPressed: busy ? null : () => Navigator.push(context,
               MaterialPageRoute<void>(builder: (_) => VerifiedShareScreen(draft: WhatsAppDraft(
                 type: WhatsAppMessageType.receipt, customer: '', amount: 0, timestampUtc: DateTime.now().toUtc(),
@@ -133,7 +135,8 @@ class TransactionReceipt {
     final hindi = pw.Font.ttf(await rootBundle.load('assets/fonts/NotoSansDevanagari-Regular.ttf'));
     final doc = pw.Document(theme: pw.ThemeData.withFont(base: latin, bold: latin, fontFallback: [hindi]));
     doc.addPage(pw.MultiPage(pageFormat: PdfPageFormat.a4, maxPages: 20, build: (_) => [
-      pw.Text('SSS Khatabook — Transaction receipt', style: const pw.TextStyle(fontSize: 20)),
+      pw.Text(entry.income ? 'SSS Khatabook — Income receipt' : 'SSS Khatabook — Expense voucher',
+        style: const pw.TextStyle(fontSize: 20)),
       pw.SizedBox(height: 18),
       pw.Text('${entry.reference} · ${entry.income ? 'Income received' : 'Expense paid'}'),
       pw.Text('INR ${(entry.paise / 100).toStringAsFixed(2)}', style: const pw.TextStyle(fontSize: 24)),

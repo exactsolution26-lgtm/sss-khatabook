@@ -62,7 +62,7 @@ class _FinancialReportState extends State<FinancialReportScreen> {
           Text('${t('Expenses','खर्च')}: ${Money.format(r.expense)}',key:const ValueKey('report-expense')),
           Text('${t('Net movement','शुद्ध बदलाव')}: ${Money.format(r.net)}',key:const ValueKey('report-net')),
           if(r.unassigned>0)Text(t('Includes ${r.unassigned} unassigned historic expenses.','${r.unassigned} पुराने असंबद्ध खर्च भी शामिल हैं।')),
-          bucket(t('By month','महीने के अनुसार'),r.months),bucket(t('By category','श्रेणी के अनुसार'),r.categories),bucket(t('By payment mode','भुगतान प्रकार के अनुसार'),r.modes),
+          bucket(t('By year','साल के अनुसार'),r.years),bucket(t('By month','महीने के अनुसार'),r.months),bucket(t('By category','श्रेणी के अनुसार'),r.categories),bucket(t('By payment mode','भुगतान प्रकार के अनुसार'),r.modes),
         ]);
       }),
     ]));

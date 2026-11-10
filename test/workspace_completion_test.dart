@@ -107,6 +107,10 @@ void main(){
     expect(all.categories['Sales']!.income,30030);expect(all.modes['upi']!.expense,5005);expect(all.months['2026-11']!.net,25025);
     final day=await FinancialReport.load(from:'2026-11-04',to:'2026-11-04',accountId:account);
     expect(day.count,2);expect(day.net,5005);expect(day.income,10010);
+    await CsvImport.commit([ImportEntry(false,account,125,'2025-12-31','Travel','cash','','','Prior year','cost-2025')]);
+    final yearly=await FinancialReport.load(accountId:account);
+    expect(yearly.years['2025']!.net,-125);
+    expect(yearly.years['2026']!.net,25025);
     await expectLater(FinancialReport.load(from:'2026-11-05',to:'2026-11-04'),throwsArgumentError);
     await expectLater(FinancialReport.load(accountId:999),throwsStateError);
   });
