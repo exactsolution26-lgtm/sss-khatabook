@@ -80,6 +80,34 @@ void main() {
     expect(TransactionHistory.totalPaise(selected),10010);
     expect(TransactionHistory.filter(rows,category:'Travel'),isEmpty);
   });
+  test('history pages keep equal timestamps ordered and totals cover every matching row', () async {
+    final db = await DBHelper.database;
+    await db.insert('income', {
+      'id': 3, 'account_id': account, 'amount': 10.25, 'date': '2026-11-03',
+      'description': 'Ravi’s second service', 'category': 'Services', 'contact_name': 'RÁVI',
+      'created_at': '2026-11-04T20:01:02Z',
+    });
+
+    Future<HistoryPage> page([HistoryEntry? after]) => TransactionHistory.page(true,
+      accountId: account, query: 'RAVI', category: 'Services',
+      fromDate: '2026-11-03', toDate: '2026-11-03', size: 1, after: after);
+    final first = await page();
+    final second = await page(first.entries.single);
+    expect(first.entries.single.id, 3);
+    expect(second.entries.single.id, 1);
+    expect(first.hasNext, isTrue);
+    expect(second.hasNext, isFalse);
+    expect(first.count, 2);
+    expect(second.count, 2);
+    expect(first.totalPaise, 11035);
+    expect(second.totalPaise, 11035);
+    expect(first.accounts.keys, containsAll([account, other]));
+    expect((await TransactionHistory.page(true, query: '%')).entries, isEmpty);
+    expect((await TransactionHistory.page(true, query: '*')).entries, isEmpty);
+    expect((await TransactionHistory.page(true, query: 'rávi')).entries.single.id, 3);
+    final historic = await TransactionHistory.page(false, size: 1);
+    await expectLater(TransactionHistory.page(true, after: historic.entries.single), throwsArgumentError);
+  });
   test('timestamps roll over to IST and do not invent legacy times', () {
     expect(HistoryEntry.timestamp('2026-11-04T20:01:02Z'), 'Thursday, 5 November 2026 · 01:31:02 AM IST');
     expect(HistoryEntry.timestamp(null),'Unknown historic save time');
@@ -126,6 +154,51 @@ void main() {
 
   MyApp app() => MyApp(automaticBackups:false,
     appLock:AppLock(read:() async => null,write:(_) async {},supported:true));
+  testWidgets('history account filter, next page and previous page preserve full totals', (tester) async {
+    final db = await DBHelper.database;
+    await db.transaction((txn) async {
+      final batch = txn.batch();
+      for (var id = 3; id <= 52; id++) {
+        batch.insert('income', {'id': id, 'account_id': account, 'amount': 1,
+          'date': '2026-11-04', 'created_at': '2026-11-04T15:00:00Z'});
+      }
+      await batch.commit(noResult: true);
+    });
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    final incomeTile = find.text('Income').first;
+    await tester.ensureVisible(incomeTile);
+    await tester.tap(incomeTile);
+    await tester.pumpAndSettle();
+
+    final accountFilter = find.byType(DropdownButtonFormField<int>);
+    await tester.ensureVisible(accountFilter);
+    await tester.tap(accountFilter);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Main Account').last.hitTestable());
+    await tester.pumpAndSettle();
+    expect(find.text('₹150.10'), findsOneWidget);
+
+    Future<void> clickPage(String label) async {
+      final button = find.widgetWithText(OutlinedButton, label);
+      await tester.scrollUntilVisible(button, 580, maxScrolls: 60, scrollable: find.byType(Scrollable).first);
+      await tester.ensureVisible(button);
+      await tester.tap(button.hitTestable());
+      await tester.pumpAndSettle();
+    }
+
+    await clickPage('Next page');
+    expect(find.text('₹150.10'), findsOneWidget);
+    expect(find.byKey(const ValueKey('history-INC-52')), findsNothing);
+    final lastEntry = find.byKey(const ValueKey('history-INC-1'));
+    await tester.scrollUntilVisible(lastEntry, 200, scrollable: find.byType(Scrollable).first);
+    expect(lastEntry, findsOneWidget);
+    await clickPage('Previous page');
+    expect(find.text('₹150.10'), findsOneWidget);
+    expect(find.byKey(const ValueKey('history-INC-1')), findsNothing);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
   for(final dark in [false,true]) {
     testWidgets('dashboard summary opens history, filters and details at ${dark ? '320 dark' : '390 light'}', (tester) async {
       SharedPreferences.setMockInitialValues({'sss_theme_mode': dark ? 'dark' : 'light'});
