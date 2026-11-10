@@ -160,7 +160,8 @@ const path = require('node:path');
   await passphrase.fill('Browser acceptance backup passphrase');
   await checkProfileInput('Backup passphrase', 'Browser acceptance backup passphrase');
   await text('Enable encrypted checkpoints for this browser session').click();
-  await text('Encrypted checkpoint saved on this device').waitFor({timeout:60000});
+  // The accessibility node also includes the saved IST timestamp.
+  await page.getByText(/^Encrypted checkpoint saved on this device\b/).waitFor({timeout:60000});
   await text('Review / Restore device checkpoint').click();
   await text('Latest checkpoint').click();
   await text('Replace current financial records?').waitFor({timeout:60000});
