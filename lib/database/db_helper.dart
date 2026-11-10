@@ -26,7 +26,8 @@ class DBHelper {
 
   /// Tests use the same schema/migrations with a separate database file.
   static Future<Database> openAt(String path, {DatabaseFactory? factory}) =>
-      (factory ?? databaseFactory).openDatabase(path, options: options);
+      (factory ?? databaseFactory).openDatabase(path,
+        options: _options(singleInstance: path != inMemoryDatabasePath));
 
   static Future<void> close() async {
     if (_opening != null) await _opening;
@@ -39,8 +40,9 @@ class DBHelper {
     return openAt(path);
   }
 
-  static OpenDatabaseOptions get options => OpenDatabaseOptions(
+  static OpenDatabaseOptions _options({required bool singleInstance}) => OpenDatabaseOptions(
     version: 12,
+    singleInstance: singleInstance,
     onConfigure: (db) async => db.execute('PRAGMA foreign_keys = ON'),
     onCreate: (db, version) async {
       await db.execute('''CREATE TABLE accounts (

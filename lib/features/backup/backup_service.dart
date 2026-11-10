@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:cryptography/cryptography.dart';
-import 'package:path/path.dart' as paths;
 import 'package:sqflite/sqflite.dart';
 import '../../database/db_helper.dart';
 import 'backup_vault.dart';
@@ -165,8 +164,8 @@ class BackupService {
       if (next.$1 > 5 || next.$2 > 10 * 1024 * 1024) throw const FormatException('Attachment limit exceeded');
       attachmentTotals[group] = next;
     }
-    final path = paths.join(await getDatabasesPath(), 'sss-validate-${base64UrlEncode(BackupCipher.randomBytes(18))}.db');
-    final temporary = await DBHelper.openAt(path);
+    // A crash during validation must not leave an unencrypted staging file.
+    final temporary = await DBHelper.openAt(inMemoryDatabasePath);
     try {
       // Reject unknown columns before inserting; bound data never becomes SQL.
       for (final table in tableNames) {
@@ -182,7 +181,6 @@ class BackupService {
       }
     } finally {
       await temporary.close();
-      await databaseFactory.deleteDatabase(path);
     }
   }
 

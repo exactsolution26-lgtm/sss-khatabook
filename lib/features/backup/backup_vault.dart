@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as paths;
 import 'package:sqflite/sqflite.dart';
 
@@ -6,9 +7,11 @@ import 'package:sqflite/sqflite.dart';
 class BackupVault {
   static Future<T> _use<T>(Future<T> Function(Database) operation) async {
     final db = await databaseFactory.openDatabase(paths.join(await getDatabasesPath(), 'sss_backup_vault.db'),
-      options: OpenDatabaseOptions(version: 1, singleInstance: false, onCreate: (db, _) => db.execute(
+      options: OpenDatabaseOptions(version: 1, singleInstance: kIsWeb, onCreate: (db, _) => db.execute(
         'CREATE TABLE snapshots(id INTEGER PRIMARY KEY AUTOINCREMENT,purpose TEXT NOT NULL,encrypted TEXT NOT NULL,created_at TEXT NOT NULL)')));
-    try {return await operation(db);} finally {await db.close();}
+    // Web connections share one virtual file system. Keep its single vault
+    // handle open so an operation cannot close it while another is using it.
+    try {return await operation(db);} finally {if (!kIsWeb) await db.close();}
   }
   static Future<void> put(String encrypted, {String purpose = 'automatic'}) => _use((db) => db.transaction((txn) async {
     await txn.insert('snapshots', {'purpose': purpose, 'encrypted': encrypted,

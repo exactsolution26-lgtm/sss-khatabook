@@ -106,6 +106,18 @@ void main() {
     expect(await BackupVault.list(purpose: 'recovery'), isEmpty);
   });
 
+  test('concurrent backup validations use independent in-memory databases', () async {
+    await populate();
+    final service = BackupService();
+    final first = await service.snapshot();
+    await AccountTable.saveAccount(name: 'Second account', openingBalance: 25);
+    final second = await service.snapshot();
+    await Future.wait([service.validate(first), service.validate(second)]);
+    expect((await AccountTable.getAllAccounts()).length, 2);
+    expect((await AnalysisLogic().getAnalysisData())['totalBalance'], 1225);
+    expect(await folder.list().any((file) => file.path.contains('sss-validate-')), isFalse);
+  });
+
   test('audit captures updates/deletes with before/after data and cannot be rewritten', () async {
     final id = await populate();
     final original = await IncomeController().getIncomeById(id);
