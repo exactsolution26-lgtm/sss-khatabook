@@ -45,7 +45,17 @@ void main() {
     await expectLater(service.recordPayment(obligationId: id,amountPaise: 30001,operationKey: key(2)),throwsA(isA<DatabaseException>()));
     expect((await IncomeController().getAllIncome()).length,1);
     await expectLater(IncomeController().updateIncome(income.copyWith(amount: 250)),throwsA(isA<DatabaseException>()));
-    await expectLater(IncomeController().deleteIncome(income.id!),throwsA(isA<DatabaseException>()));
+    await expectLater(
+      IncomeController().deleteIncome(income.id!),
+      throwsA(isA<StateError>().having(
+        (error) => error.message,
+        'message',
+        'Use payment history to reverse allocated payments',
+      )),
+    );
+    expect((await IncomeController().getAllIncome()).single.id, income.id);
+    expect((await service.list()).single['remaining_paise'], 30000);
+    expect((await AnalysisLogic().getAnalysisData())['totalBalance'], 1200);
   });
   test('competing payments cannot overpay or leak an unallocated cash entry', () async {
     final id = await due();
