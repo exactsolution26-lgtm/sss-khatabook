@@ -38,22 +38,34 @@ const path = require('node:path');
     await checkProfileInput(label);
     return field;
   };
-  const fillProfileInput = async (label, value) => {
-    const field = await focusProfileInput(label);
-    // Enter text through the browser editor after Flutter has handled focus.
-    await field.press('Home');
-    await field.fill(value);
-    await checkProfileInput(label, value);
-  };
-  const checkProfileInput = async (label, expected = null) => {
+  const checkProfileInput = async (label, expected = null, timeout = 30000) => {
     await page.waitForFunction(({label, expected}) => {
       let field = document.activeElement;
       while (field?.shadowRoot?.activeElement) field = field.shadowRoot.activeElement;
       const activeLabel = field?.getAttribute('aria-label');
       return field instanceof HTMLInputElement && (!activeLabel || activeLabel === label) &&
         (expected === null || field.value === expected);
-    }, {label, expected});
+    }, {label, expected}, {timeout});
   };
+  const fillInput = async (field, label, value) => {
+    await field.click();
+    await checkProfileInput(label);
+    // Flutter can replace the editing element on its first focus frame.
+    // Retry only input setup, and require the exact value before proceeding.
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      await field.press('Home');
+      await field.fill(value);
+      try {
+        await checkProfileInput(label, value, 2500);
+        return;
+      } catch (error) {
+        if (attempt === 3 || error.name !== 'TimeoutError') throw error;
+        await field.click();
+      }
+    }
+  };
+  const fillProfileInput = (label, value) =>
+    fillInput(page.getByRole('textbox', {name:label, exact:true}), label, value);
   const returnHomeFromProfile = async () => {
     await page.getByRole('button', {name:'Back',exact:true}).click();
     await page.getByRole('button', {name:'Back',exact:true}).click();
@@ -155,10 +167,7 @@ const path = require('node:path');
   await page.getByRole('button', {name:'Settings',exact:true}).first().click();
   await text('Backup & Restore').click();
   const passphrase = page.getByLabel('Backup passphrase', {exact:true});
-  await passphrase.click();
-  await passphrase.press('Home');
-  await passphrase.fill('Browser acceptance backup passphrase');
-  await checkProfileInput('Backup passphrase', 'Browser acceptance backup passphrase');
+  await fillInput(passphrase, 'Backup passphrase', 'Browser acceptance backup passphrase');
   await text('Enable encrypted checkpoints for this browser session').click();
   // The accessibility node also includes the saved IST timestamp.
   await page.getByText(/^Encrypted checkpoint saved on this device\b/).waitFor({timeout:60000});
