@@ -166,7 +166,7 @@ const path = require('node:path');
   await text('Latest checkpoint').click();
   await text('Replace current financial records?').waitFor({timeout:60000});
   await text('Replace records').click();
-  await page.getByText(/^Records restored successfully/).waitFor({timeout:60000});
+  await page.locator('flt-semantics-host').getByText(/^Records restored successfully/).first().waitFor({timeout:60000});
   await page.screenshot({path:'web-backup-restored-offline.png'});
   await page.getByRole('button', {name:'Back',exact:true}).click();
   await page.getByRole('button', {name:'Back',exact:true}).click();
