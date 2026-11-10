@@ -63,6 +63,65 @@ void main() {
     },
   );
 
+  test('failed Dart schema upgrade rolls back legacy rows and can be retried', () async {
+    final path = '${temporary.path}/offline_khata.db';
+    final legacy = await databaseFactory.openDatabase(path, options: OpenDatabaseOptions(
+      version: 1,
+      onCreate: (db, _) async {
+        await db.execute('CREATE TABLE accounts(id INTEGER PRIMARY KEY, cash_balance REAL, bank_balance REAL)');
+        await db.execute('CREATE TABLE expenses(id INTEGER PRIMARY KEY, amount REAL, mode TEXT, category TEXT, note TEXT, date TEXT)');
+        await db.execute('INSERT INTO accounts VALUES (7,125.25,300.75)');
+        await db.execute("INSERT INTO expenses VALUES (11,20.5,'cash','food','legacy','2026-10-01')");
+        await db.execute('CREATE TABLE income(id INTEGER PRIMARY KEY)');
+      },
+    ));
+    await legacy.close();
+
+    await expectLater(DBHelper.openAt(path), throwsA(isA<DatabaseException>()));
+
+    final afterFailure = await databaseFactory.openDatabase(path);
+    try {
+      expect((await afterFailure.rawQuery('PRAGMA user_version')).single.values.single, 1);
+      expect((await afterFailure.rawQuery('PRAGMA table_info(accounts)')).map((column) => column['name']),
+        ['id', 'cash_balance', 'bank_balance']);
+      expect((await afterFailure.query('expenses')).single['amount'], 20.5);
+      await afterFailure.execute('DROP TABLE income');
+    } finally {
+      await afterFailure.close();
+    }
+
+    final upgraded = await DBHelper.database;
+    expect((await upgraded.query('accounts')).single['opening_balance'], 426);
+    expect((await upgraded.query('expenses')).single['id'], 11);
+    expect(await upgraded.rawQuery('PRAGMA foreign_key_check'), isEmpty);
+  });
+
+  test('schema 11 upgrade adds history indexes and preserves the ledger', () async {
+    await AccountTable.saveAccount(name: 'Legacy customer', openingBalance: 100);
+    final account = (await AccountTable.getAllAccounts()).single;
+    final db = await DBHelper.database;
+    await db.insert('income', {
+      'account_id': account.id, 'amount': 12.50, 'date': '2026-10-01',
+      'created_at': '2026-10-01T00:00:00Z',
+    });
+    for (final table in ['income', 'expenses']) {
+      await db.execute('DROP INDEX ${table}_history_account_date');
+      await db.execute('DROP INDEX ${table}_history_date');
+    }
+    await db.execute('PRAGMA user_version = 11');
+    await DBHelper.close();
+
+    final upgraded = await DBHelper.database;
+    expect((await upgraded.rawQuery('PRAGMA user_version')).single.values.single, 12);
+    for (final table in ['income', 'expenses']) {
+      final indexes = await upgraded.rawQuery('PRAGMA index_list($table)');
+      expect(indexes.map((row) => row['name']),
+        containsAll(['${table}_history_account_date', '${table}_history_date']));
+    }
+    expect((await AnalysisLogic().getHistoryPage(accountId: account.id)).single['amount'], 12.50);
+    expect(await upgraded.rawQuery('PRAGMA foreign_key_check'), isEmpty);
+  });
+
   test('archived accounts reject edits and cannot be erased with pending dues', () async {
     await AccountTable.saveAccount(name: 'Customer', openingBalance: 0);
     final account = (await AccountTable.getAllAccounts()).single;

@@ -60,12 +60,15 @@ class BackupService {
 
   Future<Map<String, dynamic>> snapshot() async {
     final db = await DBHelper.database;
-    return db.transaction((txn) async => {
-      'format': 'sss-khatabook-records', 'version': 1, 'schema': 11,
-      'created_at': DateTime.now().toUtc().toIso8601String(),
-      'tables': {for (final table in tableNames) table: await txn.query(table, orderBy: 'rowid')},
-    });
+    return db.transaction(_snapshot);
   }
+
+  // The portable row format stays at schema 11. SQLite schema 12 adds only indexes.
+  Future<Map<String, dynamic>> _snapshot(Transaction txn) async => {
+    'format': 'sss-khatabook-records', 'version': 1, 'schema': 11,
+    'created_at': DateTime.now().toUtc().toIso8601String(),
+    'tables': {for (final table in tableNames) table: await txn.query(table, orderBy: 'rowid')},
+  };
 
   Map<String, List<Map<String, Object?>>> validateShape(Map<String, dynamic> data) {
     if (data['format'] != 'sss-khatabook-records' || data['version'] != 1 || ![6, 7, 8, 9, 10, 11].contains(data['schema'])) {
@@ -146,8 +149,9 @@ class BackupService {
   }
 
   /// All schema constraints and links are tested away from the live database.
-  Future<void> validate(Map<String, dynamic> data) async {
-    final tables = validateShape(data);
+  Future<void> validate(Map<String, dynamic> data) async => _validateTables(validateShape(data));
+
+  Future<void> _validateTables(Map<String, List<Map<String, Object?>>> tables) async {
     final attachmentTotals = <String, (int, int)>{};
     for (final row in tables['attachments']!) {
       final bytes = base64Decode(row['content_base64'] as String);
@@ -183,16 +187,20 @@ class BackupService {
   }
 
   Future<void> restore(Map<String, dynamic> data, {required String recoveryPassword}) async {
-    await validate(data);
-    // A recoverable encrypted copy must persist before any existing row changes.
-    final current = await snapshot();
-    final recovery = await BackupCipher.encrypt(current, recoveryPassword);
-    await BackupVault.put(recovery, purpose: 'recovery');
-    await DBHelper.replaceSnapshot(await DBHelper.database, validateShape(data));
-    for (final row in ((current['tables'] as Map)['follow_ups'] as List)) {
-      if (row['notification_scheduled'] == 1) {
-        try {await cancelReminder(row['id'] as int);} catch (_) { /* Restored in-app reminders remain available. */ }
+    final tables = validateShape(data);
+    await _validateTables(tables);
+    final reminders = <int>[];
+    await DBHelper.replaceSnapshot(await DBHelper.database, tables, beforeReplace: (txn) async {
+      // Keep ledger writes serialized until the exact pre-restore state is safe in the vault.
+      final current = await _snapshot(txn);
+      final recovery = await BackupCipher.encrypt(current, recoveryPassword);
+      await BackupVault.put(recovery, purpose: 'recovery');
+      for (final row in ((current['tables'] as Map)['follow_ups'] as List)) {
+        if (row['notification_scheduled'] == 1) reminders.add(row['id'] as int);
       }
+    });
+    for (final id in reminders) {
+      try {await cancelReminder(id);} catch (_) { /* Restored in-app reminders remain available. */ }
     }
   }
 }

@@ -134,7 +134,7 @@ void main(){
     await db.execute('ALTER TABLE accounts DROP COLUMN archived_at');
     await db.execute('PRAGMA user_version=10');await DBHelper.close();
     final upgraded=await DBHelper.database;
-    expect((await upgraded.rawQuery('PRAGMA user_version')).single.values.single,11);
+    expect((await upgraded.rawQuery('PRAGMA user_version')).single.values.single,12);
     expect((await upgraded.query('income')).single['amount'],100.10);
     await AccountTable.archive(account,archived:true);
     await expectLater(CsvImport.commit([entry(id:'must-block')]),throwsA(isA<DatabaseException>()));

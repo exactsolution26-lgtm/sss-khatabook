@@ -40,7 +40,7 @@ class DBHelper {
   }
 
   static OpenDatabaseOptions get options => OpenDatabaseOptions(
-    version: 11,
+    version: 12,
     onConfigure: (db) async => db.execute('PRAGMA foreign_keys = ON'),
     onCreate: (db, version) async {
       await db.execute('''CREATE TABLE accounts (
@@ -70,6 +70,7 @@ class DBHelper {
       await FollowupSchema.install(db);
       await RecordRecovery.install(db);
       await WorkspaceSchema.install(db);
+      await _installHistoryIndexes(db);
     },
     onUpgrade: (db, oldVersion, newVersion) async {
       if(oldVersion<11) await db.execute('ALTER TABLE accounts ADD COLUMN archived_at TEXT');
@@ -128,13 +129,23 @@ class DBHelper {
       if (oldVersion < 9) await RecordRecovery.install(db);
       if (oldVersion < 10) await WorkspaceSchema.install(db);
       if (oldVersion < 11) await _installIntegrityGuards(db);
+      if (oldVersion < 12) await _installHistoryIndexes(db);
     },
   );
+
+  static Future<void> _installHistoryIndexes(DatabaseExecutor db) async {
+    for (final table in ['income', 'expenses']) {
+      await db.execute('CREATE INDEX IF NOT EXISTS ${table}_history_account_date ON $table(account_id, date DESC, id DESC)');
+      await db.execute('CREATE INDEX IF NOT EXISTS ${table}_history_date ON $table(date DESC, id DESC)');
+    }
+  }
 
   /// Restore is one transaction. Only the recovery service calls this after
   /// validating a complete snapshot in a disposable database.
   static Future<void> replaceSnapshot(Database db,
-      Map<String, List<Map<String, Object?>>> tables) => db.transaction((txn) async {
+      Map<String, List<Map<String, Object?>>> tables,
+      {Future<void> Function(Transaction)? beforeReplace}) => db.transaction((txn) async {
+    await beforeReplace?.call(txn);
     // Old unassigned expenses must survive recovery. Temporarily drop only
     // write guards inside this exclusive transaction; always reinstall them.
     for (final table in ['income', 'expenses']) {

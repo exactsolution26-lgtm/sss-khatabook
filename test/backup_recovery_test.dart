@@ -80,6 +80,32 @@ void main() {
     expect((await IncomeController().getAllIncome()).length, 1);
   });
 
+  test('restore commits exactly the rows it validated', () async {
+    await populate();
+    final service = BackupService();
+    final snapshot = await service.snapshot();
+    final accounts = (snapshot['tables'] as Map)['accounts'] as List;
+    final restore = service.restore(snapshot, recoveryPassword: 'my portable backup password');
+    accounts[0] = {...accounts.single as Map, 'name': 'Changed after validation began'};
+    await restore;
+    expect((await AccountTable.getAllAccounts()).single.name, 'Ravi Verma');
+    expect((await AnalysisLogic().getAnalysisData())['totalBalance'], 1200);
+  });
+
+  test('restore preserves live rows when recovery encryption cannot finish', () async {
+    await populate();
+    final service = BackupService();
+    final snapshot = await service.snapshot();
+    await AccountTable.saveAccount(name: 'Keep this account', openingBalance: 25);
+
+    await expectLater(service.restore(snapshot, recoveryPassword: 'short'), throwsArgumentError);
+
+    expect((await AccountTable.getAllAccounts()).map((account) => account.name),
+      containsAll(['Ravi Verma', 'Keep this account']));
+    expect((await AnalysisLogic().getAnalysisData())['totalBalance'], 1225);
+    expect(await BackupVault.list(purpose: 'recovery'), isEmpty);
+  });
+
   test('audit captures updates/deletes with before/after data and cannot be rewritten', () async {
     final id = await populate();
     final original = await IncomeController().getIncomeById(id);

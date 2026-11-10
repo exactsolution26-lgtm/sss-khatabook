@@ -80,8 +80,10 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
       - name: SQLite v1 migration fixture tests
+        if: ${{ !cancelled() }}
         run: timeout 60s python3 -m unittest discover -s test_tools -p '*_check.py' -v
       - name: Subscriber account schema checks
+        if: ${{ !cancelled() }}
         run: python3 -m unittest discover -s test_tools -p 'test_subscriber_schema.py' -v
       - name: Record verification commit
         if: always()
