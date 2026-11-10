@@ -169,6 +169,11 @@ void main() {
     await expectLater(logic.getHistoryPage(limit: 101), throwsArgumentError);
     await expectLater(logic.getHistoryPage(beforeDate: '2026-11-04'), throwsArgumentError);
     await expectLater(logic.getHistoryPage(fromDate: '2026-13-01'), throwsArgumentError);
+    await expectLater(logic.getHistoryPage(fromDate: '2026-02-30'), throwsArgumentError);
+    await expectLater(logic.getHistoryPage(fromDate: '2026-11-05', toDate: '2026-11-04'), throwsArgumentError);
+    await expectLater(logic.getHistoryPage(beforeDate: '2026-11-04', beforeKind: 'income', beforeId: 0), throwsArgumentError);
+    await expectLater(logic.getHistoryPage(kind: "income' OR 1=1 --"), throwsArgumentError);
+    await expectLater(logic.getHistoryPage(accountId: -1), throwsArgumentError);
     expect((await logic.getHistoryPage(accountId: a, fromDate: '2026-11-04', toDate: '2026-11-04')).length, 5);
   });
 
