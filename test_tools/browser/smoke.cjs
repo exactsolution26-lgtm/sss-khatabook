@@ -32,6 +32,20 @@ const path = require('node:path');
     await text('Business Profile').click();
     await page.getByRole('textbox', {name:'Business name',exact:true}).waitFor();
   };
+  const focusProfileInput = async label => {
+    const field = page.getByRole('textbox', {name:label, exact:true});
+    await field.click();
+    await checkProfileInput(label);
+  };
+  const checkProfileInput = async (label, expected = null) => {
+    await page.waitForFunction(({label, expected}) => {
+      let field = document.activeElement;
+      while (field?.shadowRoot?.activeElement) field = field.shadowRoot.activeElement;
+      const activeLabel = field?.getAttribute('aria-label');
+      return field instanceof HTMLInputElement && (!activeLabel || activeLabel === label) &&
+        (expected === null || field.value === expected);
+    }, {label, expected});
+  };
   const returnHomeFromProfile = async () => {
     await page.getByRole('button', {name:'Back',exact:true}).click();
     await page.getByRole('button', {name:'Back',exact:true}).click();
@@ -84,8 +98,12 @@ const path = require('node:path');
   await text('Active: Timeline').waitFor();
   await page.screenshot({path:'web-dashboard-desktop.png'});
   await openProfile();
-  await page.getByRole('textbox',{name:'Business name',exact:true}).pressSequentially('Browser test business');
-  await page.getByRole('textbox',{name:'Business phone (optional)',exact:true}).pressSequentially('9876543210');
+  await focusProfileInput('Business name');
+  await page.keyboard.type('Browser test business', {delay:25});
+  await checkProfileInput('Business name', 'Browser test business');
+  await focusProfileInput('Business phone (optional)');
+  await page.keyboard.type('9876543210', {delay:25});
+  await checkProfileInput('Business phone (optional)', '9876543210');
   await page.getByRole('button',{name:'Save Profile',exact:true}).click();
   await page.getByText(/^Saved ✓/).waitFor();
   await page.screenshot({path:'web-profile-saved.png'});
@@ -123,8 +141,11 @@ const path = require('node:path');
   await page.getByRole('button',{name:'Back',exact:true}).click();
   await text('Active: Timeline').waitFor();
   await openProfile();
-  assert.equal(await page.getByRole('textbox',{name:'Business name',exact:true}).inputValue(),'Browser test business');
-  assert.equal(await page.getByRole('textbox',{name:'Business phone (optional)',exact:true}).inputValue(),'+919876543210');
+  await focusProfileInput('Business name');
+  await checkProfileInput('Business name', 'Browser test business');
+  await focusProfileInput('Business phone (optional)');
+  await checkProfileInput('Business phone (optional)', '+919876543210');
+  await page.keyboard.press('Tab');
   await page.screenshot({path:'web-profile-offline-cold-start.png'});
   assert.deepEqual(errors, [], 'Browser runtime must have no unhandled page errors');
   console.log('PASS: startup, real IndexedDB account create/persistence, dashboard preview/cancel/apply/persistence, desktop/mobile rendering, selected dashboard and records retained on offline reload and offline browser cold start; business profile saved through UI and verified after offline cold restart');
