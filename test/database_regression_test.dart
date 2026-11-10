@@ -122,6 +122,24 @@ void main() {
     expect(await upgraded.rawQuery('PRAGMA foreign_key_check'), isEmpty);
   });
 
+  test('new income and expenses reject non-finite, negative and sub-paise amounts', () async {
+    await AccountTable.saveAccount(name: 'Sample customer', openingBalance: 0);
+    final account = (await AccountTable.getAllAccounts()).single.id!;
+    final date = DateTime(2026, 10, 1);
+    for (final amount in [double.nan, double.infinity, -1.0, 1.005]) {
+      await expectLater(IncomeController().createIncome(IncomeModel(
+        accountId: account, amount: amount, date: date, createdAt: date,
+      )), throwsArgumentError);
+      await expectLater(ExpenseController().saveExpense(ExpenseModel(
+        accountId: account, amount: amount, date: '2026-10-01', mode: 'cash',
+        category: 'Other', note: '',
+      )), throwsArgumentError);
+    }
+    final db = await DBHelper.database;
+    expect(await db.query('income'), isEmpty);
+    expect(await db.query('expenses'), isEmpty);
+  });
+
   test('archived accounts reject edits and cannot be erased with pending dues', () async {
     await AccountTable.saveAccount(name: 'Customer', openingBalance: 0);
     final account = (await AccountTable.getAllAccounts()).single;

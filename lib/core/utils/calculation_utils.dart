@@ -1,3 +1,5 @@
+import 'money.dart';
+
 class CalculationUtils {
   static double add(double a, double b) => a + b;
   static double subtract(double a, double b) => a - b;
@@ -11,15 +13,19 @@ class CalculationUtils {
       '₹${amount.toStringAsFixed(2)}';
 
   static double parseAmount(String input) {
-    final amount = double.tryParse(input.trim());
-    if (amount == null || !amount.isFinite || amount <= 0) {
-      throw FormatException('Enter a valid positive amount');
+    try {
+      return Money.parse(input) / 100;
+    } on ArgumentError {
+      throw const FormatException('Enter a positive amount with at most two decimals');
     }
-    return amount;
   }
 
   static bool isValidAmount(String input) {
-    final amount = double.tryParse(input.trim());
-    return amount != null && amount.isFinite && amount > 0;
+    try {
+      parseAmount(input);
+      return true;
+    } on FormatException {
+      return false;
+    }
   }
 }

@@ -1,3 +1,4 @@
+import '../../core/utils/money.dart';
 import '../../database/db_helper.dart';
 import '../entries/party_snapshot.dart';
 import '../entries/attachments.dart';
@@ -20,6 +21,7 @@ class IncomeController {
 
   Future<int> createIncome(IncomeModel income, {List<PendingAttachment> attachments = const []}) async {
     _validate(income);
+    Money.parse(income.amount.toString());
     final db = await _dbHelper.database;
     final snapshot = PartySnapshot.optional(income.contactName, income.contactPhone);
     final values = income.toMap()

@@ -1,3 +1,4 @@
+import '../../core/utils/money.dart';
 import '../db_helper.dart';
 import '../../features/entries/party_snapshot.dart';
 import '../../features/entries/attachments.dart';
@@ -8,9 +9,7 @@ class ExpenseTable {
     if (expense.accountId == null || expense.accountId! <= 0) {
       throw ArgumentError('Select an account for this expense');
     }
-    if (!expense.amount.isFinite || expense.amount <= 0) {
-      throw ArgumentError('Expense amount must be positive and finite');
-    }
+    Money.parse(expense.amount.toString());
     final db = await DBHelper.database;
     final snapshot = PartySnapshot.optional(expense.contactName, expense.contactPhone);
     final values = expense.toMap()

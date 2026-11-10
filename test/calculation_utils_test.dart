@@ -8,7 +8,7 @@ void main() {
   });
 
   test('invalid and non-finite amounts rejected', () {
-    for (final value in ['', 'abc', '0', '-1', 'NaN', 'Infinity']) {
+    for (final value in ['', 'abc', '0', '-1', 'NaN', 'Infinity', '1.005', '1e3']) {
       expect(CalculationUtils.isValidAmount(value), isFalse);
       expect(() => CalculationUtils.parseAmount(value), throwsFormatException);
     }
