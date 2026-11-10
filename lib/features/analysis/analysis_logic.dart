@@ -82,7 +82,7 @@ class AnalysisLogic {
       throw ArgumentError('Invalid entry type');
     }
     bool validDate(String? value) =>
-        value == null || (RegExp(r'^\d{4}-\d{2}-\d{2}.hasMatch(value) &&
+        value == null || (RegExp(r'^\d{4}-\d{2}-\d{2}
         DateTime.tryParse(value) != null &&
         DateTime.parse(value).toIso8601String().startsWith(value));
     if (!validDate(fromDate) || !validDate(toDate) || !validDate(beforeDate) ||
