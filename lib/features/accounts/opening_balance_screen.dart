@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'account_controller.dart';
 import '../../core/utils/date_utils.dart' as dates;
+import '../../core/utils/validation_utils.dart';
 import '../../widgets/simple_button.dart';
 import '../../widgets/simple_input.dart';
 
@@ -77,14 +78,8 @@ class _OpeningBalanceScreenState extends State<OpeningBalanceScreen> {
             isLoading: saving,
             onPressed: savedAt != null ? null : () async {
               if (saving) return;
-              final cash = double.tryParse(cashController.text.trim());
-              final bank = double.tryParse(bankController.text.trim());
-              if (cash == null ||
-                  bank == null ||
-                  !cash.isFinite ||
-                  !bank.isFinite ||
-                  cash < 0 ||
-                  bank < 0) {
+              if (ValidationUtils.validateBalance(cashController.text) != null ||
+                  ValidationUtils.validateBalance(bankController.text) != null) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: AppText('Enter valid non-negative balances'),
@@ -94,8 +89,8 @@ class _OpeningBalanceScreenState extends State<OpeningBalanceScreen> {
               }
               setState(() => saving = true);
               try {
-                controller.cashOpeningBalance = cash;
-                controller.bankOpeningBalance = bank;
+                controller.cashOpeningBalance = double.parse(cashController.text.trim());
+                controller.bankOpeningBalance = double.parse(bankController.text.trim());
                 final cashText = cashController.text;
                 final bankText = bankController.text;
                 FocusScope.of(context).unfocus();

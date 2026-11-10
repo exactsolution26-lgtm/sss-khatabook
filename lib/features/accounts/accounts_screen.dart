@@ -1,7 +1,7 @@
 import '../../core/localization/app_text.dart';
 import 'package:flutter/material.dart';
 
-import '../../database/db_helper.dart';
+import '../../core/utils/validation_utils.dart';
 import '../../database/tables/account_table.dart';
 import '../../models/account_model.dart';
 import '../settings/app_settings.dart';
@@ -9,10 +9,11 @@ import 'archived_accounts_screen.dart';
 import '../whatsapp/verified_share_screen.dart';
 import '../whatsapp/whatsapp_share_service.dart';
 import '../reports/ledger_export_screen.dart';
+import '../reports/ledger_export.dart';
+import '../history/transaction_history.dart';
 import '../entries/attachment_widgets.dart';
 import '../entries/record_editor.dart';
 import '../entries/record_recovery.dart';
-import '../../core/utils/date_utils.dart' as dates;
 
 class AccountsScreen extends StatefulWidget {
   const AccountsScreen({super.key});
@@ -205,12 +206,8 @@ class _AccountEditorDialogState extends State<_AccountEditorDialog> {
                 label: AppText('Opening balance (₹)'),
                 helperText: 'Locked after the first transaction.',
               ),
-              validator: (value) {
-                final n = double.tryParse(value ?? '');
-                return n == null || !n.isFinite || n < 0
-                    ? 'Enter a non-negative amount'
-                    : null;
-              },
+              validator: (value) => value == widget.account?.openingBalance.toStringAsFixed(2)
+                  ? null : ValidationUtils.validateBalance(value),
             ),
           ],
         ),
@@ -245,7 +242,7 @@ class AccountLedgerScreen extends StatefulWidget {
 }
 
 class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
-  late Future<List<Map<String, Object?>>> _entries;
+  late Future<LedgerExport> _entries;
   String _query = '';
   @override
   void initState() {
@@ -253,15 +250,7 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
     _entries = _load();
   }
 
-  Future<List<Map<String, Object?>>> _load() async {
-    final db = await DBHelper.database;
-    return db.rawQuery(
-      '''SELECT id, amount, date, description AS note, created_at, contact_name, contact_phone, 'income' AS kind FROM income WHERE account_id = ?
-      UNION ALL SELECT id, amount, date, note, created_at, contact_name, contact_phone, 'expense' AS kind FROM expenses WHERE account_id = ?
-      ORDER BY date ASC, created_at ASC, kind ASC, id ASC''',
-      [widget.account.id, widget.account.id],
-    );
-  }
+  Future<LedgerExport> _load() => LedgerExport.load(widget.account.id!);
 
   Future<void> _change(Map<String,Object?> entry, bool remove) async {
     final income = entry['kind'] == 'income';
@@ -346,7 +335,7 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
           ),
         ),
         Expanded(
-          child: FutureBuilder<List<Map<String, Object?>>>(
+          child: FutureBuilder<LedgerExport>(
             future: _entries,
             builder: (context, snapshot) {
               if (snapshot.hasError)
@@ -358,17 +347,16 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
                 );
               if (!snapshot.hasData)
                 return const Center(child: CircularProgressIndicator());
-              var running = widget.account.openingBalance;
+              final ledger = snapshot.data!;
               final tiles = <Widget>[
                 ListTile(
                   title: const AppText('Opening balance'),
-                  trailing: Text('₹${running.toStringAsFixed(2)}'),
+                  trailing: Text('₹${(ledger.openingPaise / 100).toStringAsFixed(2)}'),
                 ),
               ];
-              for (final entry in snapshot.data!) {
+              for (final (entry, running) in ledger.runningRows) {
                 final amount = (entry['amount'] as num).toDouble();
                 final income = entry['kind'] == 'income';
-                running += income ? amount : -amount;
                 if (!'${entry['note']} ${entry['date']} ${entry['kind']} $amount'
                     .toLowerCase()
                     .contains(_query))
@@ -380,11 +368,11 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
                     ),
                     subtitle: Text('${entry['date']} • ${entry['note'] ?? ''}'
                       '${entry['contact_name'] == null ? '' : '\n${entry['contact_name']} · ${entry['contact_phone']}'}'
-                      '${entry['created_at'] == null ? '' : '\nSaved: ${dates.DateUtils.formatIstDateTime(DateTime.parse(entry['created_at'] as String))}'}'),
+                      '${entry['created_at'] == null ? '' : '\nSaved: ${HistoryEntry.timestamp(entry['created_at'])}'}'),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text('₹${running.toStringAsFixed(2)}'),
+                        Text('₹${(running / 100).toStringAsFixed(2)}'),
                         PopupMenuButton<String>(tooltip: 'Entry actions',
                           onSelected: (value) {
                             if(value == 'edit' || value == 'delete') {_change(entry,value == 'delete');}

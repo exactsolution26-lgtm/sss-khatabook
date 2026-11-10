@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:offline_khata_app/database/db_helper.dart';
 import 'package:offline_khata_app/database/tables/account_table.dart';
+import 'package:offline_khata_app/features/analysis/analysis_logic.dart';
+import 'package:offline_khata_app/features/entries/record_recovery.dart';
 import 'package:offline_khata_app/features/expenses/expense_controller.dart';
 import 'package:offline_khata_app/features/income/income_controller.dart';
 import 'package:offline_khata_app/features/reports/ledger_export.dart';
@@ -58,6 +60,42 @@ void main() {
     expect(report.openingPaise,110000);expect(report.incomePaise,20000);expect(report.closingPaise,130000);expect(report.entries.length,1);
     expect(utf8.decode(report.csv()),contains('2026-11-01 to 2026-11-30'));
     await expectLater(LedgerExport.load(id,fromDate: '2026-02-30'),throwsArgumentError);
+  });
+  test('dashboard and exported running balance agree to the paise through edits and recovery', () async {
+    await AccountTable.saveAccount(name: 'Paise customer', openingBalance: 0);
+    final account = (await AccountTable.getAllAccounts()).single.id!;
+    final income = IncomeController();
+    final date = DateTime(2026, 10, 1);
+    final first = await income.createIncome(IncomeModel(
+      accountId: account, amount: 0.10, date: date, createdAt: date,
+    ));
+    await income.createIncome(IncomeModel(accountId: account, amount: 0.20, date: date, createdAt: date));
+    await ExpenseController().saveExpense(ExpenseModel(
+      accountId: account, amount: 0.30, date: '2026-10-02', mode: 'cash',
+      category: 'Other', note: '',
+    ));
+
+    Future<void> expectClosing(int paise) async {
+      final dashboard = await AnalysisLogic().getAnalysisData();
+      final ledger = await LedgerExport.load(account);
+      expect(dashboard['totalBalance'], paise / 100);
+      expect(ledger.closingPaise, paise);
+      expect(ledger.tabularRows().last[3], paise / 100);
+    }
+
+    await expectClosing(0);
+    await income.updateIncome((await income.getIncomeById(first)).copyWith(amount: 0.11));
+    await expectClosing(1);
+    final archive = await RecordRecovery.remove(income: true, id: first, accountId: account, reason: 'Check recovery');
+    await expectClosing(-10);
+    await RecordRecovery.restore(archive, account);
+    await expectClosing(1);
+  });
+  test('cash and bank opening balances are saved and added at paise precision', () async {
+    await AccountTable.saveOpeningBalance(cash: 0.10, bank: 0.20);
+    expect((await AccountTable.getAllAccounts()).single.openingBalance, 0.30);
+    await expectLater(AccountTable.saveOpeningBalance(cash: 1.005, bank: 0), throwsArgumentError);
+    expect((await AccountTable.getAllAccounts()).single.openingBalance, 0.30);
   });
   test('exported historic timestamps retain unknown timezone instead of inventing IST',() async {
     await AccountTable.saveAccount(name:'Historic',openingBalance:0);

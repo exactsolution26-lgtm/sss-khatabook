@@ -45,6 +45,14 @@ class LedgerExport {
   int get expensePaise => entries.where((r) => r['kind'] == 'expense')
     .fold(0, (sum, r) => sum + ((r['amount'] as num) * 100).round());
   int get closingPaise => openingPaise + incomePaise - expensePaise;
+  Iterable<(Map<String, Object?>, int)> get runningRows sync* {
+    var running = openingPaise;
+    for (final row in entries) {
+      final paise = ((row['amount'] as num) * 100).round();
+      running += row['kind'] == 'income' ? paise : -paise;
+      yield (row, running);
+    }
+  }
   String money(int paise) => NumberFormat.currency(locale: 'en_IN', symbol: 'INR ', decimalDigits: 2).format(paise / 100);
 
   static String csvCell(Object? value) {
@@ -53,16 +61,15 @@ class LedgerExport {
     return '"${text.replaceAll('"', '""')}"';
   }
   List<List<Object?>> tabularRows() {
-    var running = openingPaise;
     return <List<Object?>>[
       ['Account', account['name']],
       if(account['from_date']!=null || account['to_date']!=null) ['Period', '${account['from_date'] ?? 'Beginning'} to ${account['to_date'] ?? 'Latest'}'],
       ['Date', 'Type', 'Amount INR', 'Running Balance INR', 'Category', 'Payment Mode',
         'Contact Name', 'Contact Phone', 'Description', 'Saved time (IST when verified)'],
       ['', 'Opening balance', openingPaise / 100, openingPaise / 100, '', '', '', '', '', ''],
-      for (final row in entries) [
+      for (final (row, running) in runningRows) [
         row['date'], row['kind'], row['amount'],
-        (running += (row['kind'] == 'income' ? 1 : -1) * ((row['amount'] as num) * 100).round()) / 100,
+        running / 100,
         row['category'], row['mode'], row['contact_name'], row['contact_phone'], row['note'],
         HistoryEntry.timestamp(row['created_at']),
       ],
@@ -76,10 +83,9 @@ class LedgerExport {
     final hindi = pw.Font.ttf(await rootBundle.load('assets/fonts/NotoSansDevanagari-Regular.ttf'));
     final business=await WorkspaceStore.profile();
     final document = pw.Document(theme: pw.ThemeData.withFont(base: latin, bold: latin, fontFallback: [hindi]));
-    var running = openingPaise;
     final rows = <List<String>>[
       ['', 'Opening balance', '', '', money(openingPaise)],
-      for (final row in entries) [
+      for (final (row, running) in runningRows) [
         row['date'] as String,
         [row['category'], if (row['contact_name'] != null) '${row['contact_name']} · ${row['contact_phone']}',
           if (row['note'] != null) (row['note'] as String).length > 500
@@ -88,7 +94,7 @@ class LedgerExport {
         ].where((s) => s != null && s.toString().isNotEmpty).join('\n'),
         row['kind'] == 'income' ? money(((row['amount'] as num) * 100).round()) : '',
         row['kind'] == 'expense' ? money(((row['amount'] as num) * 100).round()) : '',
-        money(running += (row['kind'] == 'income' ? 1 : -1) * ((row['amount'] as num) * 100).round()),
+        money(running),
       ],
     ];
     document.addPage(pw.MultiPage(pageFormat: PdfPageFormat.a4, maxPages: 10000,

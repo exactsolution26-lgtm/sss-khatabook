@@ -1,4 +1,5 @@
 import '../db_helper.dart';
+import '../../core/utils/money.dart';
 import '../../models/account_model.dart';
 
 class AccountTable {
@@ -76,9 +77,9 @@ class AccountTable {
     required double cash,
     required double bank,
   }) async {
-    if (!cash.isFinite || !bank.isFinite || !(cash + bank).isFinite || cash < 0 || bank < 0) {
-      throw ArgumentError('Invalid opening balance');
-    }
+    final cashPaise = Money.parse(cash.toString(), allowZero: true);
+    final bankPaise = Money.parse(bank.toString(), allowZero: true);
+    final openingBalance = (cashPaise + bankPaise) / 100;
     final db = await DBHelper.database;
     return db.transaction((txn) async {
       final savedAt = DateTime.now().toUtc();
@@ -86,7 +87,7 @@ class AccountTable {
       if (existing.isEmpty) {
         await txn.insert('accounts', {
           'name': 'Main Account',
-          'opening_balance': cash + bank,
+          'opening_balance': openingBalance,
           'cash_balance': cash,
           'bank_balance': bank,
           'created_at': savedAt.toIso8601String(),
@@ -96,7 +97,7 @@ class AccountTable {
         await txn.update(
           'accounts',
           {
-            'opening_balance': cash + bank,
+            'opening_balance': openingBalance,
             'cash_balance': cash,
             'bank_balance': bank,
             'opening_balance_saved_at': savedAt.toIso8601String(),
