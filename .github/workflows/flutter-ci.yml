@@ -203,6 +203,7 @@ jobs:
       - name: Install SQLite browser worker and WASM
         run: dart run sqflite_common_ffi_web:setup
       - name: Web release build
+        id: web_compile
         run: flutter build web --release --no-web-resources-cdn --pwa-strategy=none
       - name: Generate offline public asset shell
         run: |
@@ -217,7 +218,7 @@ jobs:
           python3 -m http.server 8080 --directory build/web > /tmp/sss-web-server.log 2>&1 &
           node test_tools/browser/smoke.cjs
       - name: Upload Web build
-        if: success()
+        if: ${{ !cancelled() && steps.web_compile.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: sss-khatabook-web

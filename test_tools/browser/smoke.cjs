@@ -36,6 +36,14 @@ const path = require('node:path');
     const field = page.getByRole('textbox', {name:label, exact:true});
     await field.click();
     await checkProfileInput(label);
+    return field;
+  };
+  const fillProfileInput = async (label, value) => {
+    const field = await focusProfileInput(label);
+    // Enter text through the browser editor after Flutter has handled focus.
+    await field.press('Home');
+    await field.fill(value);
+    await checkProfileInput(label, value);
   };
   const checkProfileInput = async (label, expected = null) => {
     await page.waitForFunction(({label, expected}) => {
@@ -98,12 +106,8 @@ const path = require('node:path');
   await text('Active: Timeline').waitFor();
   await page.screenshot({path:'web-dashboard-desktop.png'});
   await openProfile();
-  await focusProfileInput('Business name');
-  await page.keyboard.type('Browser test business', {delay:25});
-  await checkProfileInput('Business name', 'Browser test business');
-  await focusProfileInput('Business phone (optional)');
-  await page.keyboard.type('9876543210', {delay:25});
-  await checkProfileInput('Business phone (optional)', '9876543210');
+  await fillProfileInput('Business name', 'Browser test business');
+  await fillProfileInput('Business phone (optional)', '9876543210');
   await page.getByRole('button',{name:'Save Profile',exact:true}).click();
   await page.getByText(/^Saved ✓/).waitFor();
   await page.screenshot({path:'web-profile-saved.png'});
