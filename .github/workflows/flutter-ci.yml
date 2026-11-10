@@ -21,7 +21,7 @@ concurrency:
 jobs:
   analyze-and-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -40,14 +40,28 @@ jobs:
       - name: Static analysis
         id: analyze
         continue-on-error: true
-        run: flutter analyze
-      - name: Unit tests
+        run: |
+          set -o pipefail
+          flutter analyze 2>&1 | tee flutter-analyze.log
+      - name: Full Flutter unit tests
         id: unit_tests
         if: always()
         continue-on-error: true
         env:
           CAPTURE_DASHBOARD_PREVIEWS: 'true'
-        run: timeout 240s flutter test --reporter expanded --timeout 90s
+        run: |
+          set -o pipefail
+          timeout 600s flutter test --reporter expanded --timeout 90s 2>&1 | tee flutter-test.log
+      - name: Upload analyzer and full-test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-analyzer-and-unit-test-logs
+          path: |
+            flutter-analyze.log
+            flutter-test.log
+          if-no-files-found: warn
+          retention-days: 14
       - name: Enforce analyzer and unit-test gate
         if: always()
         env:
