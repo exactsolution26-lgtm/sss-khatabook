@@ -70,10 +70,10 @@ class AutomaticBackup extends ChangeNotifier with WidgetsBindingObserver {
       return capture(force: true);
     }
 
-    final capture = _saveCheckpoint(force: force);
-    _captureInProgress = capture;
+    final operation = _saveCheckpoint(force: force);
+    _captureInProgress = operation;
     try {
-      await capture;
+      await operation;
     } finally {
       _captureInProgress = null;
       notifyListeners();
