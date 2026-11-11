@@ -63,6 +63,19 @@ void main() {
       final category = income ? 'Commission / Brokerage' : 'Travel';
       await tester.tap(find.text(category).last);
       await tester.pumpAndSettle();
+      if (!income) {
+        expect(find.text('Select category'), findsNothing);
+        await tester.tap(find.text(category));
+        await tester.pumpAndSettle();
+        final selected = tester.widget<ListTile>(
+          find.widgetWithText(ListTile, category),
+        );
+        expect(selected.selected, isTrue);
+        expect(selected.leading, isA<Image>());
+        expect(selected.trailing, isA<Icon>());
+        Navigator.of(tester.element(find.widgetWithText(ListTile, category))).pop();
+        await tester.pumpAndSettle();
+      }
 
       Future<void> capture(String suffix) async {
         if (Platform.environment['CAPTURE_DASHBOARD_PREVIEWS'] != 'true') return;

@@ -1,5 +1,25 @@
 import 'package:flutter/material.dart';
+import '../../core/localization/app_text.dart';
 import '../../database/db_helper.dart';
+
+const _expenseCategoryIcons = {
+  'Food': 'food',
+  'Groceries': 'groceries',
+  'Travel': 'travel',
+  'Fuel': 'fuel',
+  'Rent': 'rent',
+  'Utilities': 'utilities',
+  'Phone & Internet': 'phone_internet',
+  'Office Expenses': 'office_expenses',
+  'Salaries': 'salaries',
+  'Advertising': 'advertising',
+  'Repairs': 'repairs',
+  'Medical': 'medical',
+  'Education': 'education',
+  'Bank Charges': 'bank_charges',
+  'Taxes': 'taxes',
+  'Other': 'other',
+};
 
 class CategoryField extends StatefulWidget {
   const CategoryField({super.key, required this.income, required this.onChanged,this.initialValue});
@@ -18,9 +38,7 @@ class _CategoryFieldState extends State<CategoryField> {
     super.initState();
     choices = widget.income
       ? ['Sales', 'Service Fees', 'Commission / Brokerage', 'Rent', 'Salary', 'Refund', 'Other']
-      : ['Food', 'Groceries', 'Travel', 'Fuel', 'Rent', 'Utilities', 'Phone & Internet',
-          'Office Expenses', 'Salaries', 'Advertising', 'Repairs', 'Medical',
-          'Education', 'Bank Charges', 'Taxes', 'Other'];
+      : _expenseCategoryIcons.keys.toList();
     selected=(widget.initialValue?.trim().isNotEmpty ?? false) ? widget.initialValue!.trim() : 'Other';
     if(!choices.contains(selected)) choices.add(selected);
     load();
@@ -81,18 +99,109 @@ class _CategoryFieldState extends State<CategoryField> {
     widget.onChanged(selected);
   }
 
+  void select(String value) {
+    setState(() => selected = value);
+    widget.onChanged(value);
+  }
+
+  Widget _expenseIcon(String name) {
+    final asset = _expenseCategoryIcons[name] ?? 'other';
+    return Image.asset(
+      'assets/expense_categories/$asset.webp',
+      width: 48,
+      height: 34,
+      fit: BoxFit.contain,
+      excludeFromSemantics: true,
+    );
+  }
+
+  Future<void> _pickExpenseCategory() async {
+    final value = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (context) {
+        final colors = Theme.of(context).colorScheme;
+        return SafeArea(
+          top: false,
+          child: FractionallySizedBox(
+            heightFactor: 0.86,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+                  child: AppText('Select category',
+                    style: Theme.of(context).textTheme.titleLarge),
+                ),
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                    itemCount: choices.length,
+                    itemBuilder: (context, index) {
+                      final name = choices[index];
+                      return ListTile(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        selected: name == selected,
+                        selectedTileColor: colors.secondaryContainer,
+                        selectedColor: colors.onSecondaryContainer,
+                        leading: _expenseIcon(name),
+                        title: Text(name),
+                        trailing: name == selected
+                            ? const Icon(Icons.check_rounded)
+                            : null,
+                        onTap: () => Navigator.pop(context, name),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (mounted && value != null) select(value);
+  }
+
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      DropdownButtonFormField<String>(key: ValueKey(selected), initialValue: selected,
+      if (!widget.income)
+        OutlinedButton(
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          ),
+          onPressed: _pickExpenseCategory,
+          child: Row(
+            children: [
+              _expenseIcon(selected),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const AppText('Category'),
+                    Text(selected),
+                  ],
+                ),
+              ),
+              const Icon(Icons.arrow_drop_down),
+            ],
+          ),
+        )
+      else
+        DropdownButtonFormField<String>(key: ValueKey(selected), initialValue: selected,
         isExpanded: true,
         decoration: const InputDecoration(labelText: 'Category'),
         items: [for (final name in choices) DropdownMenuItem(value: name, child: Text(name))],
         onChanged: (value) {
           if (value == null) return;
-          setState(() => selected = value);
-          widget.onChanged(value);
+          select(value);
         }),
       Align(alignment: Alignment.centerLeft,
         child: TextButton.icon(onPressed: add, icon: const Icon(Icons.add),
