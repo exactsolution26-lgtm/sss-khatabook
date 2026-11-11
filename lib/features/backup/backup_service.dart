@@ -62,7 +62,7 @@ class BackupService {
     return db.transaction(_snapshot);
   }
 
-  // The portable row format stays at schema 11. SQLite schema 12 adds only indexes.
+  // The portable row format stays at schema 11. SQLite schemas 12 and 13 change indexes and triggers only.
   Future<Map<String, dynamic>> _snapshot(Transaction txn) async => {
     'format': 'sss-khatabook-records', 'version': 1, 'schema': 11,
     'created_at': DateTime.now().toUtc().toIso8601String(),

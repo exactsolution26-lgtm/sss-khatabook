@@ -11,6 +11,7 @@ import 'package:offline_khata_app/database/db_helper.dart';
 import 'package:offline_khata_app/database/tables/account_table.dart';
 import 'package:offline_khata_app/features/analysis/analysis_logic.dart';
 import 'package:offline_khata_app/features/backup/backup_service.dart';
+import 'package:offline_khata_app/features/entries/record_recovery.dart';
 import 'package:offline_khata_app/features/imports/csv_import.dart';
 import 'package:offline_khata_app/features/reports/financial_report.dart';
 import 'package:offline_khata_app/features/workspace/workspace_schema.dart';
@@ -138,11 +139,31 @@ void main(){
     await db.execute('ALTER TABLE accounts DROP COLUMN archived_at');
     await db.execute('PRAGMA user_version=10');await DBHelper.close();
     final upgraded=await DBHelper.database;
-    expect((await upgraded.rawQuery('PRAGMA user_version')).single.values.single,12);
+    expect((await upgraded.rawQuery('PRAGMA user_version')).single.values.single,13);
     expect((await upgraded.query('income')).single['amount'],100.10);
     await AccountTable.archive(account,archived:true);
     await expectLater(CsvImport.commit([entry(id:'must-block')]),throwsA(isA<DatabaseException>()));
     expect((await upgraded.rawQuery('PRAGMA integrity_check')).single.values.single,'ok');
+  });
+  test('schema 12 upgrade locks the opening balance of an account with archived history', () async {
+    await CsvImport.commit([entry()]);
+    final db = await DBHelper.database;
+    final income = (await db.query('income')).single['id'] as int;
+    final archive = await RecordRecovery.remove(
+      income: true, id: income, accountId: account, reason: 'Legacy archive',
+    );
+    await db.execute('DROP TRIGGER account_opening_lock');
+    await db.execute('PRAGMA user_version=12');
+    await DBHelper.close();
+
+    final upgraded = await DBHelper.database;
+    expect((await upgraded.rawQuery('PRAGMA user_version')).single.values.single, 13);
+    await expectLater(
+      AccountTable.saveAccount(id: account, name: 'Main Account', openingBalance: 2000),
+      throwsA(isA<DatabaseException>()),
+    );
+    await RecordRecovery.restore(archive, account);
+    expect((await AnalysisLogic().getAnalysisData())['totalBalance'], 1100.10);
   });
   testWidgets('Hindi preference also localizes framework calendar and dialog controls',(tester)async{
     SharedPreferences.setMockInitialValues({'sss_language':'hindi'});

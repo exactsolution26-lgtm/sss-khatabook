@@ -64,7 +64,7 @@ void main() {
   sqfliteFfiInit();
   final factory = databaseFactoryFfi;
   for (var version = 2; version <= 9; version++) {
-    test('schema $version migrates existing financial records to schema 12', () async {
+    test('schema $version migrates existing financial records to schema 13', () async {
       final temp = await Directory.systemTemp.createTemp('sss-schema-$version-');
       addTearDown(() => temp.delete(recursive: true));
       final path = '${temp.path}/ledger.db';
@@ -87,7 +87,7 @@ void main() {
 
       final migrated = await DBHelper.openAt(path, factory: factory);
       try {
-        expect((await migrated.rawQuery('PRAGMA user_version')).single.values.single, 12);
+        expect((await migrated.rawQuery('PRAGMA user_version')).single.values.single, 13);
         final account = (await migrated.query('accounts')).single;
         expect(account['opening_balance'], 100.50);
         expect(account['archived_at'], isNull);

@@ -29,6 +29,7 @@ class IntegrityGuards(unittest.TestCase):
             self.db.execute(f'CREATE TABLE {table}(id INTEGER PRIMARY KEY,account_id INTEGER REFERENCES accounts(id),amount REAL)')
         self.db.execute("INSERT INTO accounts VALUES(1,'A',100,50,50,NULL)")
         self.db.execute('INSERT INTO expenses VALUES(10,NULL,20)')
+        self.db.execute('CREATE TABLE recycled_entries(account_id INTEGER REFERENCES accounts(id))')
         install_actual_guard_sql(self.db)
 
     def tearDown(self):
@@ -66,6 +67,14 @@ class IntegrityGuards(unittest.TestCase):
         self.db.execute('INSERT INTO expenses VALUES(2,1,10)')
         with self.assertRaises(sqlite3.IntegrityError):
             self.db.execute('UPDATE accounts SET opening_balance=200 WHERE id=1')
+
+    def test_opening_lock_enforced_when_all_entries_are_archived(self):
+        self.db.execute("INSERT INTO accounts VALUES(2,'B',0,0,0,NULL)")
+        self.db.execute('INSERT INTO recycled_entries VALUES(1)')
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.db.execute('UPDATE accounts SET opening_balance=200 WHERE id=1')
+        self.db.execute('UPDATE accounts SET opening_balance=200 WHERE id=2')
+        self.assertEqual(self.db.execute('SELECT opening_balance FROM accounts WHERE id=2').fetchone(), (200,))
 
     def test_archive_blocks_financial_writes_and_restore_reenables_them(self):
         self.db.execute('INSERT INTO income VALUES(1,1,10)')

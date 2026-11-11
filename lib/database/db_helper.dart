@@ -41,7 +41,7 @@ class DBHelper {
   }
 
   static OpenDatabaseOptions _options({required bool singleInstance}) => OpenDatabaseOptions(
-    version: 12,
+    version: 13,
     singleInstance: singleInstance,
     onConfigure: (db) async => db.execute('PRAGMA foreign_keys = ON'),
     onCreate: (db, version) async {
@@ -65,12 +65,12 @@ class DBHelper {
       await db.execute(IncomeTable.createTable);
       await db.execute(WorkTable.createTable);
       await _createCategoryTable(db);
-      await _installIntegrityGuards(db);
       await RecoverySchema.install(db);
       await AttachmentStore.install(db);
       await DuesSchema.install(db);
       await FollowupSchema.install(db);
       await RecordRecovery.install(db);
+      await _installIntegrityGuards(db);
       await WorkspaceSchema.install(db);
       await _installHistoryIndexes(db);
     },
@@ -106,7 +106,6 @@ class DBHelper {
         await db.execute(IncomeTable.createTable);
         await db.execute(WorkTable.createTable);
       }
-      if (oldVersion < 3) await _installIntegrityGuards(db);
       if (oldVersion < 4) {
         await db.execute('ALTER TABLE accounts ADD COLUMN opening_balance_saved_at TEXT');
       }
@@ -130,8 +129,8 @@ class DBHelper {
       if (oldVersion < 8) {await DuesSchema.install(db); await FollowupSchema.install(db);}
       if (oldVersion < 9) await RecordRecovery.install(db);
       if (oldVersion < 10) await WorkspaceSchema.install(db);
-      if (oldVersion < 11) await _installIntegrityGuards(db);
       if (oldVersion < 12) await _installHistoryIndexes(db);
+      if (oldVersion < 13) await _installIntegrityGuards(db);
     },
   );
 
@@ -198,7 +197,8 @@ class DBHelper {
       WHEN (NEW.opening_balance IS NOT OLD.opening_balance
         OR NEW.cash_balance IS NOT OLD.cash_balance OR NEW.bank_balance IS NOT OLD.bank_balance)
         AND (EXISTS(SELECT 1 FROM income WHERE account_id = OLD.id)
-          OR EXISTS(SELECT 1 FROM expenses WHERE account_id = OLD.id))
+          OR EXISTS(SELECT 1 FROM expenses WHERE account_id = OLD.id)
+          OR EXISTS(SELECT 1 FROM recycled_entries WHERE account_id = OLD.id))
       BEGIN SELECT RAISE(ABORT, 'Opening balance locked after first transaction'); END''',
     );
     for (final table in ['income', 'expenses']) {

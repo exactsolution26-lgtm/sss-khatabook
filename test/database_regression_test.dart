@@ -112,7 +112,7 @@ void main() {
     await DBHelper.close();
 
     final upgraded = await DBHelper.database;
-    expect((await upgraded.rawQuery('PRAGMA user_version')).single.values.single, 12);
+    expect((await upgraded.rawQuery('PRAGMA user_version')).single.values.single, 13);
     for (final table in ['income', 'expenses']) {
       final indexes = await upgraded.rawQuery('PRAGMA index_list($table)');
       expect(indexes.map((row) => row['name']),
