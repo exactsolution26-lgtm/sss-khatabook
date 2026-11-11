@@ -91,6 +91,50 @@ void main() {
     await RecordRecovery.restore(archive, account);
     await expectClosing(1);
   });
+  test('legacy amounts reconcile across statements and spreadsheets', () async {
+    await AccountTable.saveAccount(name: 'Legacy customer', openingBalance: 100.05);
+    final account = (await AccountTable.getAllAccounts()).single.id!;
+    final db = await DBHelper.database;
+    await db.insert('income', {
+      'account_id': account, 'amount': 10.126, 'date': '2026-09-30',
+      'description': 'Legacy income', 'created_at': '2026-09-30 10:00:00',
+    });
+    final expense = await db.insert('expenses', {
+      'account_id': account, 'amount': 4.124, 'date': '2026-10-01',
+      'mode': 'cash', 'category': 'Other', 'note': 'Legacy expense',
+    });
+    await IncomeController().createIncome(IncomeModel(
+      accountId: account, amount: 0.20, date: DateTime(2026, 10, 2),
+      createdAt: DateTime.utc(2026, 10, 2),
+    ));
+
+    Future<LedgerExport> expectClosing(int paise) async {
+      final report = await LedgerExport.load(
+        account, fromDate: '2026-10-01', toDate: '2026-10-31',
+      );
+      expect(report.openingPaise, 11018);
+      expect(report.closingPaise, paise);
+      expect((await LedgerExport.load(account)).closingPaise, paise);
+      expect((await AnalysisLogic().getAnalysisData())['totalBalance'], paise / 100);
+      return report;
+    }
+
+    final report = await expectClosing(10626);
+    expect(report.tabularRows()[4].sublist(2, 4), [4.12, 106.06]);
+    expect(utf8.decode(report.csv()), contains('"4.12","106.06"'));
+    final workbook = ZipDecoder().decodeBytes(report.xlsx());
+    final xml = utf8.decode(workbook.findFile('xl/worksheets/sheet1.xml')!.content);
+    expect(xml, contains('<v>4.12</v>'));
+    expect(xml, isNot(contains('<v>4.124</v>')));
+
+    final archive = await RecordRecovery.remove(
+      income: false, id: expense, accountId: account, reason: 'Check legacy recovery',
+    );
+    await expectClosing(11038);
+    await RecordRecovery.restore(archive, account);
+    await expectClosing(10626);
+  });
+
   test('cash and bank opening balances are saved and added at paise precision', () async {
     await AccountTable.saveOpeningBalance(cash: 0.10, bank: 0.20);
     expect((await AccountTable.getAllAccounts()).single.openingBalance, 0.30);
@@ -106,6 +150,24 @@ void main() {
     final report=await LedgerExport.load(account.id!);
     expect(utf8.decode(report.csv()),contains('historic timezone unknown'));
     expect(report.tabularRows().last.last,contains('historic timezone unknown'));
+  });
+  test('ledger PDF embeds shaped Hindi and spreadsheet exports retain Unicode', () async {
+    const name = 'रवि त्रिपाठी';
+    const note = 'Invoice 42 · प्रशिक्षण शुल्क और प्राप्ति';
+    final report = LedgerExport({'name': name, 'opening_balance': 0}, [
+      {'date': '2026-10-02', 'kind': 'income', 'amount': 100, 'note': note},
+    ]);
+    final pdf = await report.pdf();
+    final encoded = latin1.decode(pdf);
+    expect(encoded, startsWith('%PDF-'));
+    expect(RegExp(r'/Subtype\s*/Image\b').allMatches(encoded).length, greaterThanOrEqualTo(2));
+    expect(utf8.decode(report.csv()), contains(note));
+    final workbook = ZipDecoder().decodeBytes(report.xlsx());
+    expect(utf8.decode(workbook.findFile('xl/worksheets/sheet1.xml')!.content), contains(note));
+    if (Platform.environment['CAPTURE_DASHBOARD_PREVIEWS'] == 'true') {
+      await Directory('design-evidence').create(recursive: true);
+      await File('design-evidence/ledger-hindi-example.pdf').writeAsBytes(pdf);
+    }
   });
   test('CSV escapes quotes, multiline notes and spreadsheet formulas', () {
     expect(LedgerExport.csvCell('a,"b"\nc'), '"a,""b""\nc"');

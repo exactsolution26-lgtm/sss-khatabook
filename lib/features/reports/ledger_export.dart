@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:ui' as ui;
+import 'package:flutter/painting.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
@@ -32,23 +34,26 @@ class LedgerExport {
       for(final row in rows) {
         final date=row['date'] as String;
         if(fromDate!=null && date.compareTo(fromDate)<0) {
-          opening+=(row['kind']=='income' ? 1 : -1)*((row['amount'] as num)*100).round();
+          opening+=(row['kind']=='income' ? 1 : -1)*_amountPaise(row);
         } else if(toDate==null || date.compareTo(toDate)<=0) {filtered.add(row);}
       }
       return LedgerExport({...accounts.single,'opening_balance': opening/100,'from_date': fromDate,'to_date': toDate}, filtered);
     });
   }
 
+  static int _amountPaise(Map<String, Object?> row) =>
+      ((row['amount'] as num) * 100).round();
+
   int get openingPaise => ((account['opening_balance'] as num) * 100).round();
   int get incomePaise => entries.where((r) => r['kind'] == 'income')
-    .fold(0, (sum, r) => sum + ((r['amount'] as num) * 100).round());
+    .fold(0, (sum, r) => sum + _amountPaise(r));
   int get expensePaise => entries.where((r) => r['kind'] == 'expense')
-    .fold(0, (sum, r) => sum + ((r['amount'] as num) * 100).round());
+    .fold(0, (sum, r) => sum + _amountPaise(r));
   int get closingPaise => openingPaise + incomePaise - expensePaise;
   Iterable<(Map<String, Object?>, int)> get runningRows sync* {
     var running = openingPaise;
     for (final row in entries) {
-      final paise = ((row['amount'] as num) * 100).round();
+      final paise = _amountPaise(row);
       running += row['kind'] == 'income' ? paise : -paise;
       yield (row, running);
     }
@@ -68,7 +73,7 @@ class LedgerExport {
         'Contact Name', 'Contact Phone', 'Description', 'Saved time (IST when verified)'],
       ['', 'Opening balance', openingPaise / 100, openingPaise / 100, '', '', '', '', '', ''],
       for (final (row, running) in runningRows) [
-        row['date'], row['kind'], row['amount'],
+        row['date'], row['kind'], _amountPaise(row) / 100,
         running / 100,
         row['category'], row['mode'], row['contact_name'], row['contact_phone'], row['note'],
         HistoryEntry.timestamp(row['created_at']),
@@ -78,12 +83,77 @@ class LedgerExport {
   Uint8List csv() => Uint8List.fromList(utf8.encode('\ufeff${tabularRows().map((r) => r.map(csvCell).join(',')).join('\r\n')}'));
   Uint8List xlsx() => XlsxExport.write(tabularRows());
 
+  static final _devanagari = RegExp(r'[ऀ-ॿ꣠-ꣿ]');
+  static const _latinFamily = 'LedgerExportLatin';
+  static const _hindiFamily = 'LedgerExportDevanagari';
+  static Future<void>? _pdfFonts;
+
+  // Flutter shapes Devanagari conjuncts and vowel marks before embedding the
+  // image. The PDF font fallback alone only supplies the individual glyphs.
+  static Future<pw.Widget> _pdfText(
+    String text, {
+    required double width,
+    required double size,
+  }) async {
+    if (!_devanagari.hasMatch(text)) {
+      return pw.Text(text, style: pw.TextStyle(fontSize: size));
+    }
+    await (_pdfFonts ??= Future.wait<void>([
+      (FontLoader(_latinFamily)
+            ..addFont(rootBundle.load('assets/fonts/NotoSans-Regular.ttf')))
+          .load(),
+      (FontLoader(_hindiFamily)
+            ..addFont(rootBundle.load('assets/fonts/NotoSansDevanagari-Regular.ttf')))
+          .load(),
+    ]).then<void>((_) {}));
+    final painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          color: const ui.Color(0xff000000),
+          fontSize: size,
+          fontFamily: _latinFamily,
+          fontFamilyFallback: const [_hindiFamily],
+        ),
+      ),
+      textDirection: ui.TextDirection.ltr,
+    );
+    const scale = 3.0;
+    try {
+      painter.layout(maxWidth: width);
+      final recorder = ui.PictureRecorder();
+      final canvas = ui.Canvas(recorder)..scale(scale);
+      painter.paint(canvas, ui.Offset.zero);
+      final picture = recorder.endRecording();
+      try {
+        final image = await picture.toImage(
+          (painter.width * scale).ceil(), (painter.height * scale).ceil(),
+        );
+        try {
+          final png = await image.toByteData(format: ui.ImageByteFormat.png);
+          if (png == null) throw StateError('Could not render ledger text');
+          return pw.Image(
+            pw.MemoryImage(png.buffer.asUint8List(png.offsetInBytes, png.lengthInBytes)),
+            width: image.width / scale,
+            height: image.height / scale,
+          );
+        } finally {
+          image.dispose();
+        }
+      } finally {
+        picture.dispose();
+      }
+    } finally {
+      painter.dispose();
+    }
+  }
+
   Future<Uint8List> pdf() async {
     final latin = pw.Font.ttf(await rootBundle.load('assets/fonts/NotoSans-Regular.ttf'));
     final hindi = pw.Font.ttf(await rootBundle.load('assets/fonts/NotoSansDevanagari-Regular.ttf'));
     final business=await WorkspaceStore.profile();
     final document = pw.Document(theme: pw.ThemeData.withFont(base: latin, bold: latin, fontFallback: [hindi]));
-    final rows = <List<String>>[
+    final rows = <List<Object>>[
       ['', 'Opening balance', '', '', money(openingPaise)],
       for (final (row, running) in runningRows) [
         row['date'] as String,
@@ -92,17 +162,31 @@ class LedgerExport {
             ? '${(row['note'] as String).substring(0, 500)}…' : row['note'],
           if (row['created_at'] != null) 'Saved: ${HistoryEntry.timestamp(row['created_at'])}',
         ].where((s) => s != null && s.toString().isNotEmpty).join('\n'),
-        row['kind'] == 'income' ? money(((row['amount'] as num) * 100).round()) : '',
-        row['kind'] == 'expense' ? money(((row['amount'] as num) * 100).round()) : '',
+        row['kind'] == 'income' ? money(_amountPaise(row)) : '',
+        row['kind'] == 'expense' ? money(_amountPaise(row)) : '',
         money(running),
       ],
     ];
+    const margin = 28.0;
+    final pageWidth = PdfPageFormat.a4.width - 2 * margin;
+    final accountName = await _pdfText(account['name'] as String, width: pageWidth, size: 12);
+    final businessName = business == null ? null : await _pdfText(
+      business['name'] as String, width: pageWidth, size: 16,
+    );
+    // Match the Details flex column minus the table's default cell padding.
+    final detailsWidth = (pageWidth * 3.4 / 8.4 - 10).floorToDouble();
+    for (final row in rows) {
+      final details = row[1] as String;
+      if (_devanagari.hasMatch(details)) {
+        row[1] = await _pdfText(details, width: detailsWidth, size: 8);
+      }
+    }
     document.addPage(pw.MultiPage(pageFormat: PdfPageFormat.a4, maxPages: 10000,
-      margin: const pw.EdgeInsets.all(28),
+      margin: const pw.EdgeInsets.all(margin),
       header: (_) => pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-        if(business!=null)pw.Text(business['name'] as String,style:pw.TextStyle(fontSize:16)),
+        if (businessName != null) businessName,
         pw.Text('SSS Khatabook — Customer Ledger', style: pw.TextStyle(fontSize: 18)),
-        pw.Text(account['name'] as String),
+        accountName,
         if(account['from_date']!=null || account['to_date']!=null) pw.Text('Period: ${account['from_date'] ?? 'Beginning'} to ${account['to_date'] ?? 'Latest'}'),
         pw.SizedBox(height: 12),
       ]),
