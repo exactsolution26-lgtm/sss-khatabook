@@ -1,6 +1,6 @@
 import '../../core/localization/app_text.dart';
 import 'dart:typed_data';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
 import '../../core/utils/file_actions.dart';
