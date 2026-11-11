@@ -355,7 +355,7 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
                 ),
               ];
               for (final (entry, running) in ledger.runningRows) {
-                final amount = (entry['amount'] as num).toDouble();
+                final amount = LedgerExport.amountPaise(entry) / 100;
                 final income = entry['kind'] == 'income';
                 if (!'${entry['note']} ${entry['date']} ${entry['kind']} $amount'
                     .toLowerCase()

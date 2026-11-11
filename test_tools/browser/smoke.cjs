@@ -204,6 +204,95 @@ const path = require('node:path');
   await openAccounts();
   await record().waitFor();
   assert.match(await record().getAttribute('aria-label'), /Opening: ₹100\.00/);
+  await goBackTo(activeDashboard('Timeline'));
+  await page.getByRole('button', {name:'Settings', exact:true}).first().click();
+  await text('Import CSV').click();
+  const chooser = page.waitForEvent('filechooser');
+  await text('Choose CSV and preview').click();
+  await (await chooser).setFiles({
+    name: 'ledger-fixture.csv', mimeType: 'text/csv',
+    buffer: Buffer.from([
+      'type,account_id,amount,date,category,mode,name,phone,note,external_id',
+      'income,1,25.50,2020-01-01,Sales,cash,,,Browser ledger sale,web-sale',
+      'income,1,4.25,2020-02-02,Refund,cash,,,Browser ledger refund,web-refund',
+    ].join('\n')),
+  });
+  await text('Preview: 2 entries').waitFor();
+  await text('Confirm import').click();
+  await page.getByRole('button', {name:'Import', exact:true}).click();
+  await text('Imported 2; skipped 0 duplicates.').waitFor();
+  await goBackTo(text('Backup & Restore'));
+  await goBackTo(activeDashboard('Timeline'));
+  await openAccounts();
+  await record().click();
+
+  const action = name => page.getByRole('button', {name: new RegExp('^' + name + '(?:\\s+' + name + ')?$')});
+  const sale = page.getByText(/2020-01-01 • Browser ledger sale/).first();
+  await sale.waitFor();
+  await action('Entry actions').first().click();
+  await text('Edit entry').click();
+  const amount = page.getByRole('textbox', {name:'Amount', exact:true});
+  await fillInput(amount, 'Amount', '30.75');
+  await amount.press('Tab');
+  await text('Save changes').click();
+  await sale.waitFor();
+  await text('+ ₹30.75').waitFor();
+
+  await action('Entry actions').first().click();
+  await text('Delete entry').click();
+  const reason = page.getByRole('textbox', {name:'Reason (required)', exact:true});
+  await fillInput(reason, 'Reason (required)', 'Browser archive check');
+  await reason.press('Tab');
+  await page.getByRole('button', {name:'Delete', exact:true}).click();
+  await sale.waitFor({state:'hidden'});
+  await text('₹104.25').waitFor();
+  await action('Deleted Entries').click();
+  await text('Restore').click();
+  await text('No deleted entries.').waitFor();
+  await goBackTo(sale);
+  await text('₹135.00').waitFor();
+
+  await action('Ledger PDF & CSV').click();
+  const download = async (label, extension) => {
+    const [file] = await Promise.all([page.waitForEvent('download'), text(label).click()]);
+    assert.equal(await file.failure(), null);
+    assert.equal(file.suggestedFilename(), 'sss-ledger-1.' + extension);
+    return await file.path();
+  };
+  const csv = fs.readFileSync(await download('Download / Share CSV', 'csv'), 'utf8');
+  assert.match(csv, /"2020-01-01","income","30\.75","130\.75"/);
+  assert.match(csv, /"2020-02-02","income","4\.25","135(?:\.0)?"/);
+  const xlsx = await download('Download / Share Excel', 'xlsx');
+  const sheet = require('node:child_process').execFileSync('unzip',
+    ['-p', xlsx, 'xl/worksheets/sheet1.xml'], {encoding: 'utf8'});
+  assert.match(sheet, /<c r="D5"[^>]*><v>135(?:\.0)?<\/v><\/c>/);
+  const pdf = fs.readFileSync(await download('Download / Share PDF', 'pdf'));
+  assert.equal(pdf.subarray(0, 5).toString(), '%PDF-');
+  await page.screenshot({path:'web-ledger-exports-offline.png'});
+
+  await goBackTo(sale);
+  await goBackTo(record());
+  await goBackTo(activeDashboard('Timeline'));
+  await text('All income').click();
+  await text('2 entries · current filters').waitFor();
+  await text('All categories').click();
+  await text('Sales').click();
+  await text('1 entries · current filters').waitFor();
+  await text('Clear filters').click();
+  await text('2 entries · current filters').waitFor();
+
+  await text('All dates').click();
+  await action('Switch to input').click();
+  const start = page.getByRole('textbox', {name:/start date/i});
+  const end = page.getByRole('textbox', {name:/end date/i});
+  await fillInput(start, 'Start Date', '01/01/2020');
+  await fillInput(end, 'End Date', '01/01/2020');
+  await end.press('Tab');
+  await page.getByRole('button', {name:'Save', exact:false}).click();
+  await text('1 entries · current filters').waitFor();
+  await page.getByText(/Sales · cash · Browser acceptance account/).first().waitFor();
+  await page.screenshot({path:'web-ledger-filters-offline.png'});
+  console.log('PASS: offline ledger edit, archive, restore, category/date filters and PDF/CSV/Excel downloads');
   assert.deepEqual(errors, [], 'Browser runtime must have no unhandled page errors');
   console.log('PASS: startup, IndexedDB account persistence, dashboard switching, desktop/mobile rendering, offline reload and cold start, business profile persistence and offline encrypted checkpoint restore');
   } finally {

@@ -34,26 +34,26 @@ class LedgerExport {
       for(final row in rows) {
         final date=row['date'] as String;
         if(fromDate!=null && date.compareTo(fromDate)<0) {
-          opening+=(row['kind']=='income' ? 1 : -1)*_amountPaise(row);
+          opening+=(row['kind']=='income' ? 1 : -1)*amountPaise(row);
         } else if(toDate==null || date.compareTo(toDate)<=0) {filtered.add(row);}
       }
       return LedgerExport({...accounts.single,'opening_balance': opening/100,'from_date': fromDate,'to_date': toDate}, filtered);
     });
   }
 
-  static int _amountPaise(Map<String, Object?> row) =>
+  static int amountPaise(Map<String, Object?> row) =>
       ((row['amount'] as num) * 100).round();
 
   int get openingPaise => ((account['opening_balance'] as num) * 100).round();
   int get incomePaise => entries.where((r) => r['kind'] == 'income')
-    .fold(0, (sum, r) => sum + _amountPaise(r));
+    .fold(0, (sum, r) => sum + amountPaise(r));
   int get expensePaise => entries.where((r) => r['kind'] == 'expense')
-    .fold(0, (sum, r) => sum + _amountPaise(r));
+    .fold(0, (sum, r) => sum + amountPaise(r));
   int get closingPaise => openingPaise + incomePaise - expensePaise;
   Iterable<(Map<String, Object?>, int)> get runningRows sync* {
     var running = openingPaise;
     for (final row in entries) {
-      final paise = _amountPaise(row);
+      final paise = amountPaise(row);
       running += row['kind'] == 'income' ? paise : -paise;
       yield (row, running);
     }
@@ -73,7 +73,7 @@ class LedgerExport {
         'Contact Name', 'Contact Phone', 'Description', 'Saved time (IST when verified)'],
       ['', 'Opening balance', openingPaise / 100, openingPaise / 100, '', '', '', '', '', ''],
       for (final (row, running) in runningRows) [
-        row['date'], row['kind'], _amountPaise(row) / 100,
+        row['date'], row['kind'], amountPaise(row) / 100,
         running / 100,
         row['category'], row['mode'], row['contact_name'], row['contact_phone'], row['note'],
         HistoryEntry.timestamp(row['created_at']),
@@ -162,8 +162,8 @@ class LedgerExport {
             ? '${(row['note'] as String).substring(0, 500)}…' : row['note'],
           if (row['created_at'] != null) 'Saved: ${HistoryEntry.timestamp(row['created_at'])}',
         ].where((s) => s != null && s.toString().isNotEmpty).join('\n'),
-        row['kind'] == 'income' ? money(_amountPaise(row)) : '',
-        row['kind'] == 'expense' ? money(_amountPaise(row)) : '',
+        row['kind'] == 'income' ? money(amountPaise(row)) : '',
+        row['kind'] == 'expense' ? money(amountPaise(row)) : '',
         money(running),
       ],
     ];
