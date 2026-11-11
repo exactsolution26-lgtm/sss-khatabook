@@ -40,6 +40,8 @@ jobs:
           done
       - name: Execute real authenticated-role isolation tests
         run: psql -v ON_ERROR_STOP=1 -f test_tools/postgres/tenant_isolation.sql
+      - name: Execute subscription billing simulation tests
+        run: psql -v ON_ERROR_STOP=1 -f test_tools/postgres/billing_simulation.sql
       - name: Record tested commit
         if: always()
         run: git rev-parse HEAD

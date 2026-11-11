@@ -2,6 +2,7 @@ import '../../core/localization/app_text.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'billing_admin_screen.dart';
 import 'subscriber_account.dart';
 import 'subscriber_repository.dart';
 
@@ -104,7 +105,18 @@ class _SubscriberManagementScreenState
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const AppText('Subscriber Accounts')),
+    appBar: AppBar(
+      title: const AppText('Subscriber Accounts'),
+      actions: [
+        IconButton(
+          tooltip: 'Plans and billing',
+          icon: const Icon(Icons.payments_outlined),
+          onPressed: () => Navigator.push(context, MaterialPageRoute<void>(
+            builder: (_) => BillingAdminScreen(repository: repository),
+          )),
+        ),
+      ],
+    ),
     floatingActionButton: FloatingActionButton.extended(
       onPressed: () => edit(),
       icon: const Icon(Icons.person_add_alt_1),

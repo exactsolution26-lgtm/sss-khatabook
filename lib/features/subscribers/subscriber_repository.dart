@@ -47,4 +47,16 @@ class SubscriberRepository {
       'status': active ? 'active' : 'suspended',
     }).eq('id', accountId);
   }
+
+  Future<(Map<String, dynamic>, Map<String, dynamic>)> billingOverview() async {
+    await requireSuperAdmin();
+    final plan = await client.from('billing_plans').select().eq('id', 'monthly').single();
+    final revenue = await client.rpc('billing_test_revenue').single();
+    return (plan, revenue);
+  }
+
+  Future<void> updateBillingPlan(Map<String, dynamic> values) async {
+    await requireSuperAdmin();
+    await client.from('billing_plans').update(values).eq('id', 'monthly').select('id').single();
+  }
 }
