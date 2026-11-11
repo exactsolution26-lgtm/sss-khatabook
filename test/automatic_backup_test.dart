@@ -32,4 +32,28 @@ void main() {
       expect(backup.savedAt, isNotNull);
     } finally {backup.stop(); backup.dispose(); await DBHelper.close(); await folder.delete(recursive: true);}
   });
+
+  test('manual browser unlock saves a checkpoint after a background capture', () async {
+    final folder = await Directory.systemTemp.createTemp('sss-manual-backup-');
+    await databaseFactory.setDatabasesPath(folder.path);
+    final keyRead = Completer<String?>();
+    final backup = AutomaticBackup.forTesting(() => keyRead.future);
+    const passphrase = 'browser session test passphrase';
+    try {
+      final background = backup.capture();
+      final manual = backup.unlockWeb(passphrase);
+      keyRead.complete(null);
+      await background;
+      await manual;
+
+      final checkpoint = (await BackupVault.list()).single;
+      final encrypted = await BackupVault.read(checkpoint['id'] as int);
+      expect(await BackupCipher.decrypt(encrypted, passphrase), contains('tables'));
+      expect(backup.status, 'Encrypted checkpoint saved on this device');
+    } finally {
+      backup.dispose();
+      await DBHelper.close();
+      await folder.delete(recursive: true);
+    }
+  });
 }

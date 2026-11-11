@@ -80,10 +80,13 @@ class RecordRecovery {
     final files=payload['attachments'] as List;
     if(files.length>5) throw const FormatException('Too many archived attachments');
     var total=0;
+    final fileIds = <int>{};
     final fileColumns=(await db.rawQuery('PRAGMA table_info(attachments)')).map((r)=>r['name']).toSet();
     for(final value in files) {
       final file=Map<String,Object?>.from(value as Map);
-      if(!file.keys.every(fileColumns.contains) || file[kind=='income' ? 'income_id' : 'expense_id']!=entry['id'] ||
+      final id = file['id'];
+      if (id is! int || id <= 0 || !fileIds.add(id) ||
+          !file.keys.every(fileColumns.contains) || file[kind=='income' ? 'income_id' : 'expense_id']!=entry['id'] ||
           file[kind=='income' ? 'expense_id' : 'income_id']!=null) throw const FormatException('Invalid archived attachment link');
       final bytes=base64Decode(file['content_base64'] as String);
       final inspected=await PendingAttachment.inspect(file['name'] as String,bytes);

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -7,6 +8,8 @@ import 'package:offline_khata_app/database/db_helper.dart';
 import 'package:offline_khata_app/database/tables/account_table.dart';
 import 'package:offline_khata_app/features/backup/backup_service.dart';
 import 'package:offline_khata_app/features/backup/backup_vault.dart';
+import 'package:offline_khata_app/features/entries/attachments.dart';
+import 'package:offline_khata_app/features/entries/record_recovery.dart';
 import 'package:offline_khata_app/features/income/income_controller.dart';
 import 'package:offline_khata_app/features/analysis/analysis_logic.dart';
 import 'package:offline_khata_app/models/income_model.dart';
@@ -63,6 +66,69 @@ void main() {
       'date': '2026-11-04', 'created_at': '2026-11-04T00:00:00Z'}), throwsA(isA<DatabaseException>()));
     expect((await db.rawQuery('PRAGMA foreign_key_check')), isEmpty);
     expect((await db.query('app_audit', where: 'operation = ?', whereArgs: ['restore'])), isNotEmpty);
+  });
+
+  test('portable backup restores files and reserves archived attachment IDs on a fresh install', () async {
+    const passphrase = 'portable backup test passphrase';
+    final activeId = await populate();
+    final accountId = (await AccountTable.getAllAccounts()).single.id!;
+    final sourceDb = await DBHelper.database;
+    final receipt = await PendingAttachment.inspect(
+      'receipt.pdf', Uint8List.fromList(ascii.encode('%PDF-1.4\nreceipt\n%%EOF\n')),
+    );
+    final invoice = await PendingAttachment.inspect(
+      'invoice.pdf', Uint8List.fromList(ascii.encode('%PDF-1.4\ninvoice\n%%EOF\n')),
+    );
+    await AttachmentStore.insertBatch(sourceDb, [receipt], incomeId: activeId);
+    Future<int> createIncome(List<PendingAttachment> files) {
+      return IncomeController().createIncome(IncomeModel(
+        accountId: accountId, amount: 15, date: DateTime(2026, 11, 4),
+        createdAt: DateTime.utc(2026, 11, 4),
+      ), attachments: files);
+    }
+    final archivedId = await createIncome([invoice]);
+    final originalAttachments = await sourceDb.query('attachments', orderBy: 'id');
+    final archive = await RecordRecovery.remove(
+      income: true, id: archivedId, accountId: accountId, reason: 'Archive receipt',
+    );
+
+    final service = BackupService();
+    final file = File('${folder.path}/portable.sssbackup');
+    final encrypted = await BackupCipher.encrypt(await service.snapshot(), passphrase);
+    await file.writeAsString(encrypted, flush: true);
+    final fresh = await folder.createTemp('fresh-install-');
+    await DBHelper.close();
+    await databaseFactory.setDatabasesPath(fresh.path);
+    expect(await AccountTable.getAllAccounts(), isEmpty);
+    expect(await BackupVault.list(), isEmpty);
+
+    Future<void> importFile(File source, String password) async {
+      final decoded = await BackupCipher.decrypt(await source.readAsString(), password);
+      await service.restore(decoded, recoveryPassword: password);
+    }
+
+    await importFile(file, passphrase);
+    final restored = await DBHelper.database;
+    expect(await restored.query('attachments'), [originalAttachments.first]);
+    expect((await AnalysisLogic().getAnalysisData())['totalBalance'], 1200);
+    final newId = await createIncome([receipt]);
+    expect(newId, greaterThan(archivedId));
+    await RecordRecovery.restore(archive, accountId);
+    final files = await restored.query('attachments', orderBy: 'id');
+    expect(files.take(2), originalAttachments);
+    expect(files.last['income_id'], newId);
+    expect(files.last['id'] as int, greaterThan(originalAttachments.last['id'] as int));
+    expect((await AnalysisLogic().getAnalysisData())['totalBalance'], 1230);
+    expect(await restored.rawQuery('PRAGMA foreign_key_check'), isEmpty);
+
+    final before = await service.snapshot();
+    final recoveryBefore = await BackupVault.list(purpose: 'recovery');
+    final damaged = File('${fresh.path}/truncated.sssbackup');
+    await damaged.writeAsString(encrypted.substring(0, encrypted.length ~/ 2));
+    await expectLater(importFile(damaged, passphrase), throwsFormatException);
+    await expectLater(importFile(file, 'incorrect test passphrase'), throwsA(anything));
+    expect((await service.snapshot())['tables'], before['tables']);
+    expect(await BackupVault.list(purpose: 'recovery'), recoveryBefore);
   });
 
   test('invalid account links and unknown SQL-shaped fields never alter live records', () async {

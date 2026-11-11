@@ -16,7 +16,7 @@ class AutomaticBackup extends ChangeNotifier with WidgetsBindingObserver {
   static final instance = AutomaticBackup._();
   Future<String?> Function()? keyProvider;
   Timer? _timer;
-  bool _busy = false;
+  Future<void>? _captureInProgress;
   String? _password;
   Future<String?>? _loadingPassword;
   String? _fingerprint;
@@ -47,7 +47,11 @@ class AutomaticBackup extends ChangeNotifier with WidgetsBindingObserver {
     ? Future.value(_password) : _loadingPassword ??= _readPassword();
   Future<String?> _readPassword() async {
     try {
-    if (keyProvider != null) return _password = await keyProvider!();
+    if (keyProvider != null) {
+      final provided = await keyProvider!();
+      _password ??= provided;
+      return provided;
+    }
     if (kIsWeb) return null;
     const storage = FlutterSecureStorage();
     var value = await storage.read(key: 'sss_auto_backup_key_v1').timeout(const Duration(seconds: 10));
@@ -59,8 +63,24 @@ class AutomaticBackup extends ChangeNotifier with WidgetsBindingObserver {
     } finally { _loadingPassword = null; }
   }
   Future<void> capture({bool force = false}) async {
-    if (_busy) return;
-    _busy = true;
+    final pending = _captureInProgress;
+    if (pending != null) {
+      if (!force) return;
+      await pending;
+      return capture(force: true);
+    }
+
+    final capture = _saveCheckpoint(force: force);
+    _captureInProgress = capture;
+    try {
+      await capture;
+    } finally {
+      _captureInProgress = null;
+      notifyListeners();
+    }
+  }
+
+  Future<void> _saveCheckpoint({required bool force}) async {
     try {
       final secret = await password();
       if (secret == null) {
@@ -77,9 +97,6 @@ class AutomaticBackup extends ChangeNotifier with WidgetsBindingObserver {
       status = 'Encrypted checkpoint saved on this device';
     } catch (_) {
       status = 'Automatic backup unavailable. Export a portable backup.';
-    } finally {
-      _busy = false;
-      notifyListeners();
     }
   }
 }

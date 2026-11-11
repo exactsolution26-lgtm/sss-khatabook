@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -165,12 +167,30 @@ class DBHelper {
         await txn.insert(table, table == 'follow_ups' ? {...row, 'notification_scheduled': 0} : row);
       }
     }
-    // A restore must not reuse the identity of an entry retained in the recycle bin.
-    for(final kind in ['income','expenses']) {
-      final maximum=(await txn.rawQuery('SELECT COALESCE(MAX(record_id),0) AS value FROM recycled_entries WHERE kind=?',[kind])).single['value'] as int;
-      await txn.rawUpdate('UPDATE sqlite_sequence SET seq=MAX(seq,?) WHERE name=?',[maximum,kind]);
-      if((await txn.rawQuery('SELECT name FROM sqlite_sequence WHERE name=?',[kind])).isEmpty && maximum>0) {
-        await txn.rawInsert('INSERT INTO sqlite_sequence(name,seq) VALUES(?,?)',[kind,maximum]);
+    // Reserve IDs used by archived records and their attachments before new
+    // entries can be saved into a freshly restored database.
+    final archivedMax = {'income': 0, 'expenses': 0, 'attachments': 0};
+    for (final row in tables['recycled_entries']!) {
+      final kind = row['kind'] as String;
+      final recordId = row['record_id'] as int;
+      if (recordId > archivedMax[kind]!) archivedMax[kind] = recordId;
+      final payload = jsonDecode(row['payload'] as String) as Map<String, dynamic>;
+      for (final attachment in payload['attachments'] as List) {
+        final id = (attachment as Map)['id'] as int;
+        if (id > archivedMax['attachments']!) archivedMax['attachments'] = id;
+      }
+    }
+    for (final entry in archivedMax.entries) {
+      if (entry.value == 0) continue;
+      final updated = await txn.rawUpdate(
+        'UPDATE sqlite_sequence SET seq=MAX(seq,?) WHERE name=?',
+        [entry.value, entry.key],
+      );
+      if (updated == 0) {
+        await txn.rawInsert(
+          'INSERT INTO sqlite_sequence(name,seq) VALUES(?,?)',
+          [entry.key, entry.value],
+        );
       }
     }
     for (final row in tables['app_audit']!) {
