@@ -57,7 +57,7 @@ class _DashboardTemplateViewState extends State<DashboardTemplateView> {
   bool showSearch = false;
 
   String t(String en, String hi) => widget.hindi ? hi : en;
-  String money(num value) => widget.hideAmounts ? '••••' : _currency.format(value);
+  String money(num value) => widget.hideAmounts ? '••••' : _currency.format(value == 0 ? 0 : value);
   Map<String, dynamic> get data => widget.data;
   void open(String route) => widget.onNavigate(route);
 
