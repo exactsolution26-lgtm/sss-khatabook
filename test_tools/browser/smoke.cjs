@@ -68,10 +68,28 @@ const path = require('node:path');
   };
   const fillProfileInput = (label, value) =>
     fillInput(page.getByRole('textbox', {name:label, exact:true}), label, value);
+  const goBackTo = async destination => {
+    const back = page.getByRole('button', {name:'Back',exact:true});
+    const control = await back.elementHandle();
+    let clickError;
+    try {
+      // Pin this route's semantics node so a detached Back cannot retry on
+      // the next route and pop it too.
+      await control.click({timeout: 5000});
+    } catch (error) {
+      clickError = error;
+    } finally {
+      await control.dispose();
+    }
+    try {
+      await destination.waitFor({state: 'attached'});
+    } catch (error) {
+      throw clickError ?? error;
+    }
+  };
   const returnHomeFromProfile = async () => {
-    await page.getByRole('button', {name:'Back',exact:true}).click();
-    await page.getByRole('button', {name:'Back',exact:true}).click();
-    await activeDashboard('Timeline').waitFor();
+    await goBackTo(text('Backup & Restore'));
+    await goBackTo(activeDashboard('Timeline'));
   };
   try {
   await page.goto('http://127.0.0.1:8080', {waitUntil: 'domcontentloaded', timeout: 60000});
