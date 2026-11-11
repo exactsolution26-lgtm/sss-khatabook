@@ -1,8 +1,10 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/localization/app_strings.dart';
+import '../../core/utils/date_utils.dart' as dates;
 import '../../models/account_model.dart';
 import '../accounts/accounts_screen.dart';
 import '../analysis/analysis_logic.dart';
@@ -12,15 +14,14 @@ import '../settings/app_settings.dart';
 import 'dashboard_layout.dart';
 import 'super_admin_preview.dart';
 
-/// Reconstructed layouts. These names are not recovered design approvals.
 extension DashboardTemplateName on DashboardLayout {
   String title(bool hindi) => (hindi
       ? const ['क्लासिक', 'बैलेंस फ़ोकस', 'कॉम्पैक्ट', 'ओवरव्यू', 'खाते', 'टाइमलाइन']
       : const ['Classic', 'Balance Focus', 'Compact', 'Overview', 'Accounts', 'Timeline'])[index];
 }
 
-/// All six presentations consume the same read-only financial snapshot.
-class DashboardTemplateView extends StatelessWidget {
+/// Each layout reads the same snapshot. Local filters affect presentation only.
+class DashboardTemplateView extends StatefulWidget {
   const DashboardTemplateView({
     super.key,
     required this.layout,
@@ -40,185 +41,508 @@ class DashboardTemplateView extends StatelessWidget {
   final bool hindi;
   final bool hideAmounts;
 
-  String t(String en, String hi) => hindi ? hi : en;
-  String money(dynamic value) => hideAmounts ? '••••' : NumberFormat.currency(
+  @override
+  State<DashboardTemplateView> createState() => _DashboardTemplateViewState();
+}
+
+class _DashboardTemplateViewState extends State<DashboardTemplateView> {
+  static final _currency = NumberFormat.currency(
     locale: 'en_IN', symbol: '₹', decimalDigits: 2,
-  ).format(value as num);
+  );
 
-  List<(String, dynamic)> get metrics => [
-    (t('Total Balance', 'कुल बैलेंस'), data['totalBalance']),
-    (t('Income', 'आय'), data['totalIncome']),
-    (t('Expenses', 'खर्च'), data['totalExpense']),
-  ];
+  int monthOffset = 0;
+  String? kind;
+  String query = '';
+  bool showSearch = false;
 
-  List<(String, IconData, String)> get actions => [
-    (t('Add Income', 'आय जोड़ें'), Icons.south_west, '/income'),
-    (t('Add Expense', 'खर्च जोड़ें'), Icons.north_east, '/expenses'),
-    (t('Accounts', 'खाते'), Icons.people_outline, '/accounts'),
-    (t('Reports', 'रिपोर्ट'), Icons.bar_chart, '/reports'),
-    (t('Opening Balance', 'शुरुआती बैलेंस'), Icons.account_balance_wallet_outlined, '/opening-balance'),
-    (t('WhatsApp Drafts', 'WhatsApp ड्राफ्ट'), Icons.chat_outlined, '/whatsapp/share'),
-  ];
+  String t(String en, String hi) => widget.hindi ? hi : en;
+  String money(num value) => widget.hideAmounts ? '••••' : _currency.format(value);
+  Map<String, dynamic> get data => widget.data;
+  void open(String route) => widget.onNavigate(route);
 
-  Widget metric(BuildContext context, int index, {bool emphasis = false}) {
-    final item = metrics[index];
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      color: emphasis ? Theme.of(context).colorScheme.primaryContainer : null,
-      child: InkWell(
-        onTap: index == 0 ? null : () => onNavigate(index == 1 ? '/income-history' : '/expense-history'),
+  Color get accent => const [
+    Color(0xff087653), Color(0xff59268c), Color(0xff1648ad),
+    Color(0xff673bb2), Color(0xff176047), Color(0xff823650),
+  ][widget.layout.index];
+
+  TextStyle? get heading => Theme.of(context).textTheme.titleLarge?.copyWith(
+    fontWeight: FontWeight.w700,
+  );
+
+  Widget amount(int index, {Color? color, bool hero = false}) {
+    final field = const ['totalBalance', 'totalIncome', 'totalExpense'][index];
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: Text(
+        money(data[field] as num),
+        key: ValueKey('metric-$index'),
+        style: (hero ? Theme.of(context).textTheme.headlineLarge : heading)
+            ?.copyWith(color: color, fontWeight: FontWeight.w800),
+      ),
+    );
+  }
+
+  Widget balance(IconData icon, {bool compact = false}) {
+    final index = widget.layout.index;
+    final bright = index == 0 || index == 5;
+    final darkMode = Theme.of(context).brightness == Brightness.dark;
+    final foreground = bright && !darkMode ? const Color(0xff251c2b) : Colors.white;
+    final colors = bright && !darkMode
+        ? [Color.lerp(Colors.white, accent, .09)!, Color.lerp(Colors.white, accent, .19)!]
+        : [Color.lerp(accent, Colors.black, .52)!, accent];
+    return Container(
+      padding: EdgeInsets.all(compact ? 14 : 20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: colors),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Row(children: [
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(t('Total Balance', 'कुल बैलेंस'), style: TextStyle(color: foreground)),
+          const SizedBox(height: 6),
+          amount(0, color: foreground, hero: !compact),
+        ])),
+        const SizedBox(width: 12),
+        ExcludeSemantics(child: _DepthIcon(icon: icon, color: accent, size: compact ? 47 : 70)),
+      ]),
+    );
+  }
+
+  Widget totals({bool includeBalance = false}) {
+    return LayoutBuilder(builder: (context, box) {
+      final first = includeBalance ? 0 : 1;
+      final count = 3 - first;
+      final stacked = box.maxWidth < 270 || MediaQuery.textScalerOf(context).scale(14) > 23;
+      final scheme = Theme.of(context).colorScheme;
+      return Wrap(spacing: 8, runSpacing: 8, children: [
+        for (var i = first; i < 3; i++)
+          SizedBox(
+            width: stacked ? box.maxWidth : (box.maxWidth - (count - 1) * 8) / count,
+            child: Material(
+              color: scheme.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(14),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                key: ValueKey('dashboard-total-$i'),
+                onTap: i == 0 ? null : () => open(i == 1 ? '/income-history' : '/expense-history'),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text([t('Balance', 'बैलेंस'), t('Income', 'आय'), t('Expenses', 'खर्च')][i]),
+                    const SizedBox(height: 4),
+                    amount(i, color: i == 2 ? scheme.error : null),
+                  ]),
+                ),
+              ),
+            ),
+          ),
+      ]);
+    });
+  }
+
+  Widget entryButtons() => Wrap(spacing: 8, runSpacing: 8, children: [
+    FilledButton.icon(
+      key: const ValueKey('dashboard-add-income'),
+      style: FilledButton.styleFrom(backgroundColor: accent, foregroundColor: Colors.white),
+      onPressed: () => open('/income'),
+      icon: const Icon(Icons.add),
+      label: Text(t('Add Income', 'आय जोड़ें')),
+    ),
+    OutlinedButton.icon(
+      key: const ValueKey('dashboard-add-expense'),
+      onPressed: () => open('/expenses'),
+      icon: const Icon(Icons.add),
+      label: Text(t('Add Expense', 'खर्च जोड़ें')),
+    ),
+  ]);
+
+  Widget shortcuts() => Wrap(spacing: 8, runSpacing: 8, children: [
+    for (final item in [
+      (t('Accounts', 'खाते'), Icons.account_balance_outlined, '/accounts'),
+      (t('Reports', 'रिपोर्ट'), Icons.bar_chart_outlined, '/reports'),
+      (t('Opening Balance', 'शुरुआती बैलेंस'), Icons.account_balance_wallet_outlined, '/opening-balance'),
+      (t('WhatsApp Drafts', 'WhatsApp ड्राफ्ट'), Icons.chat_outlined, '/whatsapp/share'),
+    ]) ActionChip(
+      avatar: Icon(item.$2, size: 18),
+      label: Text(item.$1),
+      onPressed: () => open(item.$3),
+    ),
+  ]);
+
+  Widget accounts() {
+    final rows = (data['accountDetails'] as List? ?? const [])
+        .cast<Map<String, dynamic>>()
+        .where((row) => !(row['account'] as AccountModel).isArchived).toList();
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final colors = [const Color(0xffdceba9), const Color(0xff176047), const Color(0xfff0d5ad)];
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Text(t('Accounts', 'खाते'), style: heading),
+      const SizedBox(height: 8),
+      if (rows.isEmpty) Text(t('No accounts yet.', 'अभी कोई खाता नहीं है।')),
+      for (final (index, row) in rows.take(5).indexed)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Material(
+            borderRadius: BorderRadius.circular(18),
+            clipBehavior: Clip.antiAlias,
+            child: Ink(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: [
+                  colors[index % 3],
+                  Color.lerp(colors[index % 3], Colors.black, .13)!,
+                ]),
+              ),
+              child: ListTile(
+                key: ValueKey('dashboard-account-${(row['account'] as AccountModel).id}'),
+                textColor: index % 3 == 1 ? Colors.white : const Color(0xff15231a),
+                iconColor: index % 3 == 1 ? Colors.white : const Color(0xff15231a),
+                leading: Icon([Icons.account_balance_wallet, Icons.account_balance, Icons.payments][index % 3]),
+                title: Text((row['account'] as AccountModel).name),
+                subtitle: Text(money(row['balance'] as num)),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  final callback = widget.onOpenAccount;
+                  if (callback == null) {
+                    open('/accounts');
+                  } else {
+                    callback(row['account'] as AccountModel);
+                  }
+                },
+              ),
+            ),
+          ),
+        ),
+      TextButton(
+        onPressed: () => open('/accounts'),
+        child: Text(t('View all accounts (${rows.length})', 'सभी खाते देखें (${rows.length})'),
+          style: TextStyle(color: dark ? null : accent)),
+      ),
+    ]);
+  }
+
+  Widget compactToolbar() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    Wrap(spacing: 8, runSpacing: 8, children: [
+      OutlinedButton.icon(
+        onPressed: () => setState(() { showSearch = !showSearch; query = ''; }),
+        icon: const Icon(Icons.search),
+        label: Text(t('Search', 'खोजें')),
+      ),
+      PopupMenuButton<String>(
+        tooltip: t('Filter recent entries', 'हाल की एंट्री फ़िल्टर करें'),
+        onSelected: (value) => setState(() => kind = value.isEmpty ? null : value),
+        itemBuilder: (_) => [
+          PopupMenuItem(value: '', child: Text(t('All entries', 'सभी एंट्री'))),
+          PopupMenuItem(value: 'income', child: Text(t('Income', 'आय'))),
+          PopupMenuItem(value: 'expense', child: Text(t('Expenses', 'खर्च'))),
+        ],
         child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(item.$1),
-            const SizedBox(height: 8),
-            FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft,
-              child: Text(money(item.$2), key: ValueKey('metric-$index'),
-                style: emphasis ? Theme.of(context).textTheme.headlineMedium
-                    : Theme.of(context).textTheme.titleLarge)),
-          ]),
+          padding: const EdgeInsets.all(12),
+          child: Text(switch (kind) {
+            'income' => t('Filter: Income', 'फ़िल्टर: आय'),
+            'expense' => t('Filter: Expenses', 'फ़िल्टर: खर्च'),
+            _ => t('Filter', 'फ़िल्टर'),
+          }),
+        ),
+      ),
+    ]),
+    if (showSearch) TextField(
+      autofocus: true,
+      decoration: InputDecoration(labelText: t('Search recent entries', 'हाल की एंट्री खोजें')),
+      onChanged: (value) => setState(() => query = value.trim().toLowerCase()),
+    ),
+  ]);
+
+  Widget recent({bool grouped = false, int limit = 4}) {
+    final rows = (data['recentTransactions'] as List? ?? const [])
+        .cast<Map<String, Object?>>();
+    final compact = widget.layout == DashboardLayout.dashboard3;
+    final accountsOnly = widget.layout == DashboardLayout.dashboard5;
+    final filtered = rows.where((row) {
+      if (accountsOnly && row['account_id'] == null) return false;
+      if (!compact) return true;
+      if (kind != null && row['kind'] != kind) return false;
+      return ['contact_name', 'contact_phone', 'category', 'account_name',
+        if (!widget.hideAmounts) 'note'].any(
+        (key) => (row[key]?.toString() ?? '').toLowerCase().contains(query),
+      );
+    }).take(limit).toList();
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Text(
+        accountsOnly ? t('Recent account activity', 'हाल की खाता गतिविधि')
+            : grouped && !compact ? t('Timeline', 'टाइमलाइन') : t('Recent Entries', 'हाल की एंट्री'),
+        style: heading,
+      ),
+      const SizedBox(height: 8),
+      if (filtered.isEmpty) Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Text(t('No recent entries to show.', 'दिखाने के लिए कोई हाल की एंट्री नहीं है।')),
+      ),
+      for (final (index, row) in filtered.indexed) ...[
+        if (grouped && (index == 0 || filtered[index - 1]['date'] != row['date']))
+          Padding(
+            padding: const EdgeInsets.only(top: 12, bottom: 6),
+            child: Text(HistoryEntry.accountingDate(row['date'] as String),
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold)),
+          ),
+        entry(row, rail: grouped && !compact),
+      ],
+      Wrap(spacing: 8, children: [
+        TextButton(onPressed: () => open('/income-history'), child: Text(t('All income', 'सभी आय'))),
+        TextButton(onPressed: () => open('/expense-history'), child: Text(t('All expenses', 'सभी खर्च'))),
+      ]),
+    ]);
+  }
+
+  Widget entry(Map<String, Object?> row, {required bool rail}) {
+    final income = row['kind'] == 'income';
+    final route = income ? '/income-history' : '/expense-history';
+    final note = widget.hideAmounts ? null : row['note']?.toString();
+    final title = [
+      row['contact_name']?.toString(),
+      note,
+      row['category']?.toString(),
+      income ? t('Income', 'आय') : t('Expense', 'खर्च'),
+    ].whereType<String>().firstWhere((value) => value.trim().isNotEmpty);
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Material(
+        color: rail ? scheme.surfaceContainerLow : Colors.transparent,
+        shape: rail ? RoundedRectangleBorder(
+          side: BorderSide(color: scheme.outlineVariant),
+          borderRadius: BorderRadius.circular(12),
+        ) : null,
+        child: InkWell(
+          key: ValueKey('recent-${row['kind']}-${row['id']}'),
+          onTap: () {
+            final callback = widget.onOpenEntry;
+            final id = row['id'];
+            if (callback != null && id is int) {
+              callback(income, id, row['account_id'] as int?);
+            } else {
+              open(route);
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              _DepthIcon(icon: income ? Icons.south_west : Icons.north_east,
+                size: 31, color: income ? const Color(0xff13745b) : const Color(0xffac3e50)),
+              const SizedBox(width: 10),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Wrap(spacing: 12, runSpacing: 2, alignment: WrapAlignment.spaceBetween, children: [
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+                  Text('${widget.hideAmounts ? '' : income ? '+' : '−'}${money((row['amount'] as num).abs())}',
+                    style: TextStyle(color: income ? scheme.primary : scheme.error, fontWeight: FontWeight.w700)),
+                ]),
+                if (!rail) Text(HistoryEntry.accountingDate(row['date'] as String),
+                  style: Theme.of(context).textTheme.bodySmall),
+                if (rail) Text('${t('Saved', 'सेव हुआ')}: ${HistoryEntry.timestamp(row['created_at'])}',
+                  style: Theme.of(context).textTheme.bodySmall),
+              ])),
+              const Icon(Icons.chevron_right, size: 18),
+            ]),
+          ),
         ),
       ),
     );
   }
 
-  Widget metricGrid(BuildContext context) => LayoutBuilder(builder: (context, box) {
-    final wide = box.maxWidth >= 650;
-    final largeText = MediaQuery.textScalerOf(context).scale(14) > 20;
-    return Wrap(spacing: 8, runSpacing: 8, children: [
-      for (var i = 0; i < metrics.length; i++)
-        SizedBox(width: wide ? (box.maxWidth - 16) / 3
-            : i == 0 || largeText ? box.maxWidth : (box.maxWidth - 8) / 2,
-          child: metric(context, i, emphasis: i == 0)),
-    ]);
-  });
-
-  Widget actionGrid(BuildContext context) => LayoutBuilder(builder: (context, box) {
-    final columns = box.maxWidth >= 650 ? 3
-        : MediaQuery.textScalerOf(context).scale(14) > 20 ? 1 : 2;
-    return Wrap(spacing: 8, runSpacing: 8, children: [
-      for (final action in actions)
-        SizedBox(width: (box.maxWidth - (columns - 1) * 8) / columns,
-          child: Card(clipBehavior: Clip.antiAlias, child: InkWell(
-            onTap: () => onNavigate(action.$3),
-            child: Padding(padding: const EdgeInsets.all(16),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Icon(action.$2), const SizedBox(height: 12), Text(action.$1),
-              ])),
-          ))),
-    ]);
-  });
-
-  Widget actionChips() => Wrap(spacing: 8, runSpacing: 8, children: [
-    for (final action in actions)
-      ActionChip(avatar: Icon(action.$2, size: 18), label: Text(action.$1),
-        onPressed: () => onNavigate(action.$3)),
-  ]);
-
-  Widget accountList(BuildContext context) {
-    final accounts = (data['accountDetails'] as List).where((row)=>!(row['account'] as AccountModel).isArchived).toList();
+  Widget analytics() {
+    final now = dates.DateUtils.indiaToday();
+    final month = DateTime(now.year, now.month + monthOffset);
+    final monthKey = DateFormat('yyyy-MM').format(month);
+    final days = DateTime(month.year, month.month + 1, 0).day;
+    final weeks = (days / 7).ceil();
+    final income = List<int>.filled(weeks, 0);
+    final expense = List<int>.filled(weeks, 0);
+    final categories = <String, int>{};
+    final rows = (data['dashboardAnalytics'] as List? ?? const [])
+        .cast<Map<String, Object?>>();
+    for (final row in rows.where((row) => row['month'] == monthKey)) {
+      final week = row['week'] as int;
+      if (week >= weeks) continue;
+      final paise = (row['paise'] as num).round();
+      if (row['kind'] == 'income') {
+        income[week] += paise;
+      } else {
+        expense[week] += paise;
+        final category = row['category'] as String;
+        categories.update(category, (value) => value + paise, ifAbsent: () => paise);
+      }
+    }
+    final maximum = [1, ...income, ...expense].reduce((a, b) => a > b ? a : b);
+    final ranked = categories.entries.toList()
+      ..sort((a, b) {
+        final result = b.value.compareTo(a.value);
+        return result == 0 ? a.key.compareTo(b.key) : result;
+      });
+    const teal = Color(0xff13836f);
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      Text(t('Accounts', 'खाते'), style: Theme.of(context).textTheme.titleLarge),
-      const SizedBox(height: 8),
-      if (accounts.isEmpty) Text(t('No accounts yet.', 'अभी कोई खाता नहीं है।')),
-      for (final row in accounts.take(5))
-        Card(child: ListTile(
-          key: ValueKey('dashboard-account-${(row['account'] as AccountModel).id}'),
-          title: Text((row['account'] as AccountModel).name),
-          subtitle: Text('${t('Balance', 'बैलेंस')}: ${money(row['balance'])}'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => onOpenAccount != null
-              ? onOpenAccount!(row['account'] as AccountModel) : onNavigate('/accounts'),
-        )),
-      TextButton(onPressed: () => onNavigate('/accounts'),
-        child: Text(t('View all accounts (${accounts.length})', 'सभी खाते देखें (${accounts.length})'))),
+      Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Text(t('Cash Flow', 'नकदी प्रवाह'), style: heading),
+          DropdownButton<int>(
+            key: const ValueKey('cash-flow-period'),
+            value: monthOffset,
+            onChanged: (value) {
+              if (value != null) setState(() => monthOffset = value);
+            },
+            items: [
+              DropdownMenuItem(value: 0, child: Text(t('This month', 'इस महीने'))),
+              DropdownMenuItem(value: -1, child: Text(t('Last month', 'पिछले महीने'))),
+            ],
+          ),
+        ],
+      ),
+      if (widget.hideAmounts)
+        Text(t('Amounts hidden', 'राशियां छिपी हैं'))
+      else ...[
+        Text(DateFormat.yMMMM().format(month)),
+        Wrap(spacing: 14, children: [
+          TextButton.icon(onPressed: () => open('/income-history'),
+            icon: Icon(Icons.circle, color: accent, size: 12),
+            label: Text(t('Income', 'आय'))),
+          TextButton.icon(onPressed: () => open('/expense-history'),
+            icon: const Icon(Icons.circle, color: teal, size: 12),
+            label: Text(t('Expenses', 'खर्च'))),
+        ]),
+        if (income.every((value) => value == 0) && expense.every((value) => value == 0))
+          Text(t('No entries in this period.', 'इस अवधि में कोई एंट्री नहीं है।'))
+        else
+          Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            for (var i = 0; i < weeks; i++)
+              Expanded(
+                child: Tooltip(
+                  message: '${t('Income', 'आय')} ${money(income[i] / 100)} · '
+                      '${t('Expenses', 'खर्च')} ${money(expense[i] / 100)}',
+                  child: Column(children: [
+                    Row(mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.end, children: [
+                      chartBar(income[i] / maximum, accent),
+                      const SizedBox(width: 3),
+                      chartBar(expense[i] / maximum, teal),
+                    ]),
+                    const SizedBox(height: 6),
+                    Text('${i * 7 + 1}–${math.min(days, (i + 1) * 7)}',
+                      textAlign: TextAlign.center),
+                  ]),
+                ),
+              ),
+          ]),
+        const SizedBox(height: 18),
+        Text(t('Spending Categories', 'खर्च की श्रेणियाँ'), style: heading),
+        if (ranked.isEmpty)
+          Text(t('No expenses in this period.', 'इस अवधि में कोई खर्च नहीं है।')),
+        for (final item in ranked.take(5))
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Wrap(alignment: WrapAlignment.spaceBetween, spacing: 8, children: [
+                Text(item.key.isEmpty ? t('Uncategorized', 'बिना श्रेणी') : item.key),
+                Text(money(item.value / 100)),
+              ]),
+              const SizedBox(height: 4),
+              LinearProgressIndicator(
+                value: (item.value / math.max(1, ranked.first.value)).clamp(0.0, 1.0).toDouble(),
+                color: accent,
+                minHeight: 5,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ]),
+          ),
+        if (ranked.length > 5)
+          TextButton(onPressed: () => open('/expense-history'),
+            child: Text(t('All expenses', 'सभी खर्च'))),
+      ],
     ]);
   }
 
-  Widget timeline(BuildContext context, {int limit = 4}) {
-    final entries = data['recentTransactions'] as List? ?? const [];
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      Text(t('Recent entries', 'हाल की एंट्री'), style: Theme.of(context).textTheme.titleLarge),
-      const SizedBox(height: 4),
-      Text(t('Newest transaction dates first', 'नई लेन-देन तारीख पहले')),
-      if (entries.isEmpty) Padding(padding: const EdgeInsets.symmetric(vertical: 16),
-        child: Text(t('No transactions yet. Add your first income or expense.',
-          'अभी कोई लेन-देन नहीं है। पहली आय या खर्च जोड़ें।'))),
-      for (final row in entries.take(limit))
-        Card(clipBehavior: Clip.antiAlias, child: InkWell(
-          key: ValueKey('recent-${row['kind']}-${row['id']}'),
-          onTap: () => onOpenEntry != null && row['id'] is int
-              ? onOpenEntry!(row['kind'] == 'income', row['id'] as int, row['account_id'] as int?)
-              : onNavigate(row['kind'] == 'income' ? '/income-history' : '/expense-history'),
-          child: Padding(padding: const EdgeInsets.all(16),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('${row['kind'] == 'income' ? metrics[1].$1 : metrics[2].$1} · ${money(row['amount'])}',
-                style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 6),
-              if ((row['contact_name'] ?? '').toString().isNotEmpty)
-                Text(row['contact_name'].toString()),
-              if ((row['contact_phone'] ?? '').toString().isNotEmpty)
-                Text(row['contact_phone'].toString()),
-              Text(row['account_name']?.toString() ?? t('Unassigned legacy account', 'पुराना असंबद्ध खाता')),
-              Text('${t('Date', 'तारीख')}: ${HistoryEntry.accountingDate(row['date'] as String)}'),
-              Text('${t('Saved', 'सेव हुआ')}: ${HistoryEntry.timestamp(row['created_at'])}'),
-              if (!hideAmounts && (row['note'] ?? '').toString().isNotEmpty)
-                Text(row['note'].toString(), maxLines: 2, overflow: TextOverflow.ellipsis),
-              const SizedBox(height: 6),
-              Text(t('View entry →', 'एंट्री देखें →'), style: TextStyle(color: Theme.of(context).colorScheme.primary)),
-            ])),
-        )),
-      Wrap(spacing: 8, children: [
-        TextButton(onPressed: () => onNavigate('/income-history'), child: Text(t('All income', 'सभी आय'))),
-        TextButton(onPressed: () => onNavigate('/expense-history'), child: Text(t('All expenses', 'सभी खर्च'))),
-      ]),
-    ]);
-  }
+  Widget chartBar(double fraction, Color color) => Flexible(
+    child: Container(
+      width: 14,
+      height: math.max(0.0, fraction * 112).toDouble(),
+      decoration: BoxDecoration(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(5)),
+        gradient: LinearGradient(colors: [
+          Color.lerp(color, Colors.white, .35)!, color,
+          Color.lerp(color, Colors.black, .20)!,
+        ]),
+      ),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
-    const gap = SizedBox(height: 20);
-    final contents = switch (layout) {
-      DashboardLayout.dashboard1 => [metricGrid(context), gap, actionGrid(context), gap, timeline(context)],
+    final contents = switch (widget.layout) {
+      DashboardLayout.dashboard1 => [
+        balance(Icons.menu_book_rounded), totals(), recent(), entryButtons(),
+      ],
       DashboardLayout.dashboard2 => [
-        metric(context, 0, emphasis: true), gap,
-        for (var i = 1; i < 3; i++) metric(context, i), gap,
-        actionChips(), gap, accountList(context),
+        balance(Icons.account_balance_wallet_rounded), entryButtons(), totals(), recent(limit: 2),
       ],
       DashboardLayout.dashboard3 => [
-        Card(child: Column(children: [for (var i = 0; i < 3; i++)
-          ListTile(onTap: i == 0 ? null : () => onNavigate(i == 1 ? '/income-history' : '/expense-history'),
-            title: Text(metrics[i].$1), subtitle: Text(money(metrics[i].$2), key: ValueKey('metric-$i'))),
-        ])), gap, actionChips(),
+        balance(Icons.toll_rounded, compact: true), totals(), entryButtons(),
+        compactToolbar(), recent(grouped: true, limit: 12),
       ],
       DashboardLayout.dashboard4 => [
-        metricGrid(context), gap,
-        Text(t('Income and expenses', 'आय और खर्च'), style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 12),
-        if (hideAmounts) Text(t('Amounts hidden', 'राशियां छिपी हैं'))
-        else for (var i = 1; i < 3; i++) ...[
-          Text(metrics[i].$1),
-          Padding(padding: const EdgeInsets.symmetric(vertical: 8),
-            child: LinearProgressIndicator(
-              semanticsLabel: metrics[i].$1,
-              minHeight: 10,
-              value: (metrics[i].$2 as num).abs() /
-                math.max(1, math.max((metrics[1].$2 as num).abs(), (metrics[2].$2 as num).abs())),
-            )),
-        ], gap, actionChips(), gap, timeline(context),
+        analytics(), totals(includeBalance: true), entryButtons(),
       ],
-      DashboardLayout.dashboard5 => [accountList(context), gap, metricGrid(context), gap, actionChips()],
-      DashboardLayout.dashboard6 => [actionChips(), gap, metricGrid(context), gap, timeline(context, limit: 12)],
+      DashboardLayout.dashboard5 => [
+        balance(Icons.account_balance_wallet_rounded), accounts(), totals(), recent(), entryButtons(),
+      ],
+      DashboardLayout.dashboard6 => [
+        balance(Icons.calendar_month_rounded, compact: true), totals(),
+        recent(grouped: true, limit: 12), entryButtons(),
+      ],
     };
-    return Column(key: ValueKey(layout.preferenceId),
-      crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        ...contents,
-        if ((data['unassignedExpenseCount'] as num? ?? 0) > 0) Padding(
-          padding: const EdgeInsets.only(top: 20),
-          child: Text(t('Totals include expenses without an assigned historic account. View All expenses for details.',
-            'कुल राशि में बिना खाते वाले पुराने खर्च भी शामिल हैं। जानकारी के लिए सभी खर्च देखें।'))),
-      ]);
+    return Column(
+      key: ValueKey(widget.layout.preferenceId),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final child in contents) ...[child, const SizedBox(height: 14)],
+        shortcuts(),
+        if ((data['unassignedExpenseCount'] as num? ?? 0) > 0)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Text(t(
+              'Totals include historic expenses without an account.',
+              'कुल राशि में बिना खाते वाले पुराने खर्च भी शामिल हैं।',
+            )),
+          ),
+      ],
+    );
   }
+}
+
+class _DepthIcon extends StatelessWidget {
+  const _DepthIcon({required this.icon, required this.color, required this.size});
+
+  final IconData icon;
+  final Color color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(size * .24),
+      border: Border.all(color: Colors.white38),
+      gradient: LinearGradient(
+        begin: Alignment.topLeft, end: Alignment.bottomRight,
+        colors: [Color.lerp(color, Colors.white, .32)!, color, Color.lerp(color, Colors.black, .35)!],
+      ),
+      boxShadow: [BoxShadow(color: color.withValues(alpha: .38),
+        offset: Offset(0, size * .09), blurRadius: size * .14)],
+    ),
+    child: SizedBox.square(
+      dimension: size,
+      child: Icon(icon, size: size * .56, color: Colors.white,
+        shadows: [Shadow(color: Colors.black54, offset: Offset(0, size * .045), blurRadius: 3)]),
+    ),
+  );
 }
 
 /// Preview is transient. Only Use this dashboard changes the active preference.
@@ -236,17 +560,17 @@ class _DashboardPreviewsScreenState extends State<DashboardPreviewsScreen> {
   @override
   void initState() {
     super.initState();
-    data = AnalysisLogic().getAnalysisData();
+    data = AnalysisLogic().getAnalysisData(includeDashboardAnalytics: true);
   }
 
   Future<void> open(String route) async {
     await Navigator.pushNamed(context, route);
-    if (mounted) setState(() { data = AnalysisLogic().getAnalysisData(); });
+    if (mounted) setState(() { data = AnalysisLogic().getAnalysisData(includeDashboardAnalytics: true); });
   }
 
   Future<void> openPage(Widget page) async {
     await Navigator.push(context, MaterialPageRoute<void>(builder: (_) => page));
-    if (mounted) setState(() { data = AnalysisLogic().getAnalysisData(); });
+    if (mounted) setState(() { data = AnalysisLogic().getAnalysisData(includeDashboardAnalytics: true); });
   }
 
   Future<void> apply(AppSettings settings, DashboardLayout layout) async {
@@ -285,10 +609,6 @@ class _DashboardPreviewsScreenState extends State<DashboardPreviewsScreen> {
           label: Text(applying ? (hindi ? 'सेव हो रहा है…' : 'Saving…')
               : (hindi ? 'यह डैशबोर्ड इस्तेमाल करें' : 'Use this dashboard'))))),
       body: ListView(padding: const EdgeInsets.all(20), children: [
-        Text(hindi ? 'पुनर्निर्मित डिज़ाइन · मूल छह डिज़ाइन नहीं मिले'
-          : 'Reconstructed designs · original six visuals not recovered',
-          style: Theme.of(context).textTheme.labelLarge),
-        const SizedBox(height: 8),
         Text(hindi ? 'अपने लोकल रिकॉर्ड का लाइव प्रीव्यू। बदलने के लिए नीचे का बटन दबाएं।'
           : 'Live preview of your local records. Apply below to change your dashboard.'),
         const SizedBox(height: 12),
@@ -310,7 +630,7 @@ class _DashboardPreviewsScreenState extends State<DashboardPreviewsScreen> {
         Text(layout.title(hindi), style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: 16),
         DashboardSnapshot(future: data, hindi: hindi,
-          retry: () => setState(() { data = AnalysisLogic().getAnalysisData(); }),
+          retry: () => setState(() { data = AnalysisLogic().getAnalysisData(includeDashboardAnalytics: true); }),
           builder: (snapshot) => DashboardTemplateView(layout: layout, data: snapshot,
             hindi: hindi, hideAmounts: settings.hideDashboardAmounts, onNavigate: open,
             onOpenAccount: (account) => openPage(AccountLedgerScreen(account: account)),

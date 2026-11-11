@@ -21,7 +21,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _reload();
   }
 
-  void _reload() { _summary = (widget.loadSummary ?? AnalysisLogic().getAnalysisData)(); }
+  void _reload() {
+    _summary = widget.loadSummary?.call() ??
+        AnalysisLogic().getAnalysisData(includeDashboardAnalytics: true);
+  }
 
   Future<void> _open(String route) async {
     await Navigator.pushNamed(context, route);
@@ -51,6 +54,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onPressed: () => _open('/settings')),
         ],
       ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: 0,
+        onDestinationSelected: (index) {
+          if (index == 1) _open('/income-history');
+          if (index == 2) _open('/reports');
+        },
+        destinations: [
+          NavigationDestination(icon: const Icon(Icons.home_outlined), label: hindi ? 'होम' : 'Home'),
+          NavigationDestination(icon: const Icon(Icons.menu_book_outlined), label: hindi ? 'लेजर' : 'Ledger'),
+          NavigationDestination(icon: const Icon(Icons.bar_chart_outlined), label: settings.text('reports')),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: () async {
           setState(_reload);
@@ -59,12 +74,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 1200),
           child: ListView(physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(20), children: [
-            Text(settings.text('dashboard'), style: Theme.of(context).textTheme.headlineMedium
-                ?.copyWith(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            Text(hindi ? 'आपके कारोबार का हिसाब, एक जगह।' : 'Your business, clearly accounted for.'),
-            const SizedBox(height: 12),
             Wrap(spacing: 12, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
+              Text(settings.text('dashboard'), style: Theme.of(context).textTheme.titleSmall),
               Text(hindi ? 'सक्रिय: ${settings.dashboardLayout.title(true)}'
                   : 'Active: ${settings.dashboardLayout.title(false)}', key: const ValueKey('active-dashboard')),
               OutlinedButton.icon(onPressed: () => _open('/dashboard-previews'),

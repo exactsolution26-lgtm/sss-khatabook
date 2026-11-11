@@ -1,9 +1,12 @@
+import '../../core/utils/date_utils.dart';
 import '../../database/db_helper.dart';
 import '../../models/account_model.dart';
 
 class AnalysisLogic {
   /// One SQLite snapshot keeps totals and account details mutually consistent.
-  Future<Map<String, dynamic>> getAnalysisData() async {
+  Future<Map<String, dynamic>> getAnalysisData({
+    bool includeDashboardAnalytics = false,
+  }) async {
     final db = await DBHelper.database;
     return db.transaction((txn) async {
       final rows = await txn.rawQuery('''SELECT a.*,
@@ -51,6 +54,25 @@ class AnalysisLogic {
           'balance': balance / 100,
         });
       }
+      final today = DateUtils.indiaToday();
+      final first = DateUtils.formatDate(DateTime(today.year, today.month - 1));
+      final end = DateUtils.formatDate(DateTime(today.year, today.month + 1));
+      final analytics = includeDashboardAnalytics ? await txn.rawQuery('''
+        SELECT month, week, kind, category, SUM(paise) AS paise
+        FROM (
+          SELECT substr(date, 1, 7) AS month,
+            (CAST(substr(date, 9, 2) AS INTEGER) - 1) / 7 AS week,
+            'income' AS kind, '' AS category, ROUND(amount * 100) AS paise
+          FROM income WHERE date >= ? AND date < ?
+          UNION ALL
+          SELECT substr(date, 1, 7),
+            (CAST(substr(date, 9, 2) AS INTEGER) - 1) / 7,
+            'expense', COALESCE(NULLIF(TRIM(category), ''), ''), ROUND(amount * 100)
+          FROM expenses WHERE date >= ? AND date < ?
+        )
+        WHERE week BETWEEN 0 AND 4
+        GROUP BY month, week, kind, category
+      ''', [first, end, first, end]) : const <Map<String, Object?>>[];
       return {
         'totalIncome': totalIncome / 100,
         'totalExpense': totalExpense / 100,
@@ -60,6 +82,7 @@ class AnalysisLogic {
         'unassignedExpense': unassigned / 100,
         'unassignedExpenseCount': legacy.single['count'],
         'recentTransactions': recent,
+        'dashboardAnalytics': analytics,
       };
     });
   }

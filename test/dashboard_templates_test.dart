@@ -5,6 +5,8 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:offline_khata_app/core/theme/app_theme.dart';
+import 'package:offline_khata_app/core/utils/date_utils.dart' as dates;
+import 'package:intl/intl.dart';
 import 'package:offline_khata_app/features/dashboard/dashboard_layout.dart';
 import 'package:offline_khata_app/features/dashboard/dashboard_templates.dart';
 import 'package:offline_khata_app/models/account_model.dart';
@@ -128,6 +130,46 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     });
   }
+  testWidgets('Compact search and type filter narrow recent entries', (tester) async {
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: SingleChildScrollView(
+      child: DashboardTemplateView(layout: DashboardLayout.dashboard3, data: data,
+        onNavigate: (_) {}),
+    ))));
+    await tester.tap(find.text('Search'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'recorded income');
+    await tester.pumpAndSettle();
+    expect(find.text('Recorded income'), findsOneWidget);
+    expect(find.text('Recorded expense'), findsNothing);
+    await tester.tap(find.text('Filter'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Expenses').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Recorded income'), findsNothing);
+    expect(find.text('No recent entries to show.'), findsOneWidget);
+  });
+
+  testWidgets('Overview changes period without changing all-time totals', (tester) async {
+    final today = dates.DateUtils.indiaToday();
+    final lastMonth = DateFormat('yyyy-MM').format(DateTime(today.year, today.month - 1));
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: SingleChildScrollView(
+      child: DashboardTemplateView(layout: DashboardLayout.dashboard4,
+        data: {...data, 'dashboardAnalytics': [
+          {'month': lastMonth, 'week': 0, 'kind': 'expense', 'category': 'Travel', 'paise': 12345},
+        ]},
+        onNavigate: (_) {}),
+    ))));
+    expect(find.text('No entries in this period.'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('cash-flow-period')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Last month').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Travel'), findsOneWidget);
+    expect(find.text('₹123.45'), findsOneWidget);
+    expect(tester.widget<Text>(find.byKey(const ValueKey('metric-0'))).data, '₹31,500.00');
+    expect(tester.takeException(), isNull);
+  });
+
   for (final dark in [false, true]) {
     testWidgets('super admin design is explicitly simulated in ${dark ? 'dark' : 'light'} theme', (tester) async {
       tester.view.physicalSize = const Size(360, 1200);
