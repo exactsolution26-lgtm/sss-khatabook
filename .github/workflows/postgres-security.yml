@@ -42,6 +42,8 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f test_tools/postgres/tenant_isolation.sql
       - name: Execute subscription billing simulation tests
         run: psql -v ON_ERROR_STOP=1 -f test_tools/postgres/billing_simulation.sql
+      - name: Execute ledger reconnect sync checks
+        run: psql -v ON_ERROR_STOP=1 -f test_tools/postgres/ledger_sync.sql
       - name: Record tested commit
         if: always()
         run: git rev-parse HEAD

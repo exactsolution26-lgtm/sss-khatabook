@@ -28,6 +28,11 @@ void main() {
     expect(check(issued.add(const Duration(days: 30))), OfflineLeaseStatus.expired);
   });
 
+  test('clock tolerance cannot revive a lease already expired at the trusted time', () {
+    final justBeforeExpiry = lease.expiresAtUtc.subtract(const Duration(minutes: 1));
+    expect(check(justBeforeExpiry, trusted: lease.expiresAtUtc), OfflineLeaseStatus.expired);
+  });
+
   test('tenant and device binding enforced', () {
     expect(check(issued, tenant: 'tenant-b'), OfflineLeaseStatus.tenantMismatch);
     expect(check(issued, device: 'phone-b'), OfflineLeaseStatus.deviceMismatch);

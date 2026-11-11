@@ -58,7 +58,9 @@ class OfflineLeasePolicy {
     if (nowUtc.isBefore(lease.issuedAtUtc)) {
       return OfflineLeaseStatus.notYetValid;
     }
-    if (!nowUtc.isBefore(lease.expiresAtUtc)) {
+    // The tolerance permits clock drift but never revives an expired lease.
+    if (!nowUtc.isBefore(lease.expiresAtUtc) ||
+        !lastTrustedUtc.isBefore(lease.expiresAtUtc)) {
       return OfflineLeaseStatus.expired;
     }
     return OfflineLeaseStatus.valid;
