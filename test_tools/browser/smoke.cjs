@@ -45,7 +45,7 @@ const path = require('node:path');
       let field = document.activeElement;
       while (field?.shadowRoot?.activeElement) field = field.shadowRoot.activeElement;
       const activeLabel = field?.getAttribute('aria-label');
-      return field instanceof HTMLInputElement && (!activeLabel || activeLabel === label) &&
+      return field instanceof HTMLInputElement && (!activeLabel || activeLabel.split('\n')[0] === label) &&
         (expected === null || field.value === expected);
     }, {label, expected}, {timeout});
   };
