@@ -46,5 +46,6 @@ flutter:
   uses-material-design: true
   assets:
     - assets/expense_categories/
+    - assets/dashboard/hero-art.webp
     - assets/fonts/NotoSans-Regular.ttf
     - assets/fonts/NotoSansDevanagari-Regular.ttf

@@ -261,8 +261,12 @@ void main() {
   });
   testWidgets('account creation refreshes the list and reports the saved account correctly', (tester) async {
     await tester.pumpWidget(app());await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Accounts'),180,scrollable:find.byType(Scrollable).first);
-    await tester.tap(find.text('Accounts'));await tester.pumpAndSettle();
+    final accounts = find.widgetWithText(ActionChip, 'Accounts');
+    await tester.scrollUntilVisible(accounts, 180, scrollable: find.byType(Scrollable).first);
+    await Scrollable.ensureVisible(tester.element(accounts), alignment: .5);
+    await tester.pumpAndSettle();
+    await tester.tap(accounts.hitTestable());
+    await tester.pumpAndSettle();
     await tester.tap(find.text('New Account'));await tester.pumpAndSettle();
     await tester.enterText(find.widgetWithText(TextFormField,'Account name'),'History account');
     await tester.tap(find.text('Save'));await tester.pumpAndSettle();

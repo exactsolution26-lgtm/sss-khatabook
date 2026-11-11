@@ -51,6 +51,7 @@ class _DashboardTemplateViewState extends State<DashboardTemplateView> {
   );
 
   int monthOffset = 0;
+  String? recentPeriod;
   String? kind;
   String query = '';
   bool showSearch = false;
@@ -104,7 +105,11 @@ class _DashboardTemplateViewState extends State<DashboardTemplateView> {
           amount(0, color: foreground, hero: !compact),
         ])),
         const SizedBox(width: 12),
-        ExcludeSemantics(child: _DepthIcon(icon: icon, color: accent, size: compact ? 47 : 70)),
+        ExcludeSemantics(child: _DashboardArt(
+          index: index,
+          size: compact ? 70 : 108,
+          fallback: _DepthIcon(icon: icon, color: accent, size: compact ? 47 : 70),
+        )),
       ]),
     );
   }
@@ -254,7 +259,7 @@ class _DashboardTemplateViewState extends State<DashboardTemplateView> {
   ]);
 
   Widget recent({bool grouped = false, int limit = 4}) {
-    final rows = (data['recentTransactions'] as List? ?? const [])
+    final rows = (data[recentPeriod ?? 'recentTransactions'] as List? ?? const [])
         .cast<Map<String, Object?>>();
     final compact = widget.layout == DashboardLayout.dashboard3;
     final accountsOnly = widget.layout == DashboardLayout.dashboard5;
@@ -268,10 +273,29 @@ class _DashboardTemplateViewState extends State<DashboardTemplateView> {
       );
     }).take(limit).toList();
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      Text(
-        accountsOnly ? t('Recent account activity', 'हाल की खाता गतिविधि')
-            : grouped && !compact ? t('Timeline', 'टाइमलाइन') : t('Recent Entries', 'हाल की एंट्री'),
-        style: heading,
+      Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Text(
+            accountsOnly ? t('Recent account activity', 'हाल की खाता गतिविधि')
+                : grouped && !compact ? t('Timeline', 'टाइमलाइन') : t('Recent Entries', 'हाल की एंट्री'),
+            style: heading,
+          ),
+          if (data.containsKey('recentThisMonth') &&
+              (widget.layout == DashboardLayout.dashboard1 ||
+                widget.layout == DashboardLayout.dashboard6))
+            periodMenu<String>(
+              key: const ValueKey('recent-period'),
+              options: {
+                '': t('All dates', 'सभी तारीखें'),
+                'recentThisMonth': t('This month', 'इस महीने'),
+                'recentLastMonth': t('Last month', 'पिछले महीने'),
+              },
+              selected: recentPeriod ?? '',
+              onSelect: (value) => setState(() => recentPeriod = value == '' ? null : value),
+            ),
+        ],
       ),
       const SizedBox(height: 8),
       if (filtered.isEmpty) Padding(
@@ -285,7 +309,15 @@ class _DashboardTemplateViewState extends State<DashboardTemplateView> {
             child: Text(HistoryEntry.accountingDate(row['date'] as String),
               style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold)),
           ),
-        entry(row, rail: grouped && !compact),
+        if (grouped && !compact)
+          DecoratedBox(
+            decoration: BoxDecoration(border: Border(left: BorderSide(
+              color: accent.withValues(alpha: .55), width: 2,
+            ))),
+            child: Padding(padding: const EdgeInsets.only(left: 8), child: entry(row, rail: true)),
+          )
+        else
+          entry(row, rail: false),
       ],
       Wrap(spacing: 8, children: [
         TextButton(onPressed: () => open('/income-history'), child: Text(t('All income', 'सभी आय'))),
@@ -331,11 +363,11 @@ class _DashboardTemplateViewState extends State<DashboardTemplateView> {
                 size: 31, color: income ? const Color(0xff13745b) : const Color(0xffac3e50)),
               const SizedBox(width: 10),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Wrap(spacing: 12, runSpacing: 2, alignment: WrapAlignment.spaceBetween, children: [
+                SizedBox(width: double.infinity, child: Wrap(spacing: 12, runSpacing: 2, alignment: WrapAlignment.spaceBetween, children: [
                   Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
                   Text('${widget.hideAmounts ? '' : income ? '+' : '−'}${money((row['amount'] as num).abs())}',
                     style: TextStyle(color: income ? scheme.primary : scheme.error, fontWeight: FontWeight.w700)),
-                ]),
+                ])),
                 if (!rail) Text(HistoryEntry.accountingDate(row['date'] as String),
                   style: Theme.of(context).textTheme.bodySmall),
                 if (rail) Text('${t('Saved', 'सेव हुआ')}: ${HistoryEntry.timestamp(row['created_at'])}',
@@ -348,6 +380,29 @@ class _DashboardTemplateViewState extends State<DashboardTemplateView> {
       ),
     );
   }
+
+  Widget periodMenu<T>({
+    required Key key,
+    required Map<T, String> options,
+    required T selected,
+    required ValueChanged<T> onSelect,
+  }) => PopupMenuButton<T>(
+    key: key,
+    initialValue: selected,
+    tooltip: t('Change period', 'अवधि बदलें'),
+    onSelected: onSelect,
+    itemBuilder: (_) => [
+      for (final option in options.entries)
+        PopupMenuItem<T>(value: option.key, child: Text(option.value)),
+    ],
+    child: Padding(
+      padding: const EdgeInsets.all(12),
+      child: Wrap(spacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [
+        Text(options[selected]!),
+        const Icon(Icons.expand_more, size: 18),
+      ]),
+    ),
+  );
 
   Widget analytics() {
     final now = dates.DateUtils.indiaToday();
@@ -385,16 +440,14 @@ class _DashboardTemplateViewState extends State<DashboardTemplateView> {
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           Text(t('Cash Flow', 'नकदी प्रवाह'), style: heading),
-          DropdownButton<int>(
+          periodMenu<int>(
             key: const ValueKey('cash-flow-period'),
-            value: monthOffset,
-            onChanged: (value) {
-              if (value != null) setState(() => monthOffset = value);
+            options: {
+              0: t('This month', 'इस महीने'),
+              -1: t('Last month', 'पिछले महीने'),
             },
-            items: [
-              DropdownMenuItem(value: 0, child: Text(t('This month', 'इस महीने'))),
-              DropdownMenuItem(value: -1, child: Text(t('Last month', 'पिछले महीने'))),
-            ],
+            selected: monthOffset,
+            onSelect: (value) => setState(() => monthOffset = value),
           ),
         ],
       ),
@@ -417,6 +470,7 @@ class _DashboardTemplateViewState extends State<DashboardTemplateView> {
             for (var i = 0; i < weeks; i++)
               Expanded(
                 child: Tooltip(
+                  triggerMode: TooltipTriggerMode.tap,
                   message: '${t('Income', 'आय')} ${money(income[i] / 100)} · '
                       '${t('Expenses', 'खर्च')} ${money(expense[i] / 100)}',
                   child: Column(children: [
@@ -516,6 +570,39 @@ class _DashboardTemplateViewState extends State<DashboardTemplateView> {
       ],
     );
   }
+}
+
+/// The artwork is a regular three-column, two-row atlas shared by the layouts.
+class _DashboardArt extends StatelessWidget {
+  const _DashboardArt({required this.index, required this.size, required this.fallback});
+
+  final int index;
+  final double size;
+  final Widget fallback;
+
+  @override
+  Widget build(BuildContext context) => SizedBox.square(
+    dimension: size,
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: OverflowBox(
+        minWidth: size * 3,
+        maxWidth: size * 3,
+        minHeight: size * 2,
+        maxHeight: size * 2,
+        alignment: Alignment((index % 3 - 1).toDouble(), index < 3 ? -1 : 1),
+        child: Image.asset(
+          'assets/dashboard/hero-art.webp',
+          fit: BoxFit.fill,
+          excludeFromSemantics: true,
+          errorBuilder: (context, error, stack) => Align(
+            alignment: Alignment((index % 3 - 1).toDouble(), index < 3 ? -1 : 1),
+            child: SizedBox.square(dimension: size, child: Center(child: fallback)),
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 class _DepthIcon extends StatelessWidget {

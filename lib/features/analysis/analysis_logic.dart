@@ -19,18 +19,26 @@ class AnalysisLogic {
         'SELECT COUNT(*) AS count,TOTAL(ROUND(amount * 100)) AS total FROM expenses WHERE account_id IS NULL',
       );
       final unassigned = (legacy.single['total'] as num).round();
-      final recent = await txn.rawQuery('''
-        SELECT * FROM (SELECT e.id, e.account_id, e.amount, e.description AS note,
-          e.date, e.created_at, e.contact_name, e.contact_phone, e.category, e.mode,
-          a.name AS account_name, 'income' AS kind
-        FROM income e LEFT JOIN accounts a ON a.id=e.account_id
-        UNION ALL
-        SELECT e.id, e.account_id, e.amount, e.note,
-          e.date, e.created_at, e.contact_name, e.contact_phone, e.category, e.mode,
-          a.name AS account_name, 'expense' AS kind
-        FROM expenses e LEFT JOIN accounts a ON a.id=e.account_id)
-        ORDER BY date DESC, datetime(created_at) DESC, kind ASC, id DESC LIMIT 12
-      ''');
+      Future<List<Map<String, Object?>>> recentEntries({String? from, String? until}) {
+        final filter = from == null ? '' : 'WHERE e.date >= ? AND e.date < ?';
+        final bounds = from == null ? const <Object?>[] : [from, until, from, until];
+        return txn.rawQuery('''
+          SELECT * FROM (SELECT e.id, e.account_id, e.amount, e.description AS note,
+            e.date, e.created_at, e.contact_name, e.contact_phone, e.category, e.mode,
+            a.name AS account_name, 'income' AS kind
+          FROM income e LEFT JOIN accounts a ON a.id=e.account_id
+          $filter
+          UNION ALL
+          SELECT e.id, e.account_id, e.amount, e.note,
+            e.date, e.created_at, e.contact_name, e.contact_phone, e.category, e.mode,
+            a.name AS account_name, 'expense' AS kind
+          FROM expenses e LEFT JOIN accounts a ON a.id=e.account_id
+          $filter)
+          ORDER BY date DESC, datetime(created_at) DESC, kind ASC, id DESC LIMIT 12
+        ''', bounds);
+      }
+
+      final recent = await recentEntries();
       var totalIncome = 0;
       var totalExpense = unassigned;
       var totalBalance = -unassigned;
@@ -56,6 +64,7 @@ class AnalysisLogic {
       }
       final today = DateUtils.indiaToday();
       final first = DateUtils.formatDate(DateTime(today.year, today.month - 1));
+      final current = DateUtils.formatDate(DateTime(today.year, today.month));
       final end = DateUtils.formatDate(DateTime(today.year, today.month + 1));
       final analytics = includeDashboardAnalytics ? await txn.rawQuery('''
         SELECT month, week, kind, category, SUM(paise) AS paise
@@ -83,6 +92,10 @@ class AnalysisLogic {
         'unassignedExpenseCount': legacy.single['count'],
         'recentTransactions': recent,
         'dashboardAnalytics': analytics,
+        if (includeDashboardAnalytics) ...{
+          'recentThisMonth': await recentEntries(from: current, until: end),
+          'recentLastMonth': await recentEntries(from: first, until: current),
+        },
       };
     });
   }

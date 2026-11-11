@@ -139,14 +139,32 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'recorded income');
     await tester.pumpAndSettle();
-    expect(find.text('Recorded income'), findsOneWidget);
+    expect(find.text('Ravi Sharma'), findsOneWidget);
     expect(find.text('Recorded expense'), findsNothing);
     await tester.tap(find.text('Filter'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Expenses').last);
     await tester.pumpAndSettle();
-    expect(find.text('Recorded income'), findsNothing);
+    expect(find.text('Ravi Sharma'), findsNothing);
     expect(find.text('No recent entries to show.'), findsOneWidget);
+  });
+
+  testWidgets('Timeline period uses the matching recent entries', (tester) async {
+    final rows = data['recentTransactions'] as List;
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: SingleChildScrollView(
+      child: DashboardTemplateView(layout: DashboardLayout.dashboard6,
+        data: {...data, 'recentThisMonth': [rows.first], 'recentLastMonth': [rows.last]},
+        onNavigate: (_) {}),
+    ))));
+    expect(find.text('Ravi Sharma'), findsOneWidget);
+    expect(find.text('Recorded expense'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('recent-period')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Last month'));
+    await tester.pumpAndSettle();
+    expect(find.text('Ravi Sharma'), findsNothing);
+    expect(find.text('Recorded expense'), findsOneWidget);
+    expect(tester.widget<Text>(find.byKey(const ValueKey('metric-0'))).data, '₹31,500.00');
   });
 
   testWidgets('Overview changes period without changing all-time totals', (tester) async {
