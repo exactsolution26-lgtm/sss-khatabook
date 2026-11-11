@@ -45,6 +45,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         title: Text(settings.text('appTitle')),
         actions: [
           IconButton(
+            tooltip: settings.text('accounts'),
+            icon: const Icon(Icons.account_balance_outlined),
+            onPressed: () => _open('/accounts'),
+          ),
+          IconButton(
             tooltip: settings.hideDashboardAmounts
                 ? (hindi ? 'राशि दिखाएं' : 'Show amounts') : (hindi ? 'राशि छिपाएं' : 'Hide amounts'),
             icon: Icon(settings.hideDashboardAmounts ? Icons.visibility_off_outlined : Icons.visibility_outlined),
