@@ -68,8 +68,10 @@ const path = require('node:path');
   };
   const fillProfileInput = (label, value) =>
     fillInput(page.getByRole('textbox', {name:label, exact:true}), label, value);
+  // A visible Flutter tooltip can repeat the button's accessible name.
+  const backButton = () => page.getByRole('button', {name: /^Back(?:\s+Back)?$/});
   const goBackTo = async destination => {
-    const back = page.getByRole('button', {name:'Back',exact:true});
+    const back = backButton();
     const control = await back.elementHandle();
     let clickError;
     try {
@@ -123,7 +125,7 @@ const path = require('node:path');
   // Reload retains the /accounts route. Verify its record, then use the real Back control.
   await record().waitFor();
   assert.match(await record().getAttribute('aria-label'), /Opening: ₹100\.00/);
-  await page.getByRole('button', {name:'Back', exact:true}).click();
+  await backButton().click();
   await activeDashboard('Classic').waitFor();
   await text('Change dashboard').click();
   await page.getByRole('button', {name:/\bClassic\b/}).click();
@@ -134,7 +136,7 @@ const path = require('node:path');
   await text('Change dashboard').click();
   await page.getByRole('button', {name:/\bTimeline\b/}).click();
   await text('Compact').click();
-  await page.getByRole('button', {name:'Back', exact:true}).click();
+  await backButton().click();
   await activeDashboard('Timeline').waitFor();
   await page.screenshot({path:'web-dashboard-desktop.png'});
   await openProfile();
@@ -156,7 +158,7 @@ const path = require('node:path');
   await page.screenshot({path: 'web-desktop.png'});
   await page.setViewportSize({width: 390, height: 844});
   await page.screenshot({path: 'web-mobile.png'});
-  await page.getByRole('button', {name:'Back', exact:true}).click();
+  await backButton().click();
   await activeDashboard('Timeline').waitFor();
   await page.waitForFunction(() => navigator.serviceWorker.controller !== null, null, {timeout:60000});
   await context.setOffline(true);
@@ -174,7 +176,7 @@ const path = require('node:path');
   await openAccounts(); await record().waitFor();
   assert.match(await record().getAttribute('aria-label'), /Opening: ₹100\.00/);
   await page.screenshot({path:'web-offline-cold-start.png'});
-  await page.getByRole('button',{name:'Back',exact:true}).click();
+  await backButton().click();
   await activeDashboard('Timeline').waitFor();
   await openProfile();
   await focusProfileInput('Business name');
@@ -197,8 +199,8 @@ const path = require('node:path');
   await text('Replace records').click();
   await page.locator('flt-semantics-host').getByText(/^Records restored successfully/).first().waitFor({timeout:60000});
   await page.screenshot({path:'web-backup-restored-offline.png'});
-  await page.getByRole('button', {name:'Back',exact:true}).click();
-  await page.getByRole('button', {name:'Back',exact:true}).click();
+  await backButton().click();
+  await backButton().click();
   await openAccounts();
   await record().waitFor();
   assert.match(await record().getAttribute('aria-label'), /Opening: ₹100\.00/);
