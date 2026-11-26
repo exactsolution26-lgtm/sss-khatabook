@@ -164,9 +164,13 @@ jobs:
               assert "versionName='1.0.2'" in text
               assert int(re.search(r"versionCode='(\d+)'",text).group(1))>=102
               with zipfile.ZipFile(apk) as archive:
-                  artwork = [name for name in archive.namelist() if name.endswith('/sss_launcher_art.webp')]
-                  assert len(artwork) == 1, 'Approved launcher icon missing from APK'
-                  assert archive.read(artwork[0]) == Path('assets/branding/launcher.webp').read_bytes()
+                  # Android resource optimization may rename packaged resource paths.
+                  # Verify the approved bytes rather than relying on source filenames.
+                  approved = Path('assets/branding/launcher.webp').read_bytes()
+                  artwork = [name for name in archive.namelist() if name.startswith('res/')
+                             and name.endswith('.webp') and archive.read(name) == approved]
+                  assert artwork, 'Approved launcher artwork bytes missing from APK'
+                  print(f'{apk.name}: approved icon bytes verified at {artwork}')
               if 'arm64-v8a' in apk.name:
                   with zipfile.ZipFile(apk) as archive:
                       arches={name.split('/')[1] for name in archive.namelist() if name.startswith('lib/') and name.endswith('.so')}
