@@ -73,9 +73,12 @@ void main(){
   });
   test('strict CSV parser supports BOM, quotes/newlines and validates every row',(){
     final rows=CsvImport.parse('\ufeff'+csv('income,$account,100.10,2026-11-04,Sales,cash,Ravi,9876543210,"Sale, with ""quotes""\nand newline",abc\r\n'));
+    final nameOnly = CsvImport.parse(csv('expense,$account,1,2026-11-04,Other,cash,shambhu,,,name-only')).single;
+    expect(nameOnly.name, 'shambhu');
+    expect(nameOnly.phone, isEmpty);
     expect(rows.single.note,'Sale, with "quotes"\nand newline');expect(rows.single.phone,'+919876543210');expect(rows.single.paise,10010);
     for(final text in [csv('income,$account,0,2026-11-04,Sales,cash,,,,x'),csv('income,$account,1,2026-02-30,Sales,cash,,,,x'),
-      csv('income,$account,1,2099-01-01,Sales,cash,,,,x'),csv('income,$account,1,2026-11-04,Sales,cash,Ravi,,,x'),csv('"unclosed')]){
+      csv('income,$account,1,2099-01-01,Sales,cash,,,,x'),csv('income,$account,1,2026-11-04,Sales,cash,Ravi,invalid,,x'),csv('"unclosed')]){
       expect(()=>CsvImport.parse(text),throwsFormatException);
     }
   });
