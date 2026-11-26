@@ -36,7 +36,7 @@ class RecordRecovery {
         category.trim().isEmpty || category.length > 60 || !['cash','online','bank','upi','card'].contains(mode)) {
       throw ArgumentError('Check date, category, note and payment mode');
     }
-    final contact = PartySnapshot.optional(name,phone);
+    final contact = PartySnapshot.optional(name,phone, allowNameOnly: true);
     await (await DBHelper.database).transaction((txn) async {
       await _requireActiveAccount(txn, accountId);
       await _unallocated(txn,income,id);

@@ -23,7 +23,7 @@ class IncomeController {
     _validate(income);
     Money.parse(income.amount.toString());
     final db = await _dbHelper.database;
-    final snapshot = PartySnapshot.optional(income.contactName, income.contactPhone);
+    final snapshot = PartySnapshot.optional(income.contactName, income.contactPhone, allowNameOnly: true);
     final values = income.toMap()
       ..remove('id')
       ..['created_at'] = DateTime.now().toUtc().toIso8601String()
@@ -76,7 +76,7 @@ class IncomeController {
     _validate(income);
     if (income.id == null) throw ArgumentError('Income ID required');
     final db = await _dbHelper.database;
-    final snapshot = PartySnapshot.optional(income.contactName, income.contactPhone);
+    final snapshot = PartySnapshot.optional(income.contactName, income.contactPhone, allowNameOnly: true);
     return db.transaction((txn) async {
       final original = await txn.query(IncomeTable.tableName,
         where: 'id = ? AND account_id = ?', whereArgs: [income.id, income.accountId]);

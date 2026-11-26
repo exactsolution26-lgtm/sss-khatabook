@@ -96,6 +96,7 @@ const uiTranslations=<String,String>{
   "Edit entry": "एंट्री बदलें",
   "Enable device reminder": "डिवाइस रिमाइंडर चालू करें",
   "Enable encrypted checkpoints for this browser session": "इस ब्राउज़र सत्र में एन्क्रिप्टेड बैकअप चालू करें",
+  "Enter a contact name. Leave the mobile number blank or enter a valid number.": "संपर्क नाम भरें। मोबाइल नंबर खाली छोड़ें या सही नंबर भरें।",
   "Enter a contact name and valid phone number, or leave both empty.": "संपर्क नाम और सही फोन नंबर दें, या दोनों खाली रखें।",
   "Enter a valid positive amount": "सही धनात्मक राशि दें।",
   "Enter valid non-negative balances": "शून्य या उससे अधिक सही बैलेंस दें।",

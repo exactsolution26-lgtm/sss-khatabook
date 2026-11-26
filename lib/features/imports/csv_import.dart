@@ -50,7 +50,7 @@ class CsvImport {
         final kind=r[0].trim().toLowerCase(),account=int.tryParse(r[1].trim());
         final paise=Money.parse(r[2]),date=r[3].trim(),parsed=DateTime.tryParse(date);
         final category=r[4].trim().isEmpty?'Other':r[4].trim(),mode=r[5].trim().toLowerCase();
-        final contact=PartySnapshot.optional(r[6],r[7]);final external=r[9].trim();
+        final contact=PartySnapshot.optional(r[6],r[7], allowNameOnly: true);final external=r[9].trim();
         if(!['income','expense'].contains(kind)||account==null||account<=0||parsed==null||
           !RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(date)||dates.DateUtils.formatDate(parsed)!=date||
           parsed.isAfter(dates.DateUtils.indiaToday())||parsed.year<2000||category.length>60||r[8].length>2000||

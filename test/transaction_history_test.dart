@@ -284,7 +284,7 @@ void main() {
     await tester.enterText(find.widgetWithText(TextFormField,'Amount'), '25.25');
     await tester.scrollUntilVisible(find.text('Save Income'),200,scrollable:find.byType(Scrollable).first);
     await tester.tap(find.text('Save Income'));await tester.pumpAndSettle();
-    expect(find.text('Saved ✓'),findsOneWidget);
+    expect(find.text('Income saved successfully'),findsOneWidget);
     await tester.pageBack();await tester.pumpAndSettle();
     expect(find.text('₹325.55'),findsOneWidget);
     expect(tester.takeException(),isNull);

@@ -11,7 +11,7 @@ class ExpenseTable {
     }
     Money.parse(expense.amount.toString());
     final db = await DBHelper.database;
-    final snapshot = PartySnapshot.optional(expense.contactName, expense.contactPhone);
+    final snapshot = PartySnapshot.optional(expense.contactName, expense.contactPhone, allowNameOnly: true);
     final values = expense.toMap()
       ..remove('id')
       ..['created_at'] = DateTime.now().toUtc().toIso8601String()

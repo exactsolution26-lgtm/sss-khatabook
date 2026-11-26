@@ -34,7 +34,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
   final _contactPhone = TextEditingController();
   String _category = 'Other';
   String _mode = 'cash';
-  IncomeModel? _lastSaved;
+  int _formRevision = 0;
   final attachments = ValueNotifier<List<PendingAttachment>>([]);
   final _accountController = AccountController();
 
@@ -46,9 +46,6 @@ class _IncomeScreenState extends State<IncomeScreen> {
   @override
   void initState() {
     super.initState();
-    _amountController.addListener(() {
-      if (_lastSaved != null && _amountController.text.isNotEmpty) setState(() => _lastSaved = null);
-    });
     _loadAccounts();
   }
 
@@ -110,11 +107,18 @@ class _IncomeScreenState extends State<IncomeScreen> {
         contactName: _contactName.text, contactPhone: _contactPhone.text,
       );
 
-      final id = await _incomeController.createIncome(income, attachments: attachments.value);
-      final recorded = await _incomeController.getIncomeById(id);
+      await _incomeController.createIncome(income, attachments: attachments.value);
 
       if (mounted) {
-        setState(() => _lastSaved = recorded);
+        _formKey.currentState?.reset();
+        _contactName.clear();
+        _contactPhone.clear();
+        setState(() {
+          _category = 'Other';
+          _mode = 'cash';
+          _selectedDate = khata_dates.DateUtils.indiaToday();
+          _formRevision++;
+        });
         attachments.value = [];
         ScaffoldMessenger.of(
           context,
@@ -124,7 +128,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
       }
     } on ArgumentError {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: AppText('Enter a contact name and valid phone number, or leave both empty.')));
+        const SnackBar(content: AppText('Enter a contact name. Leave the mobile number blank or enter a valid number.')));
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -158,7 +162,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
           key: _formKey,
           child: ListView(
             children: [
-              VoiceEntryButton(income: true,onConfirmed: (draft) {setState(() {if(draft.amount!=null) _amountController.text=draft.amount!;_descriptionController.text=draft.transcript;_lastSaved=null;});}),
+              VoiceEntryButton(income: true,onConfirmed: (draft) {setState(() {if(draft.amount!=null) _amountController.text=draft.amount!;_descriptionController.text=draft.transcript;});}),
               const HeaderText(text: AppStrings.addIncome),
               const SizedBox(height: 24),
               DropdownButtonFormField<AccountModel>(
@@ -188,9 +192,9 @@ class _IncomeScreenState extends State<IncomeScreen> {
                 validator: ValidationUtils.validateAmount,
               ),
               const SizedBox(height: 16),
-              CategoryField(income: true, onChanged: (value) => _category = value),
+              CategoryField(key: ValueKey(_formRevision), income: true, onChanged: (value) => _category = value),
               const SizedBox(height: 16),
-              DropdownButtonFormField<String>(initialValue: _mode,
+              DropdownButtonFormField<String>(key: ValueKey('income-mode-$_formRevision'), initialValue: _mode,
                 decoration: const InputDecoration(labelText: 'Payment mode'),
                 items: const [DropdownMenuItem(value: 'cash', child: AppText('Cash')),
                   DropdownMenuItem(value: 'online', child: AppText('Online'))],
@@ -221,23 +225,10 @@ class _IncomeScreenState extends State<IncomeScreen> {
               AttachmentPicker(selected: attachments),
               const SizedBox(height: 12),
               SimpleButton(
-                text: _lastSaved == null ? AppStrings.saveIncome : 'Saved ✓',
-                onPressed: _isLoading || _lastSaved != null ? null : _saveIncome,
+                text: AppStrings.saveIncome,
+                onPressed: _isLoading ? null : _saveIncome,
                 isLoading: _isLoading,
               ),
-              if (_lastSaved != null) Padding(padding: const EdgeInsets.only(top: 16),
-                child: Semantics(liveRegion: true, child: Card(
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  child: Padding(padding: const EdgeInsets.all(16),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text('Income saved ✓ · ₹${_lastSaved!.amount.toStringAsFixed(2)}'),
-                      Text(_lastSaved!.category ?? ''),
-                      if (_lastSaved!.contactName != null) Text('${_lastSaved!.contactName} · ${_lastSaved!.contactPhone}'),
-                      Text('Saved at: ${khata_dates.DateUtils.formatIstDateTime(_lastSaved!.createdAt)}'),
-                      TextButton(onPressed: () => Navigator.push(context, MaterialPageRoute<void>(builder: (_) => AttachmentScreen(entryId: _lastSaved!.id!, income: true))), child: const AppText('View Attachments')),
-                      TextButton(onPressed: () => setState(() => _lastSaved = null), child: const AppText('Add another entry')),
-                    ])),
-                ))),
             ],
           ),
         ),

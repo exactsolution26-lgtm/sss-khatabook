@@ -27,7 +27,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
   final categoryController = TextEditingController(text: 'Other');
   final contactName = TextEditingController();
   final contactPhone = TextEditingController();
-  ExpenseModel? lastSaved;
+  int _formRevision = 0;
   final attachments = ValueNotifier<List<PendingAttachment>>([]);
   DateTime selectedDate = dates.DateUtils.indiaToday();
   final noteController = TextEditingController();
@@ -40,9 +40,6 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
   @override
   void initState() {
     super.initState();
-    amountController.addListener(() {
-      if (lastSaved != null && amountController.text.isNotEmpty) setState(() => lastSaved = null);
-    });
     _loadAccounts();
   }
 
@@ -84,7 +81,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
       padding: const EdgeInsets.all(16),
       child: ListView(
         children: [
-          VoiceEntryButton(income: false,onConfirmed: (draft) {setState(() {if(draft.amount!=null) amountController.text=draft.amount!;noteController.text=draft.transcript;lastSaved=null;});}),
+          VoiceEntryButton(income: false,onConfirmed: (draft) {setState(() {if(draft.amount!=null) amountController.text=draft.amount!;noteController.text=draft.transcript;});}),
           if (loadError != null)
             TextButton(
               onPressed: _loadAccounts,
@@ -119,7 +116,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
             },
           ),
           const SizedBox(height: 12),
-          CategoryField(income: false, onChanged: (value) => categoryController.text = value),
+          CategoryField(key: ValueKey(_formRevision), income: false, onChanged: (value) => categoryController.text = value),
           const SizedBox(height: 12),
           ContactFields(name: contactName, phone: contactPhone),
           const SizedBox(height: 12),
@@ -133,9 +130,9 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
           AttachmentPicker(selected: attachments),
           const SizedBox(height: 12),
           SimpleButton(
-            text: lastSaved == null ? 'Save Expense' : 'Saved ✓',
+            text: 'Save Expense',
             isLoading: saving,
-            onPressed: lastSaved != null ? null : () async {
+            onPressed: () async {
               if (saving) return;
               if (accountId == null) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -156,7 +153,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
               FocusScope.of(context).unfocus();
               setState(() => saving = true);
               try {
-                final recorded = await controller.saveExpense(
+                await controller.saveExpense(
                   ExpenseModel(
                     accountId: accountId,
                     amount: amount,
@@ -169,7 +166,14 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                   attachments: attachments.value,
                 );
                 if (!mounted) return;
-                setState(() => lastSaved = recorded);
+                contactName.clear();
+                contactPhone.clear();
+                categoryController.text = 'Other';
+                setState(() {
+                  mode = 'cash';
+                  selectedDate = dates.DateUtils.indiaToday();
+                  _formRevision++;
+                });
                 attachments.value = [];
                 amountController.clear();
                 noteController.clear();
@@ -178,7 +182,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                 ).showSnackBar(const SnackBar(content: AppText('Expense saved')));
               } on ArgumentError {
                 if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: AppText('Enter a contact name and valid phone number, or leave both empty.')));
+                  const SnackBar(content: AppText('Enter a contact name. Leave the mobile number blank or enter a valid number.')));
               } catch (_) {
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -189,19 +193,6 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
               }
             },
           ),
-          if (lastSaved != null) Padding(padding: const EdgeInsets.only(top: 16),
-            child: Semantics(liveRegion: true, child: Card(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              child: Padding(padding: const EdgeInsets.all(16),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Expense saved ✓ · ₹${lastSaved!.amount.toStringAsFixed(2)}'),
-                  Text(lastSaved!.category),
-                  if (lastSaved!.contactName != null) Text('${lastSaved!.contactName} · ${lastSaved!.contactPhone}'),
-                  Text('Saved at: ${dates.DateUtils.formatIstDateTime(lastSaved!.createdAt!)}'),
-                  TextButton(onPressed: () => Navigator.push(context, MaterialPageRoute<void>(builder: (_) => AttachmentScreen(entryId: lastSaved!.id!, income: false))), child: const AppText('View Attachments')),
-                  TextButton(onPressed: () => setState(() => lastSaved = null), child: const AppText('Add another entry')),
-                ])),
-            ))),
         ],
       ),
     )),

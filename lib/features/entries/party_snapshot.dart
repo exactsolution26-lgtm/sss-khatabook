@@ -3,10 +3,13 @@ class PartySnapshot {
   final String name;
   final String phone;
 
-  static PartySnapshot? optional(String? name, String? phone) {
+  static PartySnapshot? optional(String? name, String? phone, {bool allowNameOnly = false}) {
     final cleanName = (name ?? '').trim();
     var raw = (phone ?? '').trim();
     if (cleanName.isEmpty && raw.isEmpty) return null;
+    if (allowNameOnly && cleanName.isNotEmpty && cleanName.length <= 120 && raw.isEmpty) {
+      return PartySnapshot(cleanName, '');
+    }
     if (cleanName.isEmpty || cleanName.length > 120 || raw.isEmpty ||
         !RegExp(r'^\+?[0-9\s().-]+$').hasMatch(raw)) {
       throw ArgumentError('Enter a contact name and valid phone number');
