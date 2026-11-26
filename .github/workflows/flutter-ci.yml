@@ -79,6 +79,8 @@ jobs:
           path: design-evidence/
           if-no-files-found: ignore
           retention-days: 7
+      - name: Install icon packaging dependency
+        run: python3 -m pip install Pillow==11.3.0
       - name: SQLite v1 migration fixture tests
         if: ${{ !cancelled() }}
         run: timeout 60s python3 -m unittest discover -s test_tools -p '*_check.py' -v
@@ -105,6 +107,10 @@ jobs:
           cache: true
       - name: Generate temporary Android and Web runners
         run: flutter create --platforms=android,web --project-name offline_khata_app .
+      - name: Apply approved launcher and Web icons
+        run: |
+          python3 -m pip install Pillow==11.3.0
+          python3 scripts/apply_branding.py
       - name: Resolve dependencies
         run: flutter pub get
       - name: Enable Android core library desugaring
@@ -157,6 +163,10 @@ jobs:
               assert "name='com.sss.khatabook.preview'" in text
               assert "versionName='1.0.2'" in text
               assert int(re.search(r"versionCode='(\d+)'",text).group(1))>=102
+              with zipfile.ZipFile(apk) as archive:
+                  artwork = [name for name in archive.namelist() if name.endswith('/sss_launcher_art.webp')]
+                  assert len(artwork) == 1, 'Approved launcher icon missing from APK'
+                  assert archive.read(artwork[0]) == Path('assets/branding/launcher.webp').read_bytes()
               if 'arm64-v8a' in apk.name:
                   with zipfile.ZipFile(apk) as archive:
                       arches={name.split('/')[1] for name in archive.namelist() if name.startswith('lib/') and name.endswith('.so')}
@@ -196,6 +206,10 @@ jobs:
           cache: true
       - name: Generate temporary Web runner
         run: flutter create --platforms=web --project-name offline_khata_app .
+      - name: Apply approved Web icons
+        run: |
+          python3 -m pip install Pillow==11.3.0
+          python3 scripts/apply_branding.py
       - name: Use one offline worker owner
         run: cp test_tools/browser/flutter_bootstrap.js web/flutter_bootstrap.js
       - name: Resolve dependencies
