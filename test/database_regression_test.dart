@@ -477,16 +477,23 @@ void main() {
     expect(row['created_at'], saved.createdAt!.toIso8601String());
   });
 
-  test('incomplete or invalid contact snapshots cannot create financial rows', () async {
+  test('invalid contact snapshots cannot create financial rows; name-only entries can', () async {
     await AccountTable.saveAccount(name: 'Account', openingBalance: 1000);
     final account = (await AccountTable.getAllAccounts()).single;
-    for (final contact in [('', '9876543210'), ('Name', ''), ('Name', 'abc'), ('Name', '+0000000')]) {
+    for (final contact in [('', '9876543210'), ('Name', 'abc'), ('Name', '+0000000')]) {
       await expectLater(ExpenseController().saveExpense(ExpenseModel(
         accountId: account.id, amount: 1, mode: 'cash', category: 'Other',
         note: '', date: '2026-11-04', contactName: contact.$1, contactPhone: contact.$2)),
         throwsArgumentError);
     }
-    expect(await (await DBHelper.database).query('expenses'), isEmpty);
+    final db = await DBHelper.database;
+    expect(await db.query('expenses'), isEmpty);
+    await ExpenseController().saveExpense(ExpenseModel(
+      accountId: account.id, amount: 1, mode: 'cash', category: 'Other',
+      note: '', date: '2026-11-04', contactName: 'Name', contactPhone: ''));
+    final expense = (await db.query('expenses')).single;
+    expect(expense['contact_name'], 'Name');
+    expect(expense['contact_phone'], '');
   });
 
   test('custom categories are durable, case-insensitive and separated by entry kind', () async {

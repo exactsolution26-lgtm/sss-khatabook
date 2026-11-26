@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:offline_khata_app/features/entries/attachment_widgets.dart';
 import 'package:offline_khata_app/features/entries/attachments.dart';
 import 'dart:ui' as ui;
